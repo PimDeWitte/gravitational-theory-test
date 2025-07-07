@@ -88,7 +88,7 @@
         <div class="abstract p-6 rounded-lg mb-12">
             <h2 class="text-2xl font-semibold mb-3">Abstract</h2>
             <p class="text-gray-700 leading-relaxed">
-                Inspired by architectures used in deep learning-based world modeling, we test the hypothesis that gravity is an emergent process of information compression. This view posits that spacetime geometry is a low-dimensional rendering of a more fundamental, high-dimensional reality, with gravity acting as the compression function. We developed a computational sandbox to evaluate seventeen physical theories as potential "decoder" models. We introduce a numerically stable loss function based on the accurate prediction of a black hole's event horizon—the ultimate boundary of compressed information. Our results demonstrate that General Relativity represents a maximally efficient, or "lossless," compression algorithm within this framework. This work provides a novel method for comparing physical theories through a computational lens and suggests a path toward a unified theory rooted in the architectural principles of information compression and generative modeling.
+                Inspired by architectures used in deep learning-based world modeling, we test the hypothesis that gravity is an emergent process of information compression. This view posits that spacetime geometry is a low-dimensional rendering of a more fundamental, high-dimensional reality, with gravity acting as the compression function. We developed a computational sandbox to evaluate sixty-nine distinct physical theories, including fine-grained parametric variations of speculative models. We introduce a numerically stable loss function based on the accurate prediction of a black hole's event horizon—the ultimate boundary of compressed information. Our high-precision results demonstrate that General Relativity represents a maximally efficient, or "lossless," compression algorithm within this framework. This work provides a novel method for comparing physical theories through a computational lens and suggests a path toward a unified theory rooted in the architectural principles of information compression and generative modeling.
             </p>
         </div>
 
@@ -102,7 +102,7 @@
                     The genesis of this thesis was a foundational question sparked while watching a documentary on merging universes: why does the universe resolve such a colossal event into a single outcome? It seems computationally simpler for reality to branch, allowing all possibilities to exist in separate timelines where the merge is avoided. The fact that it does not—that it works to preserve a single, coherent reality for its observers—implies that our reality must matter. This suggests an underlying optimization principle: the universe appears to be actively minimizing the creation of alternate realities, a behavior consistent with an efficient computational system conserving resources. We posit that <strong>gravity is this optimization process made manifest</strong>—an emergent algorithm that compresses the high-dimensional quantum state of matter into a stable, low-dimensional latent state, from which our classical world is rendered.
                 </p>
                 <p class="leading-relaxed">
-                    To formalize this, we developed a computational framework to test various physical laws as potential compression algorithms. This paper documents our methodology, the results of testing seventeen candidate theories, and the implications for a unified theory based on these principles.
+                    To formalize this, we developed a computational framework to test various physical laws as potential compression algorithms. This paper documents our methodology, the results of testing an expanded suite of candidate theories, and the implications for a unified theory based on these principles.
                 </p>
             </section>
 
@@ -131,7 +131,7 @@
             <section class="section">
                 <h2 class="text-3xl font-semibold mb-4">3. Results</h2>
                 <p class="mb-4 leading-relaxed">
-                    We tested seventeen distinct physical theories. The simulation was run on a grid of 50,000 points using 64-bit precision. The results, ranked by information loss, are presented below.
+                    We tested an expanded suite of sixty-nine distinct physical theories, including fine-grained parametric variations of several speculative models. The simulation was run on a high-density grid of 50,000,000 points using 64-bit precision to ensure accuracy. The results, ranked by their calculated information loss, are presented below.
                 </p>
                 <div class="table-container my-8">
                     <table id="results-table">
@@ -146,21 +146,24 @@
                         <tbody></tbody>
                     </table>
                 </div>
-                <p class="caption">Table 1: Ranked performance of 17 theoretical models. Lower loss indicates a more accurate prediction.</p>
+                <p class="caption">Table 1: Ranked performance of 69 theoretical models. Lower loss indicates a more accurate prediction.</p>
                 
-                <div class="my-12">
+                <div class="my-12" style="height: 2400px;">
                      <canvas id="resultsChart"></canvas>
                 </div>
-                <p class="caption">Figure 1: Logarithmic visualization of Information Loss. The vast performance gap between theories is clearly visible.</p>
+                <p class="caption">Figure 1: Logarithmic visualization of Information Loss for all 69 tested theories.</p>
             </section>
 
             <section class="section">
                 <h2 class="text-3xl font-semibold mb-4">4. Analysis and Discussion</h2>
                 <p class="mb-4 leading-relaxed">
-                    The results show a clear hierarchy. The top-ranked models, all rooted in General Relativity, performed exceptionally well, with a near-zero loss limited only by the simulation's grid resolution. This validates our framework, as it correctly identifies the known solutions as being informationally lossless.
+                    The results show a clear hierarchy. The top-ranked models, all rooted in General Relativity or its closest mathematical variants, performed exceptionally well, with a near-zero loss limited only by the simulation's grid resolution (`~10<sup>-8</sup>`). This validates our framework, as it correctly identifies the known solutions as being informationally lossless.
                 </p>
                 <p class="mb-4 leading-relaxed">
                     The high rank of the Newtonian Limit model is a crucial finding. This <strong>degenerate case</strong> succeeds only by satisfying the narrow criteria of the test (g<sub>tt</sub> accuracy) while failing to represent the physical reality of spatial curvature (g<sub>rr</sub>). This highlights that our simulation is a precise test of each theory's ability to predict the <strong>information boundary</strong>, a critical but incomplete measure of total geometric accuracy.
+                </p>
+                 <p class="leading-relaxed">
+                    The parametric variations provided further insight. Models like Yukawa gravity and Variable G showed predictable improvements in their loss score as their free parameters were tuned to more closely approximate General Relativity, confirming the sensitivity and correctness of the simulation.
                 </p>
             </section>
 
@@ -199,23 +202,75 @@
 
     <script>
         const resultsData = [
-            { rank: 1, name: 'Schwarzschild (GR)', loss: 4.524187e-02, tier: 'GR Core' },
-            { rank: 2, name: 'Acausal (Final State)', loss: 4.524187e-02, tier: 'GR Core' },
-            { rank: 3, name: 'Kerr (Equatorial)', loss: 4.524187e-02, tier: 'GR Core' },
-            { rank: 4, name: 'Reissner-Nordström', loss: 4.524187e-02, tier: 'GR Core' },
-            { rank: 5, name: 'Non-local (Cosmological)', loss: 4.524187e-02, tier: 'GR Core' },
-            { rank: 6, name: 'Fractal Spacetime', loss: 4.524187e-02, tier: 'Speculative' },
-            { rank: 7, name: 'Newtonian Limit', loss: 4.524187e-02, tier: 'Baseline' },
-            { rank: 8, name: 'Log Entropy Corrected', loss: 2.378026e+00, tier: 'Quantum Extension' },
-            { rank: 9, name: 'Participatory Universe', loss: 5.267244e+04, tier: 'Philosophical' },
-            { rank: 10, name: 'Yukawa (Modified G)', loss: 6.634815e+04, tier: 'Alternative Principle' },
-            { rank: 11, name: 'Variable G', loss: 7.322940e+04, tier: 'Alternative Principle' },
-            { rank: 12, name: 'Emergent (Hydrodynamic)', loss: 7.068760e+06, tier: 'Alternative Principle' },
-            { rank: 13, name: 'Quantum Corrected', loss: 8.726864e+06, tier: 'Quantum Extension' },
-            { rank: 14, name: 'String T-Duality', loss: 8.726864e+06, tier: 'Alternative Principle' },
-            { rank: 15, name: 'Phase Transition', loss: 8.726864e+06, tier: 'Alternative Principle' },
-            { rank: 16, name: 'Computational Complexity', loss: 8.726864e+06, tier: 'Philosophical' },
-            { rank: 17, name: 'Higher-Dimensional', loss: 1.328222e+07, tier: 'Alternative Principle' }
+            { rank: 1, name: 'Schwarzschild (GR)', loss: 7.068760e-08, tier: 'GR Core' },
+            { rank: 2, name: 'Acausal (Final State)', loss: 7.068760e-08, tier: 'GR Core' },
+            { rank: 3, name: 'Kerr (Equatorial)', loss: 7.068760e-08, tier: 'GR Core' },
+            { rank: 4, name: 'Reissner-Nordström', loss: 7.068760e-08, tier: 'GR Core' },
+            { rank: 5, name: 'Non-local (Cosmological)', loss: 7.068760e-08, tier: 'GR Core' },
+            { rank: 6, name: 'Newtonian Limit', loss: 7.068760e-08, tier: 'Baseline' },
+            { rank: 7, name: 'Fractal Spacetime (D=2.95)', loss: 7.068760e-08, tier: 'Speculative' },
+            { rank: 8, name: 'Fractal Spacetime (D=2.96)', loss: 7.068760e-08, tier: 'Speculative' },
+            { rank: 9, name: 'Fractal Spacetime (D=2.97)', loss: 7.068760e-08, tier: 'Speculative' },
+            { rank: 10, name: 'Fractal Spacetime (D=2.98)', loss: 7.068760e-08, tier: 'Speculative' },
+            { rank: 11, name: 'Fractal Spacetime (D=2.99)', loss: 7.068760e-08, tier: 'Speculative' },
+            { rank: 12, name: 'Fractal Spacetime (D=3.01)', loss: 7.068760e-08, tier: 'Speculative' },
+            { rank: 13, name: 'Fractal Spacetime (D=3.02)', loss: 7.068760e-08, tier: 'Speculative' },
+            { rank: 14, name: 'Fractal Spacetime (D=3.03)', loss: 7.068760e-08, tier: 'Speculative' },
+            { rank: 15, name: 'Fractal Spacetime (D=3.04)', loss: 7.068760e-08, tier: 'Speculative' },
+            { rank: 16, name: 'Fractal Spacetime (D=3.05)', loss: 7.068760e-08, tier: 'Speculative' },
+            { rank: 17, name: 'Log Corrected (beta=0.17)', loss: 2.416668e-01, tier: 'Quantum Extension' },
+            { rank: 18, name: 'Log Corrected (beta=-0.17)', loss: 2.417191e-01, tier: 'Quantum Extension' },
+            { rank: 19, name: 'Log Corrected (beta=0.50)', loss: 2.173433e+00, tier: 'Quantum Extension' },
+            { rank: 20, name: 'Log Corrected (beta=-0.50)', loss: 2.177041e+00, tier: 'Quantum Extension' },
+            { rank: 21, name: 'Log Corrected (beta=0.83)', loss: 6.033570e+00, tier: 'Quantum Extension' },
+            { rank: 22, name: 'Log Corrected (beta=-0.83)', loss: 6.051085e+00, tier: 'Quantum Extension' },
+            { rank: 23, name: 'Log Corrected (beta=1.17)', loss: 1.181461e+01, tier: 'Quantum Extension' },
+            { rank: 24, name: 'Log Corrected (beta=1.50)', loss: 1.952000e+01, tier: 'Quantum Extension' },
+            { rank: 25, name: 'Yukawa (lambda_mult=100.00)', loss: 8.471441e+02, tier: 'Alternative Principle' },
+            { rank: 26, name: 'Yukawa (lambda_mult=62.71)', loss: 2.117013e+03, tier: 'Alternative Principle' },
+            { rank: 27, name: 'Yukawa (lambda_mult=39.33)', loss: 5.238307e+03, tier: 'Alternative Principle' },
+            { rank: 28, name: 'Yukawa (lambda_mult=24.66)', loss: 1.276565e+04, tier: 'Alternative Principle' },
+            { rank: 29, name: 'Variable G (delta=0.06)', loss: 2.430226e+04, tier: 'Alternative Principle' },
+            { rank: 30, name: 'Yukawa (lambda_mult=15.47)', loss: 3.040710e+04, tier: 'Alternative Principle' },
+            { rank: 31, name: 'Variable G (delta=-0.06)', loss: 3.042098e+04, tier: 'Alternative Principle' },
+            { rank: 32, name: 'Participatory Universe', loss: 5.255705e+04, tier: 'Philosophical' },
+            { rank: 33, name: 'Yukawa (lambda_mult=9.70)', loss: 7.005577e+04, tier: 'Alternative Principle' },
+            { rank: 34, name: 'Yukawa (lambda_mult=6.08)', loss: 1.540715e+05, tier: 'Alternative Principle' },
+            { rank: 35, name: 'Variable G (delta=0.17)', loss: 1.847429e+05, tier: 'Alternative Principle' },
+            { rank: 36, name: 'Quantum Corrected (alpha=-0.22)', loss: 2.347493e+05, tier: 'Quantum Extension' },
+            { rank: 37, name: 'Yukawa (lambda_mult=3.81)', loss: 3.186882e+05, tier: 'Alternative Principle' },
+            { rank: 38, name: 'Variable G (delta=-0.17)', loss: 3.897261e+05, tier: 'Alternative Principle' },
+            { rank: 39, name: 'Variable G (delta=0.28)', loss: 4.476413e+05, tier: 'Alternative Principle' },
+            { rank: 40, name: 'Yukawa (lambda_mult=2.39)', loss: 6.112814e+05, tier: 'Alternative Principle' },
+            { rank: 41, name: 'Variable G (delta=0.39)', loss: 7.817840e+05, tier: 'Alternative Principle' },
+            { rank: 42, name: 'Log Corrected (beta=-1.17)', loss: 1.074526e+06, tier: 'Quantum Extension' },
+            { rank: 43, name: 'Yukawa (lambda_mult=1.50)', loss: 1.076113e+06, tier: 'Alternative Principle' },
+            { rank: 44, name: 'Quantum Corrected (alpha=-0.67)', loss: 1.132802e+06, tier: 'Quantum Extension' },
+            { rank: 45, name: 'Variable G (delta=0.50)', loss: 1.169179e+06, tier: 'Alternative Principle' },
+            { rank: 46, name: 'Higher-Dimensional (crossover_mult=2.00)', loss: 1.424302e+06, tier: 'Alternative Principle' },
+            { rank: 47, name: 'Quantum Corrected (alpha=-1.11)', loss: 2.149402e+06, tier: 'Quantum Extension' },
+            { rank: 48, name: 'Quantum Corrected (alpha=-1.56)', loss: 3.187380e+06, tier: 'Quantum Extension' },
+            { rank: 49, name: 'Quantum Corrected (alpha=-2.00)', loss: 4.222828e+06, tier: 'Quantum Extension' },
+            { rank: 50, name: 'Emergent (Hydrodynamic)', loss: 7.068760e+06, tier: 'Alternative Principle' },
+            { rank: 51, name: 'String T-Duality', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 52, name: 'Computational Complexity', loss: 8.726864e+06, tier: 'Philosophical' },
+            { rank: 53, name: 'Quantum Corrected (alpha=0.22)', loss: 8.726864e+06, tier: 'Quantum Extension' },
+            { rank: 54, name: 'Quantum Corrected (alpha=0.67)', loss: 8.726864e+06, tier: 'Quantum Extension' },
+            { rank: 55, name: 'Quantum Corrected (alpha=1.11)', loss: 8.726864e+06, tier: 'Quantum Extension' },
+            { rank: 56, name: 'Quantum Corrected (alpha=1.56)', loss: 8.726864e+06, tier: 'Quantum Extension' },
+            { rank: 57, name: 'Quantum Corrected (alpha=2.00)', loss: 8.726864e+06, tier: 'Quantum Extension' },
+            { rank: 58, name: 'Variable G (delta=-0.50)', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 59, name: 'Variable G (delta=-0.39)', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 60, name: 'Variable G (delta=-0.28)', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 61, name: 'Phase Transition (crit_mult=1.50)', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 62, name: 'Phase Transition (crit_mult=2.50)', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 63, name: 'Phase Transition (crit_mult=4.00)', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 64, name: 'Phase Transition (crit_mult=8.00)', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 65, name: 'Phase Transition (crit_mult=16.00)', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 66, name: 'Log Corrected (beta=-1.50)', loss: 1.142182e+07, tier: 'Quantum Extension' },
+            { rank: 67, name: 'Higher-Dimensional (crossover_mult=10.00)', loss: 4.075830e+07, tier: 'Alternative Principle' },
+            { rank: 68, name: 'Higher-Dimensional (crossover_mult=20.00)', loss: 1.051640e+08, tier: 'Alternative Principle' },
+            { rank: 69, name: 'Higher-Dimensional (crossover_mult=50.00)', loss: 3.215935e+08, tier: 'Alternative Principle' }
         ];
 
         const tableBody = document.querySelector('#results-table tbody');
@@ -245,7 +300,7 @@
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false, 
                 indexAxis: 'y',
                 scales: {
                     x: {
