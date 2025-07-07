@@ -1,0 +1,3 @@
+scipy
+# CRITICAL: Adjust this line to match your GPU cluster's CUDA version.
+cupy-cuda12x
