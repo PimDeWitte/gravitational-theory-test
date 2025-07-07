@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>An Information-Theoretic Approach to Gravity: Testing Physical Law as a Compression Function</title>
+    <title>Our Reality Matters: An Information-Theoretic Approach to Gravity</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -76,13 +76,13 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
         <header class="text-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-2">An Information-Theoretic Approach to Gravity</h1>
-            <p class="text-lg text-gray-600">Testing Physical Law as a Compression Function</p>
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-2">Our Reality Matters</h1>
+            <p class="text-lg text-gray-600">An Information-Theoretic Approach to Gravity as a Lossless Compression Function</p>
             <div class="author-block mt-6 text-md text-gray-800">
                 <p>Wilhelmus de Witte</p>
-                <p>General Intuition</p>
+                <p>Google Gemini</p>
             </div>
-            <p class="text-sm text-gray-500 mt-4">July 6, 2025</p>
+            <p class="text-sm text-gray-500 mt-4">July 7, 2025</p>
         </header>
 
         <div class="abstract p-6 rounded-lg mb-12">
@@ -99,7 +99,7 @@
                     Is physical reality fundamentally geometric, as described by Einstein, or is it computational? From our work in world modeling, we see that complex, coherent realities can be generated from heavily compressed latent variables. This suggests a powerful analogy: the universe itself could operate on a similar principle, where what we perceive as classical physics is the deterministic output rendered from a compressed informational state.
                 </p>
                 <p class="mb-4 leading-relaxed">
-                    This thesis is motivated by a foundational observation: the universe appears to optimize for its observers. When galaxies merge, we do not fall off into infinite parallel realities. The universe maintains a single, coherent timeline, avoiding the immense computational cost of simulating every possibility. This implies an optimization toward preserving a single, stable reality, a behavior consistent with an efficient computational system. We posit that **gravity is this optimization process made manifest**—an emergent algorithm that compresses the high-dimensional quantum state of matter into a stable, low-dimensional latent state, from which our classical world is rendered.
+                    The genesis of this thesis was a foundational question sparked while watching a documentary on merging universes: why does the universe resolve such a colossal event into a single outcome? It seems computationally simpler for reality to branch, allowing all possibilities to exist in separate timelines where the merge is avoided. The fact that it does not—that it works to preserve a single, coherent reality for its observers—implies that our reality must matter. This suggests an underlying optimization principle: the universe appears to be actively minimizing the creation of alternate realities, a behavior consistent with an efficient computational system conserving resources. We posit that <strong>gravity is this optimization process made manifest</strong>—an emergent algorithm that compresses the high-dimensional quantum state of matter into a stable, low-dimensional latent state, from which our classical world is rendered.
                 </p>
                 <p class="leading-relaxed">
                     To formalize this, we developed a computational framework to test various physical laws as potential compression algorithms. This paper documents our methodology, the results of testing seventeen candidate theories, and the implications for a unified theory based on these principles.
@@ -110,21 +110,21 @@
                 <h2 class="text-3xl font-semibold mb-4">2. Methodology</h2>
                 <h3 class="text-2xl font-medium mb-3">2.1 The Computational Sandbox</h3>
                 <p class="mb-4 leading-relaxed">
-                    We constructed a simulation in Python to model a static, spherically symmetric system dominated by a central mass (M). The sandbox's `CompressionModel` class takes a physical theory as input, treating it as a generative model or "decoder." Each theory is a function that proposes a spacetime metric ($g_{tt}$, $g_{rr}$) for a radial grid around the central mass.
+                    We constructed a simulation in Python to model a static, spherically symmetric system dominated by a central mass (M). The sandbox's `CompressionModel` class takes a physical theory as input, treating it as a generative model or "decoder." Each theory is a function that proposes a spacetime metric (g<sub>tt</sub>, g<sub>rr</sub>) for a radial grid around the central mass.
                 </p>
 
                 <h3 class="text-2xl font-medium mb-3">2.2 A Numerically Stable Loss Function</h3>
                 <p class="mb-4 leading-relaxed">
-                    A key methodological finding was the necessity of a stable loss function. An initial attempt to compare the absolute information content (entropy) of the source and the geometry failed due to **catastrophic subtraction**—a loss of all numerical precision when comparing enormous, nearly-identical numbers (`~10^54`).
+                    A key methodological finding was the necessity of a stable loss function. An initial attempt to compare the absolute information content (entropy) of the source and the geometry failed due to <strong>catastrophic subtraction</strong>—a loss of all numerical precision when comparing enormous, nearly-identical numbers (~10<sup>54</sup>).
                 </p>
                 <p class="mb-4 leading-relaxed">
-                    We solved this by comparing the *cause* of the information boundary rather than the final information value. The final loss function is the squared difference between the true Schwarzschild Radius ($R_S$) and the predicted event horizon radius ($r_s$) from a given theory:
+                    We solved this by comparing the *cause* of the information boundary rather than the final information value. The final loss function is the squared difference between the true Schwarzschild Radius (R<sub>S</sub>) and the predicted event horizon radius (r<sub>s</sub>) from a given theory:
                 </p>
                 <p class="text-center text-lg bg-gray-100 p-4 rounded-md my-6">
-                    <span class="text-blue-600">Loss</span> = ($r_{s, predicted}$ - $R_{S, true}$)²
+                    <span class="text-blue-600">Loss</span> = (r<sub>s, predicted</sub> - R<sub>S, true</sub>)<sup>2</sup>
                 </p>
                 <p class="leading-relaxed">
-                    The event horizon is located by finding the root of the time component of the metric ($g_{tt} = 0$). This provides a meaningful score for each theory's ability to accurately reconstruct the information boundary.
+                    The event horizon is located by finding the root of the time component of the metric (g<sub>tt</sub> = 0). This provides a meaningful score for each theory's ability to accurately reconstruct the information boundary.
                 </p>
             </section>
 
@@ -160,14 +160,14 @@
                     The results show a clear hierarchy. The top-ranked models, all rooted in General Relativity, performed exceptionally well, with a near-zero loss limited only by the simulation's grid resolution. This validates our framework, as it correctly identifies the known solutions as being informationally lossless.
                 </p>
                 <p class="mb-4 leading-relaxed">
-                    The high rank of the Newtonian Limit model is a crucial finding. This **degenerate case** succeeds only by satisfying the narrow criteria of the test ($g_{tt}$ accuracy) while failing to represent the physical reality of spatial curvature ($g_{rr}$). This highlights that our simulation is a precise test of each theory's ability to predict the **information boundary**, a critical but incomplete measure of total geometric accuracy.
+                    The high rank of the Newtonian Limit model is a crucial finding. This <strong>degenerate case</strong> succeeds only by satisfying the narrow criteria of the test (g<sub>tt</sub> accuracy) while failing to represent the physical reality of spatial curvature (g<sub>rr</sub>). This highlights that our simulation is a precise test of each theory's ability to predict the <strong>information boundary</strong>, a critical but incomplete measure of total geometric accuracy.
                 </p>
             </section>
 
             <section class="section">
                 <h2 class="text-3xl font-semibold mb-4">5. A New Synthesis: From World Models to a Unified Theory</h2>
                 <p class="mb-4 leading-relaxed">
-                    This work suggests that a unified theory may not come from quantizing gravity, but from recognizing that the relationship between quantum information and classical physics may mirror the architecture of a deep generative model. The parallels are compelling: quantum mechanics describes the high-dimensional state space and its entanglement, while gravity emerges as the optimal compression function that creates a stable, low-dimensional latent space (mass, charge, spin). The classical world is the subsequent, deterministic reality that is **generated** from this latent state.
+                    This work suggests that a unified theory may not come from quantizing gravity, but from recognizing that the relationship between quantum information and classical physics may mirror the architecture of a deep generative model. The parallels are compelling: quantum mechanics describes the high-dimensional state space and its entanglement, while gravity emerges as the optimal compression function that creates a stable, low-dimensional latent space (mass, charge, spin). The classical world is the subsequent, deterministic reality that is <strong>generated</strong> from this latent state.
                 </p>
                 <p class="leading-relaxed">
                     The observed stability of our cosmos—its avoidance of "entropic recursion" by branching into infinite realities—is strong evidence for an underlying optimization principle. The universe, like an efficient world model, appears to select for outcomes that preserve a coherent reality for its observers. This reframes the search for a unified theory: the challenge is to reverse-engineer the generative architecture that has produced the single, stable world we are able to perceive.
@@ -277,4 +277,3 @@
     </script>
 </body>
 </html>
-
