@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>An Information-Theoretic Approach to Gravity: Testing Physical Law as a Compression Function</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            color: #374151;
+        }
+        h1, h2, h3 {
+            color: #111827;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+        a {
+            color: #2563eb;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        a:hover {
+            color: #3b82f6;
+        }
+        .abstract {
+            background-color: #f3f4f6;
+            border-left: 4px solid #3b82f6;
+        }
+        .section {
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background-color: #f3f4f6;
+            color: #374151;
+            font-weight: 500;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        .caption {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+        .author-block p {
+            line-height: 1.5;
+        }
+        .reference-list li {
+            margin-bottom: 0.75rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-2">An Information-Theoretic Approach to Gravity</h1>
+            <p class="text-lg text-gray-600">Testing Physical Law as a Compression Function</p>
+            <div class="author-block mt-6 text-md text-gray-800">
+                <p>Wilhelmus de Witte</p>
+                <p>General Intuition</p>
+            </div>
+            <p class="text-sm text-gray-500 mt-4">July 6, 2025</p>
+        </header>
+
+        <div class="abstract p-6 rounded-lg mb-12">
+            <h2 class="text-2xl font-semibold mb-3">Abstract</h2>
+            <p class="text-gray-700 leading-relaxed">
+                Inspired by architectures used in deep learning-based world modeling, we test the hypothesis that gravity is an emergent process of information compression. This view posits that spacetime geometry is a low-dimensional rendering of a more fundamental, high-dimensional reality, with gravity acting as the compression function. We developed a computational sandbox to evaluate seventeen physical theories as potential "decoder" models. We introduce a numerically stable loss function based on the accurate prediction of a black hole's event horizon—the ultimate boundary of compressed information. Our results demonstrate that General Relativity represents a maximally efficient, or "lossless," compression algorithm within this framework. This work provides a novel method for comparing physical theories through a computational lens and suggests a path toward a unified theory rooted in the architectural principles of information compression and generative modeling.
+            </p>
+        </div>
+
+        <main>
+            <section class="section">
+                <h2 class="text-3xl font-semibold mb-4">1. Introduction</h2>
+                <p class="mb-4 leading-relaxed">
+                    Is physical reality fundamentally geometric, as described by Einstein, or is it computational? From our work in world modeling, we see that complex, coherent realities can be generated from heavily compressed latent variables. This suggests a powerful analogy: the universe itself could operate on a similar principle, where what we perceive as classical physics is the deterministic output rendered from a compressed informational state.
+                </p>
+                <p class="mb-4 leading-relaxed">
+                    This thesis is motivated by a foundational observation: the universe appears to optimize for its observers. When galaxies merge, we do not fall off into infinite parallel realities. The universe maintains a single, coherent timeline, avoiding the immense computational cost of simulating every possibility. This implies an optimization toward preserving a single, stable reality, a behavior consistent with an efficient computational system. We posit that **gravity is this optimization process made manifest**—an emergent algorithm that compresses the high-dimensional quantum state of matter into a stable, low-dimensional latent state, from which our classical world is rendered.
+                </p>
+                <p class="leading-relaxed">
+                    To formalize this, we developed a computational framework to test various physical laws as potential compression algorithms. This paper documents our methodology, the results of testing seventeen candidate theories, and the implications for a unified theory based on these principles.
+                </p>
+            </section>
+
+            <section class="section">
+                <h2 class="text-3xl font-semibold mb-4">2. Methodology</h2>
+                <h3 class="text-2xl font-medium mb-3">2.1 The Computational Sandbox</h3>
+                <p class="mb-4 leading-relaxed">
+                    We constructed a simulation in Python to model a static, spherically symmetric system dominated by a central mass (M). The sandbox's `CompressionModel` class takes a physical theory as input, treating it as a generative model or "decoder." Each theory is a function that proposes a spacetime metric ($g_{tt}$, $g_{rr}$) for a radial grid around the central mass.
+                </p>
+
+                <h3 class="text-2xl font-medium mb-3">2.2 A Numerically Stable Loss Function</h3>
+                <p class="mb-4 leading-relaxed">
+                    A key methodological finding was the necessity of a stable loss function. An initial attempt to compare the absolute information content (entropy) of the source and the geometry failed due to **catastrophic subtraction**—a loss of all numerical precision when comparing enormous, nearly-identical numbers (`~10^54`).
+                </p>
+                <p class="mb-4 leading-relaxed">
+                    We solved this by comparing the *cause* of the information boundary rather than the final information value. The final loss function is the squared difference between the true Schwarzschild Radius ($R_S$) and the predicted event horizon radius ($r_s$) from a given theory:
+                </p>
+                <p class="text-center text-lg bg-gray-100 p-4 rounded-md my-6">
+                    <span class="text-blue-600">Loss</span> = ($r_{s, predicted}$ - $R_{S, true}$)²
+                </p>
+                <p class="leading-relaxed">
+                    The event horizon is located by finding the root of the time component of the metric ($g_{tt} = 0$). This provides a meaningful score for each theory's ability to accurately reconstruct the information boundary.
+                </p>
+            </section>
+
+            <section class="section">
+                <h2 class="text-3xl font-semibold mb-4">3. Results</h2>
+                <p class="mb-4 leading-relaxed">
+                    We tested seventeen distinct physical theories. The simulation was run on a grid of 50,000 points using 64-bit precision. The results, ranked by information loss, are presented below.
+                </p>
+                <div class="table-container my-8">
+                    <table id="results-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Model Name</th>
+                                <th>Calculated Information Loss</th>
+                                <th>Conceptual Tier</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <p class="caption">Table 1: Ranked performance of 17 theoretical models. Lower loss indicates a more accurate prediction.</p>
+                
+                <div class="my-12">
+                     <canvas id="resultsChart"></canvas>
+                </div>
+                <p class="caption">Figure 1: Logarithmic visualization of Information Loss. The vast performance gap between theories is clearly visible.</p>
+            </section>
+
+            <section class="section">
+                <h2 class="text-3xl font-semibold mb-4">4. Analysis and Discussion</h2>
+                <p class="mb-4 leading-relaxed">
+                    The results show a clear hierarchy. The top-ranked models, all rooted in General Relativity, performed exceptionally well, with a near-zero loss limited only by the simulation's grid resolution. This validates our framework, as it correctly identifies the known solutions as being informationally lossless.
+                </p>
+                <p class="mb-4 leading-relaxed">
+                    The high rank of the Newtonian Limit model is a crucial finding. This **degenerate case** succeeds only by satisfying the narrow criteria of the test ($g_{tt}$ accuracy) while failing to represent the physical reality of spatial curvature ($g_{rr}$). This highlights that our simulation is a precise test of each theory's ability to predict the **information boundary**, a critical but incomplete measure of total geometric accuracy.
+                </p>
+            </section>
+
+            <section class="section">
+                <h2 class="text-3xl font-semibold mb-4">5. A New Synthesis: From World Models to a Unified Theory</h2>
+                <p class="mb-4 leading-relaxed">
+                    This work suggests that a unified theory may not come from quantizing gravity, but from recognizing that the relationship between quantum information and classical physics may mirror the architecture of a deep generative model. The parallels are compelling: quantum mechanics describes the high-dimensional state space and its entanglement, while gravity emerges as the optimal compression function that creates a stable, low-dimensional latent space (mass, charge, spin). The classical world is the subsequent, deterministic reality that is **generated** from this latent state.
+                </p>
+                <p class="leading-relaxed">
+                    The observed stability of our cosmos—its avoidance of "entropic recursion" by branching into infinite realities—is strong evidence for an underlying optimization principle. The universe, like an efficient world model, appears to select for outcomes that preserve a coherent reality for its observers. This reframes the search for a unified theory: the challenge is to reverse-engineer the generative architecture that has produced the single, stable world we are able to perceive.
+                </p>
+            </section>
+            
+            <section>
+                <h2 class="text-3xl font-semibold mb-4">6. References</h2>
+                <ol class="list-decimal list-inside my-4 space-y-3 text-gray-700 reference-list">
+                    <li>
+                        Jacobson, T. (1995). "Thermodynamics of Spacetime: The Einstein Equation of State." <em>Physical Review Letters</em>, 75(7), 1260–1263. <a href="https://doi.org/10.1103/PhysRevLett.75.1260" target="_blank" rel="noopener noreferrer">[Link]</a>
+                    </li>
+                    <li>
+                        't Hooft, G. (1993). "Dimensional Reduction in Quantum Gravity." <em>arXiv:gr-qc/9310026</em>. <a href="https://arxiv.org/abs/gr-qc/9310026" target="_blank" rel="noopener noreferrer">[Link]</a>
+                    </li>
+                    <li>
+                        Susskind, L. (1995). "The World as a Hologram." <em>Journal of Mathematical Physics</em>, 36(11), 6377–6396. <a href="https://doi.org/10.1063/1.531249" target="_blank" rel="noopener noreferrer">[Link]</a>
+                    </li>
+                    <li>
+                        Verlinde, E. (2011). "On the Origin of Gravity and the Laws of Newton." <em>Journal of High Energy Physics</em>, 2011(4), 29. <a href="https://doi.org/10.1007/JHEP04(2011)029" target="_blank" rel="noopener noreferrer">[Link]</a>
+                    </li>
+                     <li>
+                        Wheeler, J. A. (1990). "Information, physics, quantum: The search for links." In W. H. Zurek (Ed.), *Complexity, Entropy, and the Physics of Information*.
+                    </li>
+                </ol>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const resultsData = [
+            { rank: 1, name: 'Schwarzschild (GR)', loss: 4.524187e-02, tier: 'GR Core' },
+            { rank: 2, name: 'Acausal (Final State)', loss: 4.524187e-02, tier: 'GR Core' },
+            { rank: 3, name: 'Kerr (Equatorial)', loss: 4.524187e-02, tier: 'GR Core' },
+            { rank: 4, name: 'Reissner-Nordström', loss: 4.524187e-02, tier: 'GR Core' },
+            { rank: 5, name: 'Non-local (Cosmological)', loss: 4.524187e-02, tier: 'GR Core' },
+            { rank: 6, name: 'Fractal Spacetime', loss: 4.524187e-02, tier: 'Speculative' },
+            { rank: 7, name: 'Newtonian Limit', loss: 4.524187e-02, tier: 'Baseline' },
+            { rank: 8, name: 'Log Entropy Corrected', loss: 2.378026e+00, tier: 'Quantum Extension' },
+            { rank: 9, name: 'Participatory Universe', loss: 5.267244e+04, tier: 'Philosophical' },
+            { rank: 10, name: 'Yukawa (Modified G)', loss: 6.634815e+04, tier: 'Alternative Principle' },
+            { rank: 11, name: 'Variable G', loss: 7.322940e+04, tier: 'Alternative Principle' },
+            { rank: 12, name: 'Emergent (Hydrodynamic)', loss: 7.068760e+06, tier: 'Alternative Principle' },
+            { rank: 13, name: 'Quantum Corrected', loss: 8.726864e+06, tier: 'Quantum Extension' },
+            { rank: 14, name: 'String T-Duality', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 15, name: 'Phase Transition', loss: 8.726864e+06, tier: 'Alternative Principle' },
+            { rank: 16, name: 'Computational Complexity', loss: 8.726864e+06, tier: 'Philosophical' },
+            { rank: 17, name: 'Higher-Dimensional', loss: 1.328222e+07, tier: 'Alternative Principle' }
+        ];
+
+        const tableBody = document.querySelector('#results-table tbody');
+        resultsData.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.rank}</td>
+                <td>${item.name}</td>
+                <td>${item.loss.toExponential(6)}</td>
+                <td>${item.tier}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        const ctx = document.getElementById('resultsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: resultsData.map(item => item.name),
+                datasets: [{
+                    label: 'Information Loss',
+                    data: resultsData.map(item => item.loss),
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    borderColor: 'rgba(37, 99, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        type: 'logarithmic',
+                        title: { display: true, text: 'Information Loss (Log Scale)', color: '#4b5563' },
+                        ticks: { color: '#4b5563' },
+                        grid: { color: '#e5e7eb' }
+                    },
+                    y: {
+                        ticks: { color: '#374151' },
+                        grid: { color: '#f3f4f6' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed.x !== null) { label += context.parsed.x.toExponential(4); }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
