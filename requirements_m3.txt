@@ -1,2 +1,9 @@
+# Standard numerical libraries
 numpy
 scipy
+
+# JAX for GPU acceleration on Apple Silicon
+jax[metal]
+
+# JAX-native differential equation solver
+diffrax
