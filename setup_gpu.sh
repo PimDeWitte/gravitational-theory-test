@@ -1,5 +1,6 @@
 #!/bin/bash
 # This script automates the setup for the PyTorch-based GPU simulation.
+# (V11: Adds torchdiffeq for high-performance adaptive solving)
 
 # Function for clear, colored output.
 print_message() {
@@ -28,14 +29,14 @@ if ! command -v uv &> /dev/null; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# --- Step 3: Create Environment and Install PyTorch ---
+# --- Step 3: Create Environment and Install Packages ---
 print_message "\n▶ Creating Python virtual environment..." "yellow"
 uv venv -p python3 $VENV_NAME
 print_message "✔ Virtual environment created." "green"
 
-print_message "\n▶ Installing PyTorch and dependencies..." "yellow"
-# PyTorch for Apple Silicon includes the Metal (MPS) backend by default.
-uv pip install --python $PYTHON_EXEC torch numpy scipy
+print_message "\n▶ Installing PyTorch, torchdiffeq, and dependencies..." "yellow"
+# Installs torch, numpy, scipy, and the high-performance torchdiffeq solver
+uv pip install --python $PYTHON_EXEC torch numpy scipy torchdiffeq
 if [ $? -ne 0 ]; then print_message "✖ Failed to install packages." "red"; exit 1; fi
 print_message "✔ Packages installed." "green"
 
@@ -53,7 +54,7 @@ print_message "\n▶ Generating 'run_gpu.sh' to execute the PyTorch script..." "
 cat > run_gpu.sh << EOL
 #!/bin/bash
 # This script executes the definitive, PyTorch-based GPU simulation.
-./${VENV_NAME}/bin/python run_theories_pytorch_gpu.py
+./${VENV_NAME}/bin/python run_theories_pytorch_definitive.py
 EOL
 chmod +x run_gpu.sh
 print_message "✔ 'run_gpu.sh' created." "green"

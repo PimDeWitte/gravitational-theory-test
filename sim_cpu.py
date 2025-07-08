@@ -24,9 +24,14 @@ EPSILON = 1e-14
 J_FRAC = 0.5; Q_PARAM = 1e12; Q_UNIFIED = 1e12; ASYMMETRY_PARAM = 1e-4
 TORSION_PARAM = 1e-3; OBSERVER_ENERGY = 1e9; LAMBDA_COSMO = 1.11e-52
 
+# --- Tuned Performance Parameters ---
+T_SPAN = [0, 100_000] # Reduced simulation time for practical runtimes.
+TOLERANCE = 1e-10    # Relaxed tolerance for faster adaptive stepping.
+
 print("="*80)
 print(f"DEFINITIVE CPU ORBITAL TEST (FLOAT64) | ALL THEORIES | PARALLEL EXECUTION")
 print(f"Utilizing up to {os.cpu_count()} CPU cores for maximum performance.")
+print(f"Sim Time: {T_SPAN[1]}, Tolerance: {TOLERANCE:.0e}")
 print("="*80)
 
 # ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
@@ -36,43 +41,31 @@ print("="*80)
 def geodesic_ode(tau, y, model, M_const, C_const, G_const):
     """Defines the ODE system for geodesics using NumPy for high-precision CPU computation."""
     _, r, _, dt, dr, dphi = y
-    
-    # Unpack all metric components from the theory model.
     g_tt, g_rr, g_pp, g_tp = model.get_metric(r, M_const, C_const, G_const)
-    # Get derivatives of the metric components.
     g_ttp, g_rrp, g_ppp, g_tpp = model.get_metric_derivatives(r, M_const, C_const, G_const)
-
-    # Invert the time-angle sub-metric to solve the equations of motion.
     det_inv = g_tt * g_pp + g_tp**2
     if abs(det_inv) < EPSILON: return np.zeros_like(y)
 
-    # Christoffel symbols derived from the metric derivatives.
     Gamma_r_tt = -g_ttp/(2*g_rr); Gamma_r_rr = g_rrp/(2*g_rr)
     Gamma_r_pp = -g_ppp/(2*g_rr); Gamma_r_tp = -g_tpp/(2*g_rr)
-    
-    # The geodesic equations for the second derivatives of the coordinates.
     d2r = -Gamma_r_tt*dt**2 - Gamma_r_rr*dr**2 - Gamma_r_pp*dphi**2 - 2*Gamma_r_tp*dt*dphi
     d2t = (1/det_inv) * ((g_tp*g_ppp-g_tpp*g_pp)*dr*dphi + (g_tp*g_tpp-g_ttp*g_pp)*dr*dt)
     d2phi = (1/det_inv) * ((g_tpp*g_tt+g_ttp*g_tp)*dr*dphi + (g_ttp*g_pp+g_tp*g_tpp)*dr*dt)
-    
     return [dt, dr, dphi, d2t, d2r, d2phi]
 
 def event_horizon_plunge(tau, y, model, M, C, G):
     """Event function to cleanly stop the solver if the particle crosses the event horizon."""
     return y[1] - RS
-event_horizon_plunge.terminal = True  # Tells the solver to stop integration when this event occurs.
-event_horizon_plunge.direction = -1 # Triggers only when the value crosses from positive to negative.
+event_horizon_plunge.terminal = True; event_horizon_plunge.direction = -1
 
 # ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
 # D. GRAVITATIONAL THEORY IMPLEMENTATIONS (Complete Roster)
 # ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
 
 class GravitationalTheory:
-    """Base class for all gravitational theories."""
     def __init__(self, name): self.name = name
     def get_metric(self, r, M, C, G): raise NotImplementedError
     def get_metric_derivatives(self, r, M, C, G, h=1e-6):
-        """Numerically calculates derivatives using a central difference scheme for high accuracy."""
         p_g = self.get_metric(r+h, M, C, G); m_g = self.get_metric(r-h, M, C, G)
         return tuple([(p - m) / (2 * h) for p, m in zip(p_g, m_g)])
 
@@ -120,6 +113,12 @@ class EinsteinRegularized(GravitationalTheory):
     def get_metric(self, r, M, C, G):
         rs,lp=(2*G*M)/C**2,np.sqrt(G*hbar/C**3); m=1-rs/np.sqrt(r**2+lp**2)
         return -m, 1/(m+EPSILON), r**2, 0.0
+
+class EinsteinFinalEquation(GravitationalTheory):
+    def __init__(self, alpha): super().__init__(f"Einstein's Final Eq. (α={alpha:.2f})"); self.alpha=alpha
+    def get_metric(self, r, M, C, G):
+        rs=(2*G*M)/C**2; base=1-rs/r; corr=self.alpha*(rs/r)**3; m=base+corr
+        return -m,1/(m+EPSILON),r**2,0.0
 
 class Yukawa(GravitationalTheory):
     def __init__(self, lambda_mult): super().__init__(f"Yukawa (λ={lambda_mult:.2f}*RS)"); self.lambda_mult=lambda_mult
@@ -207,7 +206,6 @@ class Participatory(GravitationalTheory):
 def run_single_simulation(args):
     """Encapsulates the simulation for a single model to be run in a parallel process."""
     model, ground_truth_final_state, y0, t_span, r0 = args
-    TOLERANCE = 1e-12
     
     sol_pred = solve_ivp(
         geodesic_ode, t_span, y0, args=(model, M, c, G),
@@ -215,14 +213,14 @@ def run_single_simulation(args):
     )
     
     final_state_pred = sol_pred.y[:,-1]
-    # Calculate loss as the final Euclidean distance between particles in polar coordinates.
     loss = np.sqrt(
         (ground_truth_final_state[1] - final_state_pred[1])**2 +
         (r0 * (ground_truth_final_state[2] - final_state_pred[2]))**2
     )
-    # Assign a very high loss if the solver failed for reasons other than a successful plunge.
     if sol_pred.status < 0: loss = 1e50
 
+    # This print happens inside the worker process, so output may be interleaved.
+    print(f"  Finished: {model.name:<50} Deviation: {loss:.4e} m")
     return {"Model": model.name, "Loss": loss}
 
 # ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
@@ -245,7 +243,8 @@ if __name__ == "__main__":
         "Variable G": (VariableG, {"delta": np.linspace(-0.5, 0.5, 10)}),
         "Fractal": (Fractal, {"D": np.linspace(2.95, 3.05, 10)}),
         "Phase Transition": (PhaseTransition, {"crit_mult": np.array([1.5, 2.5, 4.0, 8.0, 16.0])}),
-        "Higher-Dimensional": (HigherDimensional, {"crossover_mult": np.array([2.0, 10.0, 20.0, 50.0])})
+        "Higher-Dimensional": (HigherDimensional, {"crossover_mult": np.array([2.0, 10.0, 20.0, 50.0])}),
+        "Einstein's Final Eq.": (EinsteinFinalEquation, {"alpha": np.linspace(-1.0, 1.0, 5)}),
     }
     for name_prefix, (model_class, params) in param_sweeps.items():
         param_key = list(params.keys())[0]
@@ -259,23 +258,19 @@ if __name__ == "__main__":
     dt_dtau_i = np.sqrt(-c**2/(g_tt_i*c**2 + g_pp_i*(v_tan/r0)**2), dtype=DTYPE)
     dphi_dtau_i = (v_tan/r0)*dt_dtau_i
     y0 = np.array([0.0,r0,0.0,dt_dtau_i,0.0,dphi_dtau_i], dtype=DTYPE)
-    t_span = [0, 8_000_000]
-
+    
     print("Running ground truth simulation with Schwarzschild (GR)...")
-    sol_true = solve_ivp(geodesic_ode, t_span, y0, args=(models_to_test[0],M,c,G), method='DOP853', rtol=1e-12, atol=1e-12, events=event_horizon_plunge)
+    sol_true = solve_ivp(geodesic_ode, T_SPAN, y0, args=(models_to_test[0],M,c,G), method='DOP853', rtol=TOLERANCE, atol=TOLERANCE, events=event_horizon_plunge)
     ground_truth_final_state = sol_true.y[:,-1]
-    print(f"GR orbit completed. Final r={ground_truth_final_state[1]/RS:.4f}*RS, φ={np.rad2deg(ground_truth_final_state[2]):.2f}°\n")
+    print(f"GR orbit completed in {sol_true.t[-1]:.1f}s of proper time. Final r={ground_truth_final_state[1]/RS:.4f}*RS\n")
     
     results = [{"Model": models_to_test[0].name, "Loss": 0.0}]
     
-    # Prepare arguments for parallel execution
-    tasks = [(model, ground_truth_final_state, y0, t_span, r0) for model in models_to_test[1:]]
+    tasks = [(model, ground_truth_final_state, y0, T_SPAN, r0) for model in models_to_test[1:]]
     
     print("--- Submitting All Models to Process Pool for Parallel Execution ---")
     with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-        # Submit all tasks and create a future object for each
         future_to_model = {executor.submit(run_single_simulation, task): task for task in tasks}
-        # Process results as they are completed
         for future in as_completed(future_to_model):
             try:
                 result = future.result()
@@ -283,6 +278,7 @@ if __name__ == "__main__":
             except Exception as exc:
                 model_name = future_to_model[future][0].name
                 print(f"'{model_name}' generated an exception: {exc}")
+                results.append({"Model": model_name, "Loss": 1e50})
 
     print("\n--- DEFINITIVE CPU TEST (FLOAT64): RANKED DEVIATION FROM GENERAL RELATIVITY ---")
     results.sort(key=lambda x: x["Loss"])

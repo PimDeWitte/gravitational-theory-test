@@ -50,6 +50,7 @@ print_message "\n▶ Generating 'run_cpu.sh' to execute the definitive CPU scrip
 cat > run_cpu.sh << EOL
 #!/bin/bash
 # This script executes the definitive, high-precision CPU-based simulation.
+export VECLIB_MAXIMUM_THREADS=1
 ./${VENV_NAME}/bin/python run_theories_cpu_definitive.py
 EOL
 chmod +x run_cpu.sh
