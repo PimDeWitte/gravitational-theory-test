@@ -5,9 +5,9 @@ import time
 from scipy.constants import G, c, k, hbar, epsilon_0
 from gravity_compression_m3 import CompressionModel
 
-# --- HPC OPTIMIZATION: Massively increased grid density for final precision run ---
+# --- HPC OPTIMIZATION: High-density grid for maximum precision ---
 DTYPE = np.float64
-NUM_POINTS = 50_000_000 # Increased from 10M for maximum precision.
+NUM_POINTS = 50_000_000
 
 # --- Global Simulation Parameters ---
 M_SOLAR = 1.989e30
@@ -18,7 +18,7 @@ Q_PARAM = np.array(1e12, dtype=DTYPE)
 OBSERVER_ENERGY = np.array(1e9, dtype=DTYPE)
 LAMBDA_COSMO = np.array(1.11e-52, dtype=DTYPE)
 
-EPSILON = 1e-15 # Increased precision for epsilon as well
+EPSILON = 1e-15
 r = np.linspace(RS * 0.1, RS * 10, NUM_POINTS, dtype=DTYPE)
 r[r == RS] += EPSILON
 
@@ -158,11 +158,9 @@ def compression_participatory(r, M, observer_energy=OBSERVER_ENERGY, **kwargs):
     g_rr = certainty * g_rr_gr + (1 - certainty) * g_rr_vac
     return g_tt, g_rr
 
-
 if __name__ == "__main__":
     start_time = time.time()
 
-    # The original test suite, which will now serve as our base models
     models_to_test = [
         ("Schwarzschild (GR)",         {"func": compression_schwarzschild, "params": {}}),
         ("Acausal (Final State)",      {"func": compression_acausal, "params": {}}),
@@ -176,10 +174,6 @@ if __name__ == "__main__":
         ("Newtonian Limit",            {"func": compression_newtonian_limit, "params": {}}),
     ]
     
-    # --- EXPANDED TEST SUITE: More extensive parametric variations ---
-    param_models = {}
-
-    # Create a wider range of parameter variations for each speculative model.
     param_sweeps = {
         "Quantum Corrected": {"func": compression_quantum_corrected, "params": {"alpha": np.linspace(-2.0, 2.0, 10)}},
         "Log Corrected": {"func": compression_log_corrected, "params": {"beta": np.linspace(-1.5, 1.5, 10)}},
@@ -190,7 +184,6 @@ if __name__ == "__main__":
         "Higher-Dimensional": {"func": compression_higher_dimensions, "params": {"crossover_mult": [2.0, 10.0, 20.0, 50.0]}}
     }
     
-    # Programmatically generate all the test cases
     for name, config in param_sweeps.items():
         func = config["func"]
         for param_name, param_values in config["params"].items():
