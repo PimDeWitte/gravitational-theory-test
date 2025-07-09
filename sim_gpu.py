@@ -1,519 +1,555 @@
+#!/usr/bin/env python3
+# sim_gpu.py  ── July 2025
+# ---------------------------------------------------------------------------
+# Float‑32 black‑hole orbital integrator for Apple‑silicon (M‑series) GPUs.
+# All known mathematical / computational bugs are fixed; optional Torch‑Dynamo
+# compilation can be enabled with `TORCH_COMPILE=1`.
+# ---------------------------------------------------------------------------
+
+from __future__ import annotations
+import os, time, math, argparse, warnings
+
 import torch
-import time
-from scipy.constants import G, c, k, hbar, epsilon_0
 import numpy as np
-import os
+import matplotlib.pyplot as plt
+from scipy.constants import G, c, k, hbar, epsilon_0
 
-# --- Device Setup: The core of the GPU acceleration ---
-if torch.backends.mps.is_available() and torch.backends.mps.is_built():
-    device = torch.device("mps")
-    print("✅ PyTorch MPS (Metal) device found. Running on GPU.")
-else:
-    device = torch.device("cpu")
-    print("⚠️ PyTorch MPS device not found. Running on CPU.")
+# ---------------------------------------------------------------------------
+# 0.  DEVICE & GLOBAL CONSTANTS
+# ---------------------------------------------------------------------------
 
-DTYPE = torch.float32
-print(f"⚠️ Using low-precision {DTYPE} for GPU compatibility. Results are for performance testing, not final accuracy.")
+DTYPE  = torch.float32
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
-# ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
-# B. SIMULATION PARAMETERS
-# ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
-M_val = 1.989e30 * 10
-c_val = c
-G_val = G
-RS_val = (2 * G_val * M_val) / (c_val**2)
+TORCH_PI = torch.as_tensor(math.pi,  device=device, dtype=DTYPE)
+EPS0_T   = torch.as_tensor(epsilon_0, device=device, dtype=DTYPE)
+EPSILON  = torch.finfo(DTYPE).eps * 100         # ~1e‑5 for float32
 
-M = torch.tensor(M_val, device=device, dtype=DTYPE)
-RS = torch.tensor(RS_val, device=device, dtype=DTYPE)
-EPSILON = 1e-9 # Increased precision for stability
+# 10 M☉ black hole -----------------------------------------------------------
+M_SI  = 10.0 * 1.989e30
+RS_SI = 2 * G * M_SI / c**2
+M  = torch.as_tensor(M_SI , device=device, dtype=DTYPE)
+RS = torch.as_tensor(RS_SI, device=device, dtype=DTYPE)
 
-J_FRAC = 0.5; Q_PARAM = 1e12; Q_UNIFIED = 1e12; ASYMMETRY_PARAM = 1e-4
-TORSION_PARAM = 1e-3; OBSERVER_ENERGY = 1e9; LAMBDA_COSMO = 1.11e-52
+# Planck length (cached tensor)
+LP = torch.as_tensor(math.sqrt(G * hbar / c**3), device=device, dtype=DTYPE)
 
-# --- MODIFICATION: Add flags for exploratory vs. final runs ---
-FINAL_RUN = False # Set to True for the full, high-fidelity simulation for final results
-VERBOSE_DEBUG = False # Set to True to print step-by-step trajectory data for GR
+# Model parameters -----------------------------------------------------------
+# --- FIX: Increase Q_PARAM for a physically significant Reissner-Nordström metric ---
+J_FRAC, Q_PARAM, Q_UNIFIED         = 0.5, 3.0e14, 1.0e12
+ASYMMETRY_PARAM, TORSION_PARAM     = 1.0e-4, 1.0e-3
+OBSERVER_ENERGY, LAMBDA_COSMO      = 1.0e9, 1.11e-52
 
-print("="*80)
-print(f"PYTORCH-BASED GPU ORBITAL TEST | ALL THEORIES | {M.cpu().numpy()/1.989e30:.1f} M_sol BLACK HOLE")
-print("="*80)
+# ---------------------------------------------------------------------------
+# 1.  BASE CLASS & METRIC DEFINITIONS
+# ---------------------------------------------------------------------------
 
-# ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
-# C. GRAVITATIONAL THEORY IMPLEMENTATIONS (PYTORCH FLOAT32 VERSION)
-# ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
+Tensor = torch.Tensor  # typing alias
+
 
 class GravitationalTheory:
-    def __init__(self, name): self.name = name
-    def get_metric(self, r, M_param, C_param, G_param): raise NotImplementedError
+    name: str
+
+    def __init__(self, name: str) -> None: self.name = name
+
+    def get_metric(
+        self, r: Tensor, M_param: Tensor | float, C_param: float, G_param: float
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        raise NotImplementedError
+
+
+# -- 1.1 Standard metrics ----------------------------------------------------
+
 
 class Schwarzschild(GravitationalTheory):
     def __init__(self): super().__init__("Schwarzschild (GR)")
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs_local = (2 * G_param * M_param) / (C_param**2)
-        # Add epsilon to denominator to prevent division by zero if r is exactly rs_local
-        m = 1 - rs_local / (r + EPSILON)
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / (r + EPSILON)
         return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class NewtonianLimit(GravitationalTheory):
     def __init__(self): super().__init__("Newtonian Limit")
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs_local = (2 * G_param * M_param) / (C_param**2)
-        return -(1 - rs_local / r), torch.ones_like(r), r**2, torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / r
+        return -m, torch.ones_like(r), r**2, torch.zeros_like(r)
+
 
 class ReissnerNordstrom(GravitationalTheory):
-    def __init__(self, Q):
-        super().__init__(f"Reissner-Nordström (Q={Q:.1e})")
-        self.Q = torch.tensor(Q, device=device, dtype=DTYPE)
+    def __init__(self, Q: float):
+        super().__init__(f"Reissner‑Nordström (Q={Q:.1e})")
+        self.Q = torch.as_tensor(Q, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs_local = (2 * G_param * M_param) / C_param**2
-        r_q2 = (self.Q**2 * G_param) / (4 * torch.pi * epsilon_0 * C_param**4)
-        m = 1 - rs_local / r + r_q2 / r**2
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / r + (G_param * self.Q**2) / (4 * TORCH_PI * EPS0_T * C_param**4 * r**2)
         return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
 
+
 class Kerr(GravitationalTheory):
-    def __init__(self, J_frac):
-        super().__init__(f"Kerr (a* = {J_frac:.2f})")
-        self.a = J_frac * G_val * M_val / c_val
+    def __init__(self, J_frac: float):
+        super().__init__(f"Kerr (a*={J_frac:.3f})")
+        self.J_frac = float(J_frac)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs_local = (2 * G_param * M_param) / C_param**2
-        a2 = self.a**2
+        a = torch.as_tensor(self.J_frac * G_param * M_param / C_param,
+                            device=r.device, dtype=r.dtype)
+        rs  = 2 * G_param * M_param / C_param**2
         rho2 = r**2
-        delta = r**2 - rs_local * r + a2
-        g_tt = -(1 - rs_local * r / rho2)
-        g_rr = rho2 / (delta + EPSILON)
-        g_pp = (r**2 + a2)**2 - delta * a2
-        g_tp = -rs_local * self.a * r / rho2
+        Δ = r**2 - rs * r + a**2
+
+        g_tt = -(1 - rs * r / rho2)
+        g_rr = rho2 / (Δ + EPSILON)
+        g_pp = ((r**2 + a**2) ** 2 - Δ * a**2) / rho2
+        g_tp = -rs * a * r / rho2
         return g_tt, g_rr, g_pp, g_tp
 
+
+# -- 1.2 Selected speculative metrics (all previously fixed versions) --------
+
 class EinsteinFinalEquation(GravitationalTheory):
-    def __init__(self, alpha):
-        super().__init__(f"Einstein's Final Eq. (α={alpha:.2f})")
-        self.alpha = torch.tensor(alpha, device=device, dtype=DTYPE)
+    def __init__(self, alpha: float):
+        super().__init__(f"Einstein Final (α={alpha:+.2f})")
+        self.alpha = torch.as_tensor(alpha, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs = (2 * G_param * M_param) / C_param**2
-        base_metric = 1 - rs / r
-        correction = self.alpha * (rs / r)**3
-        final_metric = base_metric + correction
-        return -final_metric, 1 / (final_metric + EPSILON), r**2, torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / r + self.alpha * (rs / r) ** 3
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class EinsteinUnifiedFinal(GravitationalTheory):
-    def __init__(self,q):
-        super().__init__(f"Einstein's Unified (q={q:.1e})")
-        self.q=torch.tensor(q,device=device,dtype=DTYPE)
+    def __init__(self, q: float):
+        super().__init__(f"Einstein Unified (q={q:.1e})")
+        self.q = torch.as_tensor(q, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs,r_q2=(2*G_param*M_param)/C_param**2,(self.q**2*G_param)/(4*torch.pi*epsilon_0*C_param**4)
-        m=1-rs/r+r_q2/r**2
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / r + (G_param * self.q**2) / (4 * TORCH_PI * EPS0_T * C_param**4 * r**2)
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class EinsteinAsymmetric(GravitationalTheory):
-    def __init__(self,alpha):
-        super().__init__(f"Einstein Asymmetric (α={alpha:.1e})")
-        self.alpha=torch.tensor(alpha,device=device,dtype=DTYPE)
+    def __init__(self, alpha: float):
+        super().__init__(f"Einstein Asymmetric (α={alpha:+.1e})")
+        self.alpha = torch.as_tensor(alpha, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        m=1-rs/r+self.alpha*(rs/r)**2
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / r + self.alpha * (rs / r) ** 2
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class EinsteinTeleparallel(GravitationalTheory):
-    def __init__(self,tau):
+    def __init__(self, tau: float):
         super().__init__(f"Einstein Teleparallel (τ={tau:.1e})")
-        self.tau=torch.tensor(tau,device=device,dtype=DTYPE)
+        self.tau = torch.as_tensor(tau, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        base=1-rs/r
-        corr=self.tau*(rs/r)**3
-        return -base,1/(base-corr+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / r - self.tau * (rs / r) ** 3
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class EinsteinRegularized(GravitationalTheory):
-    def __init__(self): super().__init__("Einstein Regularized Core")
+    def __init__(self): super().__init__("Einstein Regularised Core")
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        lp=torch.sqrt(torch.tensor(G_param*hbar/C_param**3,device=device,dtype=DTYPE))
-        m=1-rs/torch.sqrt(r**2+lp**2)
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / torch.sqrt(r**2 + LP**2)
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class Yukawa(GravitationalTheory):
-    def __init__(self,lambda_mult):
-        super().__init__(f"Yukawa (λ={lambda_mult:.2f}*RS)")
-        self.lambda_mult=torch.tensor(lambda_mult,device=device,dtype=DTYPE)
+    def __init__(self, lambda_mult: float):
+        super().__init__(f"Yukawa (λ={lambda_mult:.2f} RS)")
+        self.lambda_mult = torch.as_tensor(lambda_mult, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        m=1-(rs/r)*torch.exp(-r/(self.lambda_mult*rs))
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - (rs / r) * torch.exp(-r / (self.lambda_mult * rs))
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class QuantumCorrected(GravitationalTheory):
-    def __init__(self,alpha):
-        super().__init__(f"Quantum Corrected (α={alpha:.2f})")
-        self.alpha=torch.tensor(alpha,device=device,dtype=DTYPE)
+    def __init__(self, alpha: float):
+        super().__init__(f"Quantum Corrected (α={alpha:+.2f})")
+        self.alpha = torch.as_tensor(alpha, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        m=1-rs/r+self.alpha*(rs/r)**3
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / r + self.alpha * (rs / r) ** 3
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class HigherDimensional(GravitationalTheory):
-    def __init__(self,crossover_mult):
-        super().__init__(f"Higher-Dim (cross={crossover_mult:.2f}*RS)")
-        self.rc=torch.tensor(crossover_mult*RS_val,device=device,dtype=DTYPE)
+    def __init__(self, crossover_mult: float):
+        super().__init__(f"Higher‑Dim (cross={crossover_mult:.1f} RS)")
+        self.rc = torch.as_tensor(crossover_mult * RS_SI, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        p4d,p5d=rs/r,(self.rc*rs)/r**2
-        t=1/(1+torch.exp(-(r-self.rc)/(self.rc/10)))
-        m=1-(t*p4d+(1-t)*p5d)
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        p4d = rs / r
+        p5d = (self.rc * rs) / r**2
+        t = 1 / (1 + torch.exp(-(r - self.rc) / (self.rc / 10)))
+        m = 1 - (t * p4d + (1 - t) * p5d)
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class LogCorrected(GravitationalTheory):
-    def __init__(self,beta):
-        super().__init__(f"Log Corrected (β={beta:.2f})")
-        self.beta=torch.tensor(beta,device=device,dtype=DTYPE)
+    def __init__(self, beta: float):
+        super().__init__(f"Log Corrected (β={beta:+.2f})")
+        self.beta = torch.as_tensor(beta, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        sr=torch.maximum(r,rs*1.001)
-        lc=self.beta*(rs/sr)*torch.log(sr/rs)
-        m=1-rs/r+lc
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        sr = torch.maximum(r, rs * 1.001)
+        lc = self.beta * (rs / sr) * torch.log(sr / rs)
+        m = 1 - rs / r + lc
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class VariableG(GravitationalTheory):
-    def __init__(self,delta):
-        super().__init__(f"Variable G (δ={delta:.2f})")
-        self.delta=torch.tensor(delta,device=device,dtype=DTYPE)
+    def __init__(self, delta: float):
+        super().__init__(f"Variable G (δ={delta:+.2f})")
+        self.delta = torch.as_tensor(delta, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        G_eff=G_param*(1+self.delta*rs/r)
-        m=1-(2*G_eff*M_param)/(C_param**2*r)
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        G_eff = G_param * (1 + self.delta * torch.log1p(r / rs))
+        m = 1 - 2 * G_eff * M_param / (C_param**2 * r)
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class NonLocal(GravitationalTheory):
-    def __init__(self): super().__init__("Non-local (Cosmological)")
+    def __init__(self): super().__init__("Non‑local (Λ)")
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        ct=torch.tensor(LAMBDA_COSMO,device=device,dtype=DTYPE)*r**2/3
-        m=1-rs/r-ct
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        ct = torch.as_tensor(LAMBDA_COSMO, device=device, dtype=DTYPE) * r**2 / 3
+        m = 1 - rs / r - ct
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class Fractal(GravitationalTheory):
-    def __init__(self,D):
-        super().__init__(f"Fractal (D={D:.2f})")
-        self.D=torch.tensor(D,device=device,dtype=DTYPE)
+    def __init__(self, D: float):
+        super().__init__(f"Fractal (D={D:.3f})")
+        self.D = torch.as_tensor(D, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        m=1-(rs/r)**(self.D-2.0)
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - (rs / r) ** (self.D - 2.0)
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class PhaseTransition(GravitationalTheory):
-    def __init__(self,crit_mult):
-        super().__init__(f"Phase Transition(crit={crit_mult:.2f}*RS)")
-        self.rc=torch.tensor(crit_mult*RS_val,device=device,dtype=DTYPE)
+    def __init__(self, crit_mult: float):
+        super().__init__(f"Phase Transition (r_c={crit_mult:.2f} RS)")
+        self.rc = torch.as_tensor(crit_mult * RS_SI, device=device, dtype=DTYPE)
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        n=1-rs/r
-        co=1-rs/self.rc
-        m=torch.where(r>self.rc,n,co)
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        m_out = 1 - rs / r
+        m_in = 1 - rs / self.rc
+        m = torch.where(r > self.rc, m_out, m_in)
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class Acausal(GravitationalTheory):
-    def __init__(self): super().__init__("Acausal (Final State)")
+    def __init__(self): super().__init__("Acausal (final‑state)")
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        ht=(hbar*C_param**3)/(8*torch.pi*G_param*M_param*k)
-        pt=torch.sqrt(torch.tensor(hbar*C_param**5/(G_param*k**2),device=device,dtype=DTYPE))
-        cf=1-(ht/pt)
-        m=1-(rs*cf)/r
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        ht = hbar * C_param**3 / (8 * math.pi * G_param * M_param * k)
+        pt = math.sqrt(hbar * C_param**5 / (G_param * k**2))
+        cf = 1 - ht / pt
+        m = 1 - (rs * cf) / r
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class Computational(GravitationalTheory):
     def __init__(self): super().__init__("Computational Complexity")
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        lp=torch.sqrt(torch.tensor(G_param*hbar/C_param**3,device=device,dtype=DTYPE))
-        sr=torch.maximum(r,lp)
-        cf=(rs**2)
-        m=1-cf/(sr*torch.log2(sr/lp))
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        sr = torch.maximum(r, LP)
+        m = 1 - rs**2 / (sr * torch.log2(sr / LP))
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class Tduality(GravitationalTheory):
-    def __init__(self): super().__init__("String T-Duality")
+    def __init__(self): super().__init__("T‑Duality (string)")
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        re=r+rs**2/r # T-Duality length is the Schwarzschild radius
-        m=1-rs/re
-        return -m,1/(m+EPSILON),r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        re = r + rs**2 / r
+        m = 1 - rs / re
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
 
 class Hydrodynamic(GravitationalTheory):
-    def __init__(self): super().__init__("Emergent (Hydrodynamic)")
+    def __init__(self): super().__init__("Emergent (hydrodynamic)")
+
     def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        vfs=torch.minimum((rs*C_param**2)/r,torch.tensor(C_param**2*0.999999,device=device,dtype=DTYPE))
-        gs=1/(1-vfs/C_param**2+EPSILON)
-        return -1/gs,gs,r**2,torch.zeros_like(r)
+        rs = 2 * G_param * M_param / C_param**2
+        v_cap = torch.as_tensor(0.999999 * C_param, device=r.device, dtype=r.dtype)
+        vfs  = torch.minimum(rs / r * C_param, v_cap)
+        gamma_sq = 1.0 / (1.0 - (vfs / C_param) ** 2 + EPSILON)
+        return -gamma_sq, gamma_sq, r**2, torch.zeros_like(r)
+
 
 class Participatory(GravitationalTheory):
-    def __init__(self,obs_energy):
-        super().__init__(f"Participatory(E_obs={obs_energy:.1e})")
-        self.obs_energy=torch.tensor(obs_energy,device=device,dtype=DTYPE)
-    def get_metric(self, r, M_param, C_param, G_param):
-        rs=(2*G_param*M_param)/C_param**2
-        Ep=torch.sqrt(torch.tensor(hbar*C_param**5/G_param,device=device,dtype=DTYPE))
-        cert=1-torch.exp(-5*self.obs_energy/Ep)
-        g_tt_gr,g_rr_gr=-(1-rs/r),1/(1-rs/r+EPSILON)
-        g_tt_vac,g_rr_vac=-1.0,1.0
-        g_tt=cert*g_tt_gr+(1-cert)*g_tt_vac
-        g_rr=cert*g_rr_gr+(1-cert)*g_rr_vac
-        return g_tt,g_rr,r**2,torch.zeros_like(r)
+    def __init__(self, obs_energy: float):
+        super().__init__(f"Participatory (E_obs={obs_energy:.1e})")
+        self.obs_energy = torch.as_tensor(obs_energy, device=device, dtype=DTYPE)
 
-# ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
-# D. NEW, ROBUST PHYSICS ENGINE
-# ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
+    def get_metric(self, r, M_param, C_param, G_param):
+        rs = 2 * G_param * M_param / C_param**2
+        Ep = math.sqrt(hbar * C_param**5 / G_param)
+        cert = 1 - torch.exp(-5 * self.obs_energy / Ep)
+        g_tt_gr = -(1 - rs / r)
+        g_rr_gr = 1 / (1 - rs / r + EPSILON)
+        g_tt = cert * g_tt_gr + (1 - cert) * (-1.0)
+        g_rr = cert * g_rr_gr + (1 - cert) * 1.0
+        return g_tt, g_rr, r**2, torch.zeros_like(r)
+
+
+# ---------------------------------------------------------------------------
+# 2.  GEODESIC INTEGRATOR (RK‑4)
+# ---------------------------------------------------------------------------
 
 class GeodesicIntegrator:
-    def __init__(self, model, y0_full, M_param, C_param, G_param):
-        self.model = model
-        self.M = M_param
-        self.c = C_param
-        self.G = G_param
+    """State vector: [t, r, φ, dr/dτ] (equatorial plane)"""
 
-        # Calculate conserved quantities (Energy and Angular Momentum) from initial conditions
-        # These are constants of motion for the entire trajectory.
-        _, r0, _, dt_dtau0, dr_dtau0, dphi_dtau0 = y0_full
-        g_tt, g_rr, g_pp, g_tp = self.model.get_metric(r0, self.M, self.c, self.G)
-        
-        # Using the definition of the 4-velocity u^μ = dx^μ/dτ and the metric,
-        # the conserved energy E and angular momentum Lz per unit mass are:
-        # E = -g_tμ u^μ = -(g_tt * c*dt/dτ + g_tφ * dφ/dτ)
-        # Lz = g_φμ u^μ = (g_φt * c*dt/dτ + g_φφ * dφ/dτ)
-        # Your code's dt_dtau is dimensionless dt/dτ, so u^t = c * dt_dtau
-        self.E = -(g_tt * self.c * dt_dtau0 + g_tp * dphi_dtau0)
-        self.Lz = g_tp * self.c * dt_dtau0 + g_pp * dphi_dtau0
+    def __init__(self, model: GravitationalTheory,
+                 y0_full: Tensor, M_param: Tensor, C_param: float, G_param: float):
+        self.model, self.M, self.c, self.G = model, M_param, C_param, G_param
 
-    def ode_system(self, y_state):
-        """
-        Calculates the derivatives [dt/dτ, dr/dτ, dφ/dτ, d²r/dτ²].
-        This is a system of first-order ODEs for [t, r, φ, dr/dτ].
-        """
+        _, r0, _, dt_dtau0, _, dphi_dtau0 = y0_full
+        g_tt0, _, g_pp0, g_tp0 = self.model.get_metric(r0, self.M, self.c, self.G)
+        self.E  = -(g_tt0 * self.c * dt_dtau0 + g_tp0 * dphi_dtau0)
+        self.Lz =  g_tp0 * self.c * dt_dtau0 + g_pp0 * dphi_dtau0
+
+        # Optional Torch‑Dynamo compilation
+        if os.environ.get("TORCH_COMPILE") == "1" and hasattr(torch, "compile"):
+            try:
+                self._ode = torch.compile(self._ode_impl,
+                                          fullgraph=True,
+                                          mode="reduce-overhead",
+                                          dynamic=True)
+            except Exception as exc:
+                warnings.warn(f"torch.compile disabled: {exc}")
+                self._ode = self._ode_impl
+        else:
+            self._ode = self._ode_impl
+
+    # -----------------------------------------------------------------------
+    # 2.1  RHS of the geodesic equations (needs autograd → DO NOT decorate
+    #      with @torch.inference_mode)
+    # -----------------------------------------------------------------------
+    def _ode_impl(self, y_state: Tensor) -> Tensor:
         _, r, _, dr_dtau = y_state
 
-        # --- MODIFICATION: Calculate radial acceleration using the effective potential ---
-        # The equation for radial motion can be derived from u_μ u^μ = -c^2
-        # (dr/dτ)^2 = V_eff(r). We need d/dτ of this, which gives 2*r'*r'' = d(V_eff)/dr * r'
-        # So, r'' = 0.5 * d(V_eff)/dr.
-        # We use torch.autograd to get the derivative of the effective potential w.r.t r.
         r_grad = r.clone().detach().requires_grad_(True)
         g_tt, g_rr, g_pp, g_tp = self.model.get_metric(r_grad, self.M, self.c, self.G)
 
-        # The effective potential V_eff is derived from rearranging the normalization condition
-        # g_rr (dr/dτ)^2 = -c^2 - g_tt(u^t)^2 - g_φφ(u^φ)^2 - 2*g_tφ*u^t*u^φ
-        # We can solve for u^t and u^φ in terms of conserved E and Lz.
-        det = g_tp**2 - g_tt * g_pp
+        det = g_tp ** 2 - g_tt * g_pp
         if torch.abs(det) < EPSILON:
-             return torch.zeros(4, device=device, dtype=DTYPE)
+            return torch.zeros_like(y_state)
 
-        # From E = -g_tt*u^t - g_tφ*u^φ and Lz = g_φt*u^t + g_φφ*u^φ
-        # We can invert to find u^t and u^φ (where u^t = c*dt/dτ, u^φ = dφ/dτ)
-        u_t = (self.E * g_pp + self.Lz * g_tp) / det
+        u_t   = (self.E * g_pp + self.Lz * g_tp) / det
         u_phi = -(self.E * g_tp + self.Lz * g_tt) / det
-        
-        # This is (dr/dτ)^2, the effective radial potential
-        V_eff_sq = (-self.c**2 - (g_tt * u_t**2 + g_pp * u_phi**2 + 2 * g_tp * u_t * u_phi)) / g_rr
-        
-        # Calculate the gradient d(V_eff²)/dr to find the acceleration
-        # r_grad.grad will be None if no operation that requires grad is performed.
-        # Ensure backward() is called on a scalar.
-        if V_eff_sq.dim() > 0:
-             V_eff_sq.sum().backward()
-        else:
-            V_eff_sq.backward()
 
-        d_Veff_sq_dr = r_grad.grad
-        if d_Veff_sq_dr is None:
-            d_Veff_sq_dr = torch.zeros_like(r)
+        V_sq = (-self.c ** 2 - (g_tt * u_t ** 2 + g_pp * u_phi ** 2
+                                + 2 * g_tp * u_t * u_phi)) / g_rr
+        (dV_dr,) = torch.autograd.grad(V_sq, r_grad,
+                                       create_graph=False, retain_graph=False)
+        d2r_dtau2 = 0.5 * dV_dr
 
-        # d²r/dτ² = (1/2) * d(V_eff²)/dr
-        d2r_dtau2 = 0.5 * d_Veff_sq_dr
-
-        # Derivatives for the state vector [t, r, phi, dr/dtau]
-        dt_dtau = u_t / self.c # Make it dimensionless for the state vector
+        dt_dtau   = u_t / self.c
         dphi_dtau = u_phi
-        
-        return torch.stack([dt_dtau, dr_dtau, dphi_dtau, d2r_dtau2])
 
-    def rk4_step(self, y, dt):
-        """
-        Performs a single Runge-Kutta 4th order step.
-        y is the state vector: [t, r, phi, dr/dtau]
-        """
-        k1 = self.ode_system(y)
-        k2 = self.ode_system(y + 0.5 * dt * k1)
-        k3 = self.ode_system(y + 0.5 * dt * k2)
-        k4 = self.ode_system(y + dt * k3)
-        
-        # Update state vector
-        y_new = y + (k1 + 2*k2 + 2*k3 + k4) / 6.0 * dt
-        return y_new
+        return torch.stack((dt_dtau, dr_dtau, dphi_dtau, d2r_dtau2))
 
-# ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
-# E. MAIN SIMULATION SCRIPT
-# ===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-===-
-if __name__ == "__main__":
-    total_start_time = time.time()
+    # -----------------------------------------------------------------------
+    # 2.2  Four‑stage RK‑4 integrator (detaches outputs to keep memory flat)
+    # -----------------------------------------------------------------------
+    def rk4_step(self, y: Tensor, dτ: float) -> Tensor:
+        k1 = self._ode(y).detach()
+        k2 = self._ode((y + 0.5 * dτ * k1)).detach()
+        k3 = self._ode((y + 0.5 * dτ * k2)).detach()
+        k4 = self._ode((y + dτ * k3)).detach()
+        return y + (k1 + 2 * k2 + 2 * k3 + k4) * (dτ / 6.0)
 
-    models_to_test = [
-        Schwarzschild(), NewtonianLimit(), Acausal(), Kerr(J_frac=J_FRAC),
-        ReissnerNordstrom(Q=Q_PARAM), NonLocal(), Computational(), Tduality(),
-        Hydrodynamic(), Participatory(obs_energy=OBSERVER_ENERGY), EinsteinUnifiedFinal(q=Q_UNIFIED),
-        EinsteinAsymmetric(alpha=ASYMMETRY_PARAM), EinsteinTeleparallel(tau=TORSION_PARAM),
-        EinsteinRegularized(),
+
+# ---------------------------------------------------------------------------
+# 3.  MAIN DRIVER
+# ---------------------------------------------------------------------------
+
+def parse_cli():
+    p = argparse.ArgumentParser()
+    p.add_argument("--final", action="store_true", help="High‑precision run")
+    p.add_argument("--plots", action="store_true", help="Plot every model")
+    p.add_argument("--no-plots", action="store_true", help="Disable plots")
+    return p.parse_args()
+
+
+def main() -> None:
+    args = parse_cli()
+    print("=" * 80)
+    print(f"PyTorch‑MPS ORBITAL TEST | device={device} | dtype={DTYPE}")
+    print("=" * 80)
+
+    # -- 3.1  Model registry -------------------------------------------------
+    models: list[GravitationalTheory] = [
+        Schwarzschild(), NewtonianLimit(), Acausal(), Kerr(J_FRAC),
+        ReissnerNordstrom(Q_PARAM), NonLocal(), Computational(), Tduality(),
+        Hydrodynamic(), Participatory(OBSERVER_ENERGY),
+        EinsteinUnifiedFinal(Q_UNIFIED), EinsteinAsymmetric(ASYMMETRY_PARAM),
+        EinsteinTeleparallel(TORSION_PARAM), EinsteinRegularized(),
     ]
 
-    param_sweeps = {
-        "Quantum Corrected": (QuantumCorrected, {"alpha": np.linspace(-2.0, 2.0, 10)}),
-        "Log Corrected": (LogCorrected, {"beta": np.linspace(-1.5, 1.5, 10)}),
-        "Yukawa": (Yukawa, {"lambda_mult": np.logspace(np.log10(1.5), 2, 10)}),
-        "Variable G": (VariableG, {"delta": np.linspace(-0.5, 0.5, 10)}),
-        "Einstein's Final Eq.": (EinsteinFinalEquation, {"alpha": np.linspace(-1.0, 1.0, 5)}),
-        "Fractal": (Fractal, {"D": np.linspace(2.95, 3.05, 10)}),
-        "Phase Transition": (PhaseTransition, {"crit_mult": np.array([1.5, 2.5, 4.0, 8.0, 16.0])}),
-        "Higher-Dim": (HigherDimensional, {"crossover_mult": np.array([2.0, 10.0, 20.0, 50.0])})
+    sweeps = {
+        "QuantumCorrected": (QuantumCorrected,
+                             dict(alpha=np.linspace(-2.0, 2.0, 10))),
+        "LogCorrected": (LogCorrected,
+                         dict(beta=np.linspace(-1.5, 1.5, 10))),
+        "Yukawa": (Yukawa,
+                   dict(lambda_mult=np.logspace(math.log10(1.5), 2, 10))),
+        "VariableG": (VariableG,
+                      dict(delta=np.linspace(-0.5, 0.5, 10))),
+        "EinsteinFinal": (EinsteinFinalEquation,
+                          dict(alpha=np.linspace(-1.0, 1.0, 5))),
+        "Fractal": (Fractal,
+                    dict(D=np.linspace(2.95, 3.05, 10))),
+        "PhaseTransition": (PhaseTransition,
+                            dict(crit_mult=np.array([1.5, 2.5, 4.0, 8.0, 16.0]))),
+        "HigherDim": (HigherDimensional,
+                      dict(crossover_mult=np.array([2.0, 10.0, 20.0, 50.0]))),
     }
-    for name_prefix, (model_class, params) in param_sweeps.items():
-        param_key = list(params.keys())[0]
-        for val in params[param_key]:
-            models_to_test.append(model_class(**{param_key: val}))
+    for cls, pd in sweeps.values():
+        key, vals = next(iter(pd.items()))
+        models += [cls(**{key: float(v)}) for v in vals]
 
-    total_models = len(models_to_test)
-    print(f"Initializing PyTorch GPU orbital test for {total_models} universes...\n")
+    print(f"Total models: {len(models)}")
 
-    # --- Initial Conditions ---
+    # -- 3.2  Initial conditions --------------------------------------------
     r0 = 4.0 * RS
-    v_tan = torch.sqrt((G * M) / r0) # Classical circular orbit velocity
-    
-    # Use Schwarzschild metric to find initial 4-velocities for a quasi-stable orbit
-    g_tt0, _, g_pp0, _ = Schwarzschild().get_metric(r0, M, c_val, G_val)
-    
-    # Normalization factor for 4-velocity, assuming initial dr/dτ = 0
-    # u_μ u^μ = g_tt(u^t)^2 + g_φφ(u^φ)^2 = -c^2
-    # And u^φ/u^t ≈ v_tan/r0. This gives the normalization for u^t and u^φ
-    norm_factor_sq = -g_tt0 - g_pp0 * (v_tan / (r0 * c_val))**2
-    dt_dtau0 = 1.0 / torch.sqrt(norm_factor_sq)
+    v_tan = torch.sqrt(G * M / r0)
+    g_tt0, _, g_pp0, _ = Schwarzschild().get_metric(r0, M, c, G)
+    norm_sq = -g_tt0 - g_pp0 * (v_tan / (r0 * c)) ** 2
+    dt_dtau0 = 1.0 / torch.sqrt(norm_sq)
     dphi_dtau0 = (v_tan / r0) * dt_dtau0
 
-    # Full state vector: [t, r, phi, dt/dtau, dr/dtau, dphi/dtau]
-    y0_full = torch.tensor([0.0, r0.item(), 0.0, dt_dtau0.item(), 0.0, dphi_dtau0.item()], device=device, dtype=DTYPE)
-    
-    # The state vector for the integrator is [t, r, phi, dr/dtau]
-    y0_integ = y0_full[[0, 1, 2, 4]]
+    y0_full = torch.tensor(
+        [0.0, r0.item(), 0.0, dt_dtau0.item(), 0.0, dphi_dtau0.item()],
+        device=device, dtype=DTYPE,
+    )
+    y0_state = y0_full[[0, 1, 2, 4]].clone()
 
-    # --- MODIFICATION: Set number of steps based on run type ---
-    if FINAL_RUN:
-        print("🚀 Running in FINAL mode: Using high step count for precision.")
-        N_STEPS = 250_000
-        progress_interval = 25_000
+    # -- 3.3  Run parameters -------------------------------------------------
+    # --- FIX: Decrease DTau and increase N_STEPS for simulation stability ---
+    DTau = 0.01
+    if args.final:
+        N_STEPS, STEP_PRINT, SAVE_PLOTS = 5_000_000, 250_000, True
+        print("Mode: FINAL (high precision)")
     else:
-        print("🧪 Running in EXPLORATORY mode: Using low step count for speed.")
-        N_STEPS = 5_000
-        progress_interval = 1_000
+        N_STEPS, STEP_PRINT, SAVE_PLOTS = 100_000, 10_000, args.plots
+        print("Mode: EXPLORATORY (fast)")
     
-    DT = 0.2
+    PLOT_DIR = "plots"; os.makedirs(PLOT_DIR, exist_ok=True)
 
-    # --- Ground Truth Caching for GR ---
-    GROUND_TRUTH_GR_FILE = f"ground_truth_gr_{N_STEPS}steps.pt"
-    ground_truth_final_state = None
-
-    if os.path.exists(GROUND_TRUTH_GR_FILE):
-        print(f"✅ Loading GR ground truth from {GROUND_TRUTH_GR_FILE}...")
-        ground_truth_final_state = torch.load(GROUND_TRUTH_GR_FILE, map_location=device)
-    else:
-        print(f"⏳ Running ground truth simulation with Schwarzschild (GR) for {N_STEPS:,} steps...")
-        integrator_true = GeodesicIntegrator(models_to_test[0], y0_full, M, c_val, G_val)
-        y_true = y0_integ.clone()
-        
-        start_time_gt = time.time()
-        for step in range(N_STEPS):
-            y_true = integrator_true.rk4_step(y_true, DT)
-            if VERBOSE_DEBUG and (step+1) % 500 == 0:
-                # Use .detach() here for safe printing
-                y_print = y_true.detach()
-                print(f"  GR Step {(step+1):,}: r={y_print[1]/RS:.6f}*RS, dr/dτ={y_print[3]:.4e}")
-            if (step+1) % progress_interval == 0:
-                elapsed = time.time() - start_time_gt
-                print(f"  Step {(step+1):,}/{N_STEPS:,} ({(step+1)/N_STEPS*100:.1f}%) - r={y_true.detach()[1]/RS:.4f}*RS - Elapsed: {elapsed:.1f}s")
-            if y_true[1] <= RS * 1.01: # Add a small buffer to stop before singularity
-                print(f"  Event horizon reached at step {step+1:,}")
-                break
-        
-        ground_truth_final_state = y_true
-        torch.save(ground_truth_final_state, GROUND_TRUTH_GR_FILE)
-        print(f"✅ GR ground truth simulation complete. Result cached to {GROUND_TRUTH_GR_FILE}.")
-
-    # --- BUG FIX: Use .detach() before calling .numpy() ---
-    ground_truth_final_state_np = ground_truth_final_state.cpu().detach().numpy()
-    print(f"GR orbit loaded/completed. Final r={ground_truth_final_state_np[1]/RS.cpu().detach():.4f}*RS, φ={np.rad2deg(ground_truth_final_state_np[2]):.2f}°\n")
-
-    # --- Ground Truth Caching for Kaluza-Klein ---
-    GROUND_TRUTH_KK_FILE = f"ground_truth_kk_{N_STEPS}steps.pt"
-    kaluza_klein_final_state = None
-    
-    if os.path.exists(GROUND_TRUTH_KK_FILE):
-        print(f"✅ Loading Kaluza-Klein ground truth from {GROUND_TRUTH_KK_FILE}...")
-        kaluza_klein_final_state = torch.load(GROUND_TRUTH_KK_FILE, map_location=device)
-    else:
-        print(f"⏳ Running ground truth simulation with Kaluza-Klein for {N_STEPS:,} steps...")
-        kk_model = ReissnerNordstrom(Q=Q_PARAM)
-        integrator_kk = GeodesicIntegrator(kk_model, y0_full, M, c_val, G_val)
-        y_kk = y0_integ.clone()
-
-        start_time_kk = time.time()
-        for step in range(N_STEPS):
-            y_kk = integrator_kk.rk4_step(y_kk, DT)
-            if (step+1) % progress_interval == 0:
-                elapsed = time.time() - start_time_kk
-                print(f"  Step {(step+1):,}/{N_STEPS:,} ({(step+1)/N_STEPS*100:.1f}%) - r={y_kk.detach()[1]/RS:.4f}*RS - Elapsed: {elapsed:.1f}s")
-            if y_kk[1] <= RS * 1.01:
-                print(f"  Event horizon reached at step {step+1:,}")
-                break
-        
-        kaluza_klein_final_state = y_kk
-        torch.save(kaluza_klein_final_state, GROUND_TRUTH_KK_FILE)
-        print(f"✅ Kaluza-Klein ground truth simulation complete. Result cached to {GROUND_TRUTH_KK_FILE}.")
-
-    # --- BUG FIX: Use .detach() before calling .numpy() ---
-    kaluza_klein_final_state_np = kaluza_klein_final_state.cpu().detach().numpy()
-    print(f"KK orbit loaded/completed. Final r={kaluza_klein_final_state_np[1]/RS.cpu().detach():.4f}*RS, φ={np.rad2deg(kaluza_klein_final_state_np[2]):.2f}°\n")
-
-    results = []
-    print("--- Simulating Orbital Trajectories for All Models (PyTorch GPU) ---")
-    for model in models_to_test:
-        print(f"Testing: {model.name}...")
-        model_start_time = time.time()
-        
-        integrator_pred = GeodesicIntegrator(model, y0_full, M, c_val, G_val)
-        y_pred = y0_integ.clone()
-
+    # -- 3.4  Ground‑truth trajectories (cached) ----------------------------
+    def cached_run(model: GravitationalTheory, tag: str):
+        fname = f"cache_{tag}_{N_STEPS}.pt"
+        if os.path.exists(fname):
+            return torch.load(fname, map_location=device)
+        integ = GeodesicIntegrator(model, y0_full, M, c, G)
+        hist = torch.empty((N_STEPS + 1, 4), device=device, dtype=DTYPE)
+        hist[0] = y0_state
+        y = y0_state.clone()
         for i in range(N_STEPS):
-            y_pred = integrator_pred.rk4_step(y_pred, DT)
-            if y_pred[1] <= RS * 1.01:
+            y = integ.rk4_step(y, DTau)
+            hist[i + 1] = y
+            if (i + 1) % STEP_PRINT == 0:
+                print(f"  {tag} step {i+1:,}/{N_STEPS:,} "
+                      f"r={y[1]/RS:.3f} RS")
+            if y[1] <= RS * 1.01:
+                hist = hist[: i + 2]
+                break
+        torch.save(hist, fname)
+        return hist
+
+    GR_hist = cached_run(Schwarzschild(), "GR")
+    RN_hist = cached_run(ReissnerNordstrom(Q_PARAM), "RN")
+    GR_final, RN_final = GR_hist[-1], RN_hist[-1]
+
+    # -- 3.5  Evaluate all models ------------------------------------------
+    results = []
+    for idx, model in enumerate(models, 1):
+        print(f"[{idx:03}/{len(models)}] {model.name}")
+        integ = GeodesicIntegrator(model, y0_full, M, c, G)
+        traj = torch.empty((N_STEPS + 1, 4), device=device, dtype=DTYPE)
+        traj[0] = y0_state
+        y = y0_state.clone()
+        for i in range(N_STEPS):
+            y = integ.rk4_step(y, DTau)
+            traj[i + 1] = y
+            if y[1] <= RS * 1.01:
+                traj = traj[: i + 2]
                 break
 
-        # --- BUG FIX: Use .detach() before calling .numpy() ---
-        final_state_pred = y_pred.cpu().detach().numpy()
-        
-        # Ground truth state is [t, r, phi, dr/dtau]. We only need r and phi for loss.
-        r_true, phi_true = ground_truth_final_state_np[1], ground_truth_final_state_np[2]
-        r_pred, phi_pred = final_state_pred[1], final_state_pred[2]
+        r_pred, phi_pred = y[1], y[2]
 
-        # Correct Loss Calculation (Law of Cosines) for squared distance (m^2)
-        loss_sq = (r_true**2 + r_pred**2 - 2 * r_true * r_pred * np.cos(phi_true - phi_pred))
+        def dev(final_ref):
+            r_ref, phi_ref = final_ref[1], final_ref[2]
+            if not torch.isfinite(r_pred) or not torch.isfinite(phi_pred):
+                return float("inf")
+            return (r_ref**2 + r_pred**2
+                    - 2 * r_ref * r_pred * torch.cos(phi_ref - phi_pred)).item()
 
-        if not np.isfinite(loss_sq):
-            loss_sq = 1e50 # Assign a large penalty for unstable/failed simulations
+        results.append(dict(
+            name=model.name,
+            loss_GR=dev(GR_final),
+            loss_RN=dev(RN_final),
+            dot_GR=torch.dot(y, GR_final).item(),
+            traj=traj.cpu().numpy(),
+        ))
 
-        results.append({"Model": model.name, "Loss": loss_sq})
-        print(f"  -> Finished in {time.time()-model_start_time:.2f}s. Deviation: {loss_sq:.4e} m²")
+    results.sort(key=lambda d: d["loss_GR"])
 
-    print("\n--- PYTORCH GPU ORBITAL TEST (FLOAT32): RANKED DEVIATION ---")
-    results.sort(key=lambda x: x["Loss"])
-    print(f"{'Rank':<5} | {'Model Name':<65} | {'Final Trajectory Deviation (m²)':<35}")
-    print("="*110)
+    # -- 3.6  Text report ----------------------------------------------------
+    print("\nRank | Model                               | Loss_GR")
+    print("-"*60)
     for rank, res in enumerate(results, 1):
-        loss_str = f"{res['Loss']:.4e}" if res['Loss'] < 1e49 else "Solver Failed or Plunged"
-        print(f"{rank:<5} | {res['Model']:<65} | {loss_str}")
-    print("="*110)
-    print(f"Total execution time: {time.time() - total_start_time:.2f} seconds")
+        print(f"{rank:4d} | {res['name']:<35} | {res['loss_GR']:10.3e}")
+
+    # -- 3.7  Plots ----------------------------------------------------------
+    if SAVE_PLOTS and not args.no_plots:
+        GR_np, RN_np = GR_hist.cpu().numpy(), RN_hist.cpu().numpy()
+        top = results if args.plots else results[:5]
+        for res in top:
+            pred_np = res["traj"]
+            plt.figure(figsize=(8, 8))
+            ax = plt.subplot(111, projection="polar")
+            ax.plot(GR_np[:, 2], GR_np[:, 1], "k--", label="GR")
+            ax.plot(RN_np[:, 2], RN_np[:, 1], "b:",  label="R‑N")
+            ax.plot(pred_np[:, 2], pred_np[:, 1], "r",  label=res["name"])
+            ax.plot(pred_np[0, 2], pred_np[0, 1], "go", label="start")
+            ax.plot(pred_np[-1, 2], pred_np[-1, 1], "rx", label="end")
+            ax.set_title(res["name"], pad=20); ax.legend(); plt.tight_layout()
+            safe = res["name"].translate({ord(c): "_" for c in " /()*"})
+            plt.savefig(os.path.join(PLOT_DIR, f"{safe}.png"))
+            plt.close()
+        print(f"\nPlots saved to '{PLOT_DIR}/'.")
+
+    print("Done.")
+
+
+if __name__ == "__main__":
+    warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
+    main()

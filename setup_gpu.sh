@@ -1,6 +1,6 @@
 #!/bin/bash
 # This script automates the setup for the PyTorch-based GPU simulation.
-# (V11: Adds torchdiffeq for high-performance adaptive solving)
+# (V12: Adds matplotlib for plotting and removes unused torchdiffeq)
 
 # Function for clear, colored output.
 print_message() {
@@ -13,7 +13,7 @@ print_message() {
 }
 
 # --- Step 1: Preliminary Checks ---
-print_message "▶ Starting Apple M3 Max environment setup for PyTorch GPU simulation..." "yellow"
+print_message "▶ Starting Apple M-series environment setup for PyTorch GPU simulation..." "yellow"
 VENV_NAME=".venv_gpu"
 PYTHON_EXEC="./${VENV_NAME}/bin/python"
 
@@ -26,6 +26,7 @@ fi
 if ! command -v uv &> /dev/null; then
     print_message "  Installing 'uv' package manager..." "yellow"
     curl -LsSf https://astral.sh/uv/install.sh | sh
+    # Add uv to the path for the current session
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
@@ -34,9 +35,9 @@ print_message "\n▶ Creating Python virtual environment..." "yellow"
 uv venv -p python3 $VENV_NAME
 print_message "✔ Virtual environment created." "green"
 
-print_message "\n▶ Installing PyTorch, torchdiffeq, and dependencies..." "yellow"
-# Installs torch, numpy, scipy, and the high-performance torchdiffeq solver
-uv pip install --python $PYTHON_EXEC torch numpy scipy torchdiffeq
+print_message "\n▶ Installing PyTorch, Matplotlib, and dependencies..." "yellow"
+# Installs torch, numpy, scipy, and matplotlib for plotting
+uv pip install --python $PYTHON_EXEC torch numpy scipy matplotlib
 if [ $? -ne 0 ]; then print_message "✖ Failed to install packages." "red"; exit 1; fi
 print_message "✔ Packages installed." "green"
 
@@ -53,8 +54,8 @@ print_message "✔ PyTorch MPS (Metal) GPU device confirmed." "green"
 print_message "\n▶ Generating 'run_gpu.sh' to execute the PyTorch script..." "yellow"
 cat > run_gpu.sh << EOL
 #!/bin/bash
-# This script executes the definitive, PyTorch-based GPU simulation.
-./${VENV_NAME}/bin/python run_theories_pytorch_definitive.py
+# This script executes the PyTorch-based GPU simulation.
+./${VENV_NAME}/bin/python sim_gpu.py
 EOL
 chmod +x run_gpu.sh
 print_message "✔ 'run_gpu.sh' created." "green"
