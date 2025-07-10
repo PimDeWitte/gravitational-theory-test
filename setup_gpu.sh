@@ -37,7 +37,7 @@ print_message "✔ Virtual environment created." "green"
 
 print_message "\n▶ Installing PyTorch, Matplotlib, and dependencies..." "yellow"
 # Installs torch, numpy, scipy, and matplotlib for plotting
-uv pip install --python $PYTHON_EXEC torch numpy scipy matplotlib
+uv pip install --python $PYTHON_EXEC torch numpy scipy matplotlib requests
 if [ $? -ne 0 ]; then print_message "✖ Failed to install packages." "red"; exit 1; fi
 print_message "✔ Packages installed." "green"
 

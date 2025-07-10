@@ -26,17 +26,21 @@
 # how well it reproduces the full frequency spectrum of the ground-truth orbit.
 #
 # --- UPDATE (JULY 10, 2025) ---
-# - Pruned non-competitive speculative theories (Einstein Final, Transformer)
-#   to focus compute on the most promising models (Quantum/Log Corrected).
-# - Refined parameter sweeps based on latest results.
+# - Pruned non-competitive speculative theories to focus compute on the most promising models.
 # - Implemented dual-baseline reporting for both GR and Reissner-Nordström.
 # - Added --cpu-f64 flag for high-precision validation runs.
 # - Implemented exponential backoff for failing simulations to save compute.
+# - Modified to use Grok API for dynamic theory generation based on history.
+# - Ensured Grok 4 is called via API.
+# - Removed all hardcoded theories except ground truths; self-generating only.
+# - Added validity check for generated code.
+# - Save theory code, plot, results, and data per theory with timestamp.
+# - Infinite loop until breakthrough found.
 # ---------------------------------------------------------------------------
 
 from __future__ import annotations
-import os, time, math, argparse, warnings
-
+import os, time, math, argparse, warnings, inspect, json
+import requests
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -53,13 +57,13 @@ def parse_cli() -> argparse.Namespace:
     """
     p = argparse.ArgumentParser(description="PyTorch-based orbital mechanics simulator for gravitational theories.")
     p.add_argument("--final", action="store_true", help="Run with final, high-step-count parameters for publication-quality data.")
-    p.add_argument("--plots", action="store_true", help="Generate and save plots for the top-ranked models.")
-    p.add_argument("--no-plots", action="store_true", help="Explicitly disable all plotting, even if other flags would enable it.")
     p.add_argument("--cpu-f64", action="store_true", help="Run on CPU with float64 precision for validation. Overrides default GPU/float32 settings.")
     return p.parse_args()
 
 args = parse_cli()
 XAI_API_KEY = os.environ.get("XAI_API_KEY")
+if not XAI_API_KEY:
+    raise ValueError("XAI_API_KEY environment variable is required for Grok API calls.")
 
 # Set device and data type based on CLI flags. This must be done before any tensors are created.
 # <reason>This block allows for flexible hardware and precision choices. The default is fast GPU/float32 for exploration, while --cpu-f64 enables high-precision CPU runs for validating key results, as recommended in the research plan.</reason>
@@ -130,18 +134,6 @@ class Schwarzschild(GravitationalTheory):
         m = 1 - rs / (r + EPSILON)
         return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
 
-class NewtonianLimit(GravitationalTheory):
-    """
-    The Newtonian approximation of gravity.
-    <reason>This theory is included as a 'distinguishable' model. It correctly lacks spatial curvature (g_rr = 1), and its significant but finite loss value validates the framework's ability to quantify physical incompleteness.</reason>
-    """
-    def __init__(self): super().__init__("Newtonian Limit")
-
-    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        rs = 2 * G_param * M_param / C_param**2
-        m = 1 - rs / r
-        return -m, torch.ones_like(r), r**2, torch.zeros_like(r)
-
 class ReissnerNordstrom(GravitationalTheory):
     """
     The Reissner-Nordström metric for a charged, non-rotating black hole.
@@ -156,66 +148,111 @@ class ReissnerNordstrom(GravitationalTheory):
         rq_sq = (G_param * self.Q**2) / (4 * TORCH_PI * EPS0_T * C_param**4)
         m = 1 - rs / r + rq_sq / r**2
         return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
-
-# -- 2.2 Core Speculative & Modified Metrics --
-
-class EinsteinRegularized(GravitationalTheory):
-    """
-    A regularized version of GR that avoids a central singularity.
-    <reason>This model is a key 'distinguishable' theory. It modifies GR only at the Planck scale, and its tiny but non-zero loss demonstrates the framework's extreme sensitivity to subtle physical deviations.</reason>
-    """
-    def __init__(self): super().__init__("Einstein Regularised Core")
-
-    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        rs = 2 * G_param * M_param / C_param**2
-        m = 1 - rs / torch.sqrt(r**2 + LP**2)
-        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
-
-class LogCorrected(GravitationalTheory):
-    """
-    A quantum gravity inspired model with a logarithmic correction term.
-    <reason>This model is a high-performing 'distinguishable'. Logarithmic corrections are predicted by some quantum loop gravity theories, making this a promising candidate for a first-order quantum correction to GR.</reason>
-    """
-    def __init__(self, beta: float):
-        super().__init__(f"Log Corrected (β={beta:+.2f})")
-        self.beta = torch.as_tensor(beta, device=device, dtype=DTYPE)
-
-    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        rs = 2 * G_param * M_param / C_param**2
-        sr = torch.maximum(r, rs * 1.001)
-        log_corr = self.beta * (rs / sr) * torch.log(sr / rs)
-        m = 1 - rs / r + log_corr
-        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
-
-class QuantumCorrected(GravitationalTheory):
-    """
-    A generic model with a cubic correction term, representing some quantum effects.
-    <reason>This model serves as a simple test case for higher-order corrections to the GR metric. Its performance relative to other theories helps classify the nature of potential quantum gravitational effects.</reason>
-    """
-    def __init__(self, alpha: float):
-        super().__init__(f"Quantum Corrected (α={alpha:+.2f})")
-        self.alpha = torch.as_tensor(alpha, device=device, dtype=DTYPE)
-
-    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        rs = 2 * G_param * M_param / C_param**2
-        m = 1 - rs / r + self.alpha * (rs / r) ** 3
-        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
-
-class VariableG(GravitationalTheory):
-    """
-    A model where the gravitational constant G varies with distance.
-    <reason>This theory tests the fundamental assumption of a constant G. The asymmetric failure (stable for weakening G, unstable for strengthening G) provides a powerful insight into the necessary conditions for a stable universe.</reason>
-    """
-    def __init__(self, delta: float):
-        super().__init__(f"Variable G (δ={delta:+.2f})")
-        self.delta = torch.as_tensor(delta, device=device, dtype=DTYPE)
-
-    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        rs = 2 * G_param * M_param / C_param**2
-        G_eff = G_param * (1 + self.delta * torch.log1p(r / rs))
-        m = 1 - 2 * G_eff * M_param / (C_param**2 * r)
-        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
         
+# ---------------------------------------------------------------------------
+# 2.3 Dynamic Theory Generation via Grok API
+# ---------------------------------------------------------------------------
+
+def build_prompt(history: list[dict]) -> str:
+    """
+    Builds a dynamic prompt for the Grok API based on previous results.
+    The prompt grows with history, allowing the system to learn iteratively.
+    """
+    prompt = """
+You are Grok, a physics researcher built by xAI, tasked with discovering a unified theory of gravity and electromagnetism.
+Draw heavy inspiration from Einstein's 30-year pursuit of a unified field theory, where he attempted to derive electromagnetism from pure geometry (e.g., non-symmetric metrics, teleparallelism, extra dimensions like Kaluza-Klein).
+Also inspire from deep learning architectures in PyTorch, viewing the metric as a compression function (autoencoder-like), where spacetime geometry encodes high-dimensional quantum information into low-dimensional classical reality. For example, think of higher-order terms as residual connections or attention over radial scales.
+
+The objective is NOT to rediscover the Reissner-Nordström (R-N) metric directly, but to find a more fundamental geometric principle (e.g., a modification to the field equations or metric structure) that naturally produces the R-N form as a consequence, without explicitly including charge Q or electromagnetic stress-energy. This validates the unification method: showing that EM emerges from geometry alone, proving the thesis that physical laws are lossless decoders.
+
+Based on the paper "Our Reality Matters" (July 8, 2025), which tested 69 theories using FFT-based loss on orbital trajectories against GR (Schwarzschild) and R-N baselines.
+
+Previous results ( theory name, loss vs GR, loss vs R-N ):
+"""
+    for h in history:
+        prompt += f"{h['name']}: loss_GR={h['loss_GR']:.3e}, loss_RN={h['loss_RN']:.3e}\n"
+
+    prompt += """
+Suggest 3 new, unique GravitationalTheory subclasses as complete Python class definitions.
+Each must:
+- Inherit from GravitationalTheory.
+- Have a unique name (e.g., EinsteinUnifiedAlpha0_5).
+- Implement __init__ with super().__init__(name).
+- Implement get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor].
+- Use only torch operations, no external imports.
+- Avoid explicit Q; instead, introduce geometric terms (e.g., alpha * (rs**2 / r**2), non-diagonal g_tphi for field-like effects, logarithmic/higher-order corrections inspired by quantum/DL).
+- Parameterize where useful (e.g., alpha for sweeps), inspired by Einstein's attempts.
+
+Focus on variants like "Einstein Final" (parameterized modifications to geometry that reduce to GR at alpha=0 but introduce EM-like repulsion at non-zero alpha).
+
+Output ONLY the Python code for the 3 classes, no explanations or extra text.
+"""
+    return prompt
+
+def generate_new_theories(history: list[dict]) -> list[GravitationalTheory]:
+    """
+    Calls the Grok API to generate new theory classes based on history.
+    Executes the returned code to define the classes dynamically.
+    """
+    prompt = build_prompt(history)
+    data = {
+        "model": "grok-4",  # Ensuring Grok 4 is called
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.8,
+        "max_tokens": 2048,
+    }
+    resp = requests.post(
+        "https://api.x.ai/v1/chat/completions",
+        headers={"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"},
+        json=data,
+    )
+    resp.raise_for_status()
+    content = resp.json()["choices"][0]["message"]["content"]
+    print(f"\nGenerated theory code:\n{content}\n")
+
+    # Save the full generated code
+    gen_timestamp = time.strftime("%Y%m%d_%H%M%S")
+    os.makedirs("generated_codes", exist_ok=True)
+    with open(f"generated_codes/{gen_timestamp}_generated.py", "w") as f:
+        f.write(content)
+
+    # Get existing theories before exec
+    existing_classes = {
+        cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
+    }
+
+    # Execute the code to define new classes
+    try:
+        exec(content, globals())
+    except Exception as e:
+        print(f"Error executing generated code: {e}")
+        return []
+
+    # Find newly defined classes
+    all_classes = {
+        cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
+    }
+    new_classes = all_classes - existing_classes
+
+    if not new_classes:
+        print("No new theories generated from API response.")
+        return []
+
+    valid_models = []
+    for cls in new_classes:
+        try:
+            test_model = cls()
+            test_r = torch.tensor(10.0, device=device, dtype=DTYPE)
+            gtt, grr, gpp, gtp = test_model.get_metric(test_r, M, c, G)
+            if not all(torch.isfinite(t).all() for t in (gtt, grr, gpp, gtp)):
+                raise ValueError("Non-finite metric values")
+            valid_models.append(cls)
+        except Exception as e:
+            print(f"Invalid theory {cls.__name__}: {e}")
+            continue
+
+    return [cls() for cls in valid_models]  # Instantiate valid ones
+
 # ---------------------------------------------------------------------------
 # 3.  GEODESIC INTEGRATOR (RK‑4)
 # ---------------------------------------------------------------------------
@@ -286,24 +323,8 @@ def main() -> None:
     print(f"PyTorch Orbital Test | device={device} | dtype={DTYPE}")
     print("=" * 80)
 
-    # -- Model Registry --
-    # <reason>This registry defines the core, most promising theories based on the latest results. The list has been pruned of less competitive models to focus computational resources.</reason>
-    models: list[GravitationalTheory] = [
-        Schwarzschild(), NewtonianLimit(), ReissnerNordstrom(Q_PARAM),
-        EinsteinRegularized(),
-    ]
-    
-    # <reason>Parameter sweeps are focused on the two most promising classes of theories, Log Corrected and Quantum Corrected, and the most stable regime of Variable G. The parameter ranges have been refined to concentrate on areas that previously yielded lower loss values.</reason>
-    sweeps = {
-        "QuantumCorrected": (QuantumCorrected, dict(alpha=np.linspace(-2.0, 2.0, 5))),
-        "LogCorrected": (LogCorrected, dict(beta=np.linspace(-1.5, 1.5, 5))),
-        "VariableG": (VariableG, dict(delta=np.linspace(-0.5, -0.05, 5))),
-    }
-    for cls, pd in sweeps.values():
-        key, vals = next(iter(pd.items()))
-        models += [cls(**{key: float(v)}) for v in vals]
-
-    print(f"Total models to be tested: {len(models)}")
+    # Initial history from baselines
+    history = []
 
     # -- Initial Conditions --
     r0 = 4.0 * RS
@@ -319,10 +340,10 @@ def main() -> None:
     DTau = 0.01
     MAX_CONSECUTIVE_FAILURES = 10
     if args.final:
-        N_STEPS, STEP_PRINT, SAVE_PLOTS = 5_000_000, 250_000, True
+        N_STEPS, STEP_PRINT = 5_000_000, 250_000
         print("Mode: FINAL (high precision, long duration)")
     else:
-        N_STEPS, STEP_PRINT, SAVE_PLOTS = 100_000, 10_000, args.plots
+        N_STEPS, STEP_PRINT = 100_000, 10_000
         print("Mode: EXPLORATORY (fast, for prototyping)")
     
     # -- Ground-Truth Trajectory Generation (Cached) --
@@ -348,68 +369,67 @@ def main() -> None:
     RN_hist = cached_run(ReissnerNordstrom(Q_PARAM), "RN")
     GR_loss_vs_RN = calculate_fft_loss(RN_hist, GR_hist)
 
-    # -- Main Evaluation Loop --
-    results = []
-    for idx, model in enumerate(models, 1):
-        print(f"\n[{idx:03}/{len(models)}] Evaluating: {model.name}")
-        integ = GeodesicIntegrator(model, y0_full, M, c, G)
-        traj = torch.empty((N_STEPS + 1, 4), device=device, dtype=DTYPE)
-        traj[0], y = y0_state, y0_state.clone()
-        consecutive_failures = 0
-        for i in range(N_STEPS):
-            y = integ.rk4_step(y, DTau)
-            traj[i + 1] = y
-            if not torch.all(torch.isfinite(y)):
-                consecutive_failures += 1
-                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                    print(f"  ! ABORTED: Simulation unstable for {consecutive_failures} consecutive steps.")
+    # Add baselines to history
+    history.append({"name": "Schwarzschild (GR)", "loss_GR": 0.0, "loss_RN": GR_loss_vs_RN})
+    history.append({"name": "Reissner‑Nordström (Q=3.0e14)", "loss_GR": GR_loss_vs_RN, "loss_RN": 0.0})
+
+    # -- Iterative Evaluation Loop --
+    breakthrough_found = False
+    iteration = 1
+    while True:
+        print(f"\n--- Iteration {iteration}: Generating new theories ---")
+        new_models = generate_new_theories(history)
+        if not new_models:
+            print("No valid new models generated. Continuing...")
+            iteration += 1
+            continue
+
+        print(f"Testing {len(new_models)} new models: {[m.name for m in new_models]}")
+
+        results = []
+        for idx, model in enumerate(new_models, 1):
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            safe_name = model.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
+            theory_dir = f"theories/{timestamp}_{safe_name}"
+            os.makedirs(theory_dir, exist_ok=True)
+
+            # Save theory code
+            cls = type(model)
+            try:
+                source = inspect.getsource(cls)
+            except:
+                source = "# Source not available"
+            with open(f"{theory_dir}/code.py", "w") as f:
+                f.write(source)
+
+            print(f"\n[{idx:03}/{len(new_models)}] Evaluating: {model.name}")
+            integ = GeodesicIntegrator(model, y0_full, M, c, G)
+            traj = torch.empty((N_STEPS + 1, 4), device=device, dtype=DTYPE)
+            traj[0], y = y0_state, y0_state.clone()
+            consecutive_failures = 0
+            for i in range(N_STEPS):
+                y = integ.rk4_step(y, DTau)
+                traj[i + 1] = y
+                if not torch.all(torch.isfinite(y)):
+                    consecutive_failures += 1
+                    if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                        print(f"  ! ABORTED: Simulation unstable for {consecutive_failures} consecutive steps.")
+                        traj = traj[:i+2]; break
+                else:
+                    consecutive_failures = 0
+                if y[1] <= RS * 1.01:
                     traj = traj[:i+2]; break
-            else:
-                consecutive_failures = 0
-            if y[1] <= RS * 1.01:
-                traj = traj[:i+2]; break
-        results.append({
-            "name": model.name,
-            "loss_GR": calculate_fft_loss(GR_hist, traj),
-            "loss_RN": calculate_fft_loss(RN_hist, traj),
-            "traj": traj.cpu().numpy(),
-        })
+            res = {
+                "name": model.name,
+                "loss_GR": calculate_fft_loss(GR_hist, traj),
+                "loss_RN": calculate_fft_loss(RN_hist, traj),
+                "traj": traj.cpu().numpy(),
+            }
+            results.append(res)
+            history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"]})  # Append to history without traj
 
-    # -- Reporting and Plotting --
-    PLOT_DIR = f"plots/run_{int(time.time())}"
-    if SAVE_PLOTS and not args.no_plots: os.makedirs(PLOT_DIR, exist_ok=True)
-    BOLD, GREEN_BG, RESET = "\033[1m", "\033[42m", "\033[0m"
-
-    results.sort(key=lambda d: (d["loss_GR"] is None or math.isnan(d["loss_GR"]), d["loss_GR"]))
-    print("\n\n" + "="*80)
-    print("--- RANKING vs. GENERAL RELATIVITY (GR) ---")
-    print("Rank | Model                                | Loss_GR (FFT MSE)")
-    print("-" * 60)
-    for rank, res in enumerate(results, 1):
-        print(f"{rank:4d} | {res['name']:<36} | {res.get('loss_GR', float('nan')):10.3e}")
-    print("="*80)
-
-    results.sort(key=lambda d: (d["loss_RN"] is None or math.isnan(d["loss_RN"]), d["loss_RN"]))
-    print("\n--- RANKING vs. REISSNER-NORDSTRÖM (R-N) ---")
-    print(f"(GR baseline loss vs R-N is: {GR_loss_vs_RN:.3e})")
-    print("Rank | Model                                | Loss_RN (FFT MSE)")
-    print("-" * 60)
-    for rank, res in enumerate(results, 1):
-        loss_val = res.get('loss_RN', float('nan'))
-        name = res['name']
-        is_breakthrough = not math.isnan(loss_val) and loss_val < GR_loss_vs_RN and "Schwarzschild" not in name and "Reissner" not in name
-        if is_breakthrough:
-            print(f"{GREEN_BG}{BOLD}{rank:4d} | {name:<36} | {loss_val:10.3e} [BREAKTHROUGH]{RESET}")
-        else:
-            print(f"{rank:4d} | {name:<36} | {loss_val:10.3e}")
-    print("="*80)
-
-    if SAVE_PLOTS and not args.no_plots:
-        GR_np, RN_np = GR_hist.cpu().numpy(), RN_hist.cpu().numpy()
-        results.sort(key=lambda d: (d["loss_GR"] is None or math.isnan(d["loss_GR"]), d["loss_GR"]))
-        top_results = results if args.plots else results[:5]
-        print(f"\nGenerating plots for top {len(top_results)} models in '{PLOT_DIR}/'...")
-        for res in top_results:
+            # Save plot
+            GR_np, RN_np = GR_hist.cpu().numpy(), RN_hist.cpu().numpy()
             pred_np = res["traj"]
             plt.figure(figsize=(8, 8))
             ax = plt.subplot(111, projection="polar")
@@ -420,10 +440,51 @@ def main() -> None:
             ax.plot(pred_np[-1, 2], pred_np[-1, 1], "rx", markersize=10, mew=2, label="end", zorder=6)
             ax.set_title(res["name"], pad=20)
             ax.legend(); plt.tight_layout()
-            safe_name = res["name"].translate({ord(c): "_" for c in " /()=.*+-"})
-            plt.savefig(os.path.join(PLOT_DIR, f"{safe_name}.png"))
+            plt.savefig(f"{theory_dir}/plot.png")
             plt.close()
-        print("Plots saved successfully.")
+
+            # Save results and data
+            np.save(f"{theory_dir}/traj.npy", pred_np)
+            with open(f"{theory_dir}/results.json", "w") as f:
+                json.dump({
+                    "name": res["name"],
+                    "loss_GR": res["loss_GR"],
+                    "loss_RN": res["loss_RN"],
+                }, f)
+
+        # -- Reporting --
+        BOLD, GREEN_BG, RESET = "\033[1m", "\033[42m", "\033[0m"
+
+        results.sort(key=lambda d: (math.isnan(d["loss_GR"]), d["loss_GR"]))
+        print("\n\n" + "="*80)
+        print("--- RANKING vs. GENERAL RELATIVITY (GR) ---")
+        print("Rank | Model                                | Loss_GR (FFT MSE)")
+        print("-" * 60)
+        for rank, res in enumerate(results, 1):
+            print(f"{rank:4d} | {res['name']:<36} | {res['loss_GR']:10.3e}")
+        print("="*80)
+
+        results.sort(key=lambda d: (math.isnan(d["loss_RN"]), d["loss_RN"]))
+        print("\n--- RANKING vs. REISSNER-NORDSTRÖM (R-N) ---")
+        print(f"(GR baseline loss vs R-N is: {GR_loss_vs_RN:.3e})")
+        print("Rank | Model                                | Loss_RN (FFT MSE)")
+        print("-" * 60)
+        for rank, res in enumerate(results, 1):
+            loss_val = res["loss_RN"]
+            name = res['name']
+            is_breakthrough = not math.isnan(loss_val) and loss_val < GR_loss_vs_RN and "Schwarzschild" not in name and "Reissner" not in name
+            if is_breakthrough:
+                print(f"{GREEN_BG}{BOLD}{rank:4d} | {name:<36} | {loss_val:10.3e} [BREAKTHROUGH]{RESET}")
+                breakthrough_found = True
+            else:
+                print(f"{rank:4d} | {name:<36} | {loss_val:10.3e}")
+        print("="*80)
+
+        if breakthrough_found:
+            print("\nBreakthrough theory found! Continuing to find potentially better ones.")
+            # Continue infinitely, do not break
+
+        iteration += 1
 
     print("\nDone.")
 
