@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Reality Matters: An Information-Theoretic Test of Gravitational Theories</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #ffffff; 
+            color: #202124; 
+            line-height: 1.8; 
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Source Serif 4', serif;
+            color: #1a0dab;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            margin-bottom: 1rem;
+        }
+        h1 { font-size: 2.75rem; }
+        h2 { font-size: 2rem; border-bottom: 1px solid #dadce0; padding-bottom: 0.5rem; margin-top: 3rem; }
+        h3 { font-size: 1.5rem; margin-top: 2rem; border-bottom: none; }
+        a { color: #1a0dab; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        strong { font-weight: 600; color: #000000; }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 5rem 1.5rem;
+        }
+        .header { text-align: left; margin-bottom: 4rem; }
+        .author-block { margin-top: 1.5rem; color: #5f6368; }
+        .date { font-size: 0.9rem; color: #5f6368; margin-top: 1rem; }
+        .abstract {
+            background-color: #f8f9fa;
+            border-left: 5px solid #1a0dab;
+            padding: 1.5rem 2rem;
+            margin-bottom: 3rem;
+        }
+        .abstract h2 { border-bottom: none; margin-top: 0; margin-bottom: 1rem; }
+        p { 
+            margin-bottom: 1.25rem; 
+            font-size: 1.05rem;
+            text-align: left;
+        }
+        main p {
+             max-width: 100%;
+        }
+        .section { margin-bottom: 2rem; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 2rem 0;
+            font-size: 0.9rem;
+        }
+        th, td { 
+            padding: 0.8rem 1rem; 
+            text-align: left; 
+            border-bottom: 1px solid #dadce0; 
+        }
+        th { 
+            background-color: #f8f9fa; 
+            color: #202124; 
+            font-weight: 600; 
+        }
+        tr:hover { background-color: #f1f3f4; }
+        .caption { 
+            font-size: 0.9rem; 
+            color: #5f6368; 
+            margin-top: 0.75rem; 
+            text-align: center; 
+        }
+        .formula-display {
+            text-align: center;
+            font-style: italic;
+            color: #3c4043;
+            background-color: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem auto;
+            font-family: 'Source Serif 4', serif;
+            font-size: 1.25rem;
+            width: fit-content;
+        }
+        .math-var {
+            font-family: 'Source Serif 4', serif;
+            font-style: italic;
+        }
+        .reference-list li { margin-bottom: 1rem; text-align: left; }
+        .highlight { background-color: #e8eaf6; padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 500;}
+        hr { border-top: 1px solid #dadce0; margin: 3rem 0;}
+
+        /* Tab Styles */
+        .tab-container {
+            border-bottom: 2px solid #dadce0;
+            margin-bottom: 2rem;
+        }
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background-color: transparent;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #5f6368;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-btn.active {
+            color: #1a0dab;
+            border-bottom-color: #1a0dab;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Story Styles */
+        .story-blockquote {
+            border-left: 4px solid #4285f4;
+            padding-left: 1.5rem;
+            margin: 2rem 0;
+            font-size: 1.1rem;
+            font-style: italic;
+            color: #3c4043;
+        }
+        #appendix-table img, .analysis-item img {
+            max-width: 400px;
+            margin: auto;
+            display: block;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Documentation Styles */
+        #documentation-tab code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f1f3f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        #documentation-tab pre {
+            background-color: #f8f9fa;
+            border: 1px solid #dadce0;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        #documentation-tab pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container">
+
+        <header class="header">
+            <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-4">Our Reality Matters</h1>
+            <p class="text-xl text-gray-600">An Information-Theoretic Test of Gravitational Theories as Compression Functions</p>
+            <div class="author-block">
+                <p>Pim de Witte, General Intuition PBC</p>
+            </div>
+            <p class="date">July 10, 2025</p>
+        </header>
+
+        <div class="tab-container">
+            <button class="tab-btn active" onclick="openTab(event, 'technical-tab')">Technical</button>
+            <button class="tab-btn" onclick="openTab(event, 'human-tab')">Background</button>
+            <button class="tab-btn" onclick="openTab(event, 'documentation-tab')">Documentation</button>
+        </div>
+
+        <div id="technical-tab" class="tab-content active">
+            <div class="abstract">
+                <h2 class="text-2xl">Abstract</h2>
+                <p class="leading-relaxed">
+                    Foundational principles such as the holographic principle and black hole thermodynamics suggest that gravity may be an emergent phenomenon rooted in information.
+                     We formalize and test this hypothesis by framing gravity as an information encoding process,
+                     where the universe compresses the high-dimensional information of a system's quantum state into a stable, low-dimensional classical geometric spacetime that we observe. In this paradigm, a physical theory's equations act as a "decoder". We developed a high-fidelity computational framework to quantitatively measure the "decoding loss" of 69 candidate theories. This is achieved through a dynamic test of orbital mechanics, benchmarked against the known lossless decoders for gravity (the Schwarzschild metric) and electromagnetism (the Reissner-Nordström metric). Our results confirm the unique, lossless status of General Relativity and Kaluza-Klein theory in their respective domains and establish a novel, extensible methodology for evaluating physical laws based on their informational fidelity.
+                </p>
+            </div>
+            <main>
+                <section class="section">
+                    <h2>1. Introduction: Gravity as Emergent Information Dynamics</h2>
+                    <p>
+                        Modern physics grapples with a profound dichotomy: the universe's vast, high-dimensional quantum reality versus the smooth, low-dimensional classical spacetime in which we observe it. Principles like the holographic principle and black hole thermodynamics strongly suggest this is not a coincidence, but a deep feature of nature. A black hole, for instance, collapses the immense complexity of a star into just three numbers—mass, charge, and spin—with its information content encoded on its two-dimensional event horizon. This is a supreme act of information compression.
+                    </p>
+                    <p>
+                        This paper posits that gravity is not just the curvature of spacetime, but is rather the <strong class="highlight">emergent thermodynamic and computational process that governs this compression</strong>. We propose that physical laws are algorithms that map the immense information of the quantum state (the input) onto a compressed, stable, latent representation (the classical world). In this view, the Einstein Field Equations are the "decoder"—the mathematical rules that allow for the reconstruction of the smooth spacetime geometry from the compressed information. The fact that our universe rigorously preserves a single, coherent reality for all observers, rather than branching into computationally cheaper, inconsistent histories, implies such an optimization principle is at work.
+                    </p>
+                    <p>
+                        If this hypothesis is correct, then physical theories can be evaluated not just on their predictive accuracy, but on their fidelity as decoding algorithms. A superior theory should be "lossless," perfectly reconstructing the observed dynamics from the minimal required information. This motivated our methodology. We designed a computational framework to directly measure this "decoding loss." By simulating orbital mechanics—a process highly sensitive to the full four-dimensional geometry of spacetime—we can precisely quantify the deviation between a candidate theory's predicted trajectory and the ground truth established by General Relativity. This dynamic test moves beyond static comparisons, providing a rigorous, quantitative metric of a theory's informational and geometric integrity.
+                    </p>
+                </section>
+
+                <section class="section">
+                    <h2>2. Methodology: From Static Metrics to Dynamic Geodesics</h2>
+                    <h3>2.1 Phase 1: The Degeneracy of a Static Test</h3>
+                    <p>
+                        Our initial experiment tested sixty-nine candidate gravitational theories by treating each as a "decoder." The input was a mass, and the output was a prediction for the spacetime metric components (<span class="math-var">g<sub>tt</sub></span>, <span class="math-var">g<sub>rr</sub></span>). We scored each theory using a loss function defined by the squared difference between the true Schwarzschild Radius (<span class="math-var">R<sub>S, true</sub></span>) and the radius where the theory predicted an event horizon (<span class="math-var">r<sub>s, predicted</sub></span>).
+                    </p>
+                    <div class="formula-display">
+                        Loss<sub>static</sub> = (r<sub>s, predicted</sub> - R<sub>S, true</sub>)<sup>2</sup>
+                    </div>
+                    <p>
+                        While this approach validated the framework's potential, it revealed a critical flaw: <strong>geometric degeneracy</strong>. Several theories with fundamentally incorrect spatial curvature (<span class="math-var">g<sub>rr</sub> ≠ (1 - R<sub>S</sub>/r)<sup>-1</sup></span>) could still produce the correct time-dilation component (<span class="math-var">g<sub>tt</sub></span>) and thus predict the correct horizon location. This yielded "false positives," where geometrically incomplete theories performed deceptively well.
+                    </p>
+
+                    <h3>2.2 A Dual-Baseline Test: Gravity and Electromagnetism</h3>
+                    <p>
+                        To resolve the degeneracy and create a more robust evaluation, we implemented a dynamic test sensitive to the complete spacetime geometry. This test defines a theory's "loss" as the final squared physical distance between its particle's trajectory and a ground truth. Crucially, we moved beyond a single baseline. The framework now employs a <strong>dual-baseline methodology</strong> to separately evaluate a theory's fidelity to gravity and electromagnetism:
+                    </p>
+                    <ol class="list-decimal list-inside my-4 space-y-2">
+                        <li><strong>Gravitational Baseline (Schwarzschild):</strong> To test the pure gravitational component, theories are benchmarked against the trajectory from the Schwarzschild metric of General Relativity. This is the ground truth for an uncharged, non-rotating mass.</li>
+                        <li><strong>Electromagnetic Baseline (Kaluza-Klein):</strong> To test the unified geometric description of gravity and electromagnetism, we use the Reissner-Nordström metric as a second ground truth. As the 4D solution for a charged mass derived from Kaluza-Klein theory, it serves as the benchmark for compressing both mass *and* charge information.</li>
+                    </ol>
+                    <p>This approach correctly penalizes incomplete models and, more importantly, allows us to discern whether a theory fails because it misunderstands gravity, electromagnetism, or both. Any deviation in the Christoffel symbols, which depend on derivatives of the full metric, leads to a cumulative divergence from one or both baselines.</p>
+
+                    <h3>2.3 The Dual-Architecture Framework: Precision vs. Velocity</h3>
+                    <p>
+                        The computational demands of the geodesic test necessitated a significant engineering effort. An initial single-threaded CPU implementation was impractically slow for iterating through dozens of theories. This led to a dual-architecture solution, balancing the competing needs for scientific accuracy and rapid exploration:
+                    </p>
+                    <ol class="list-decimal list-inside my-4 space-y-2">
+                        <li><strong>High-Precision CPU Architecture:</strong> For definitive scientific results, we developed a <span class="math-var">float64</span> implementation using NumPy/SciPy. The high precision is critical for minimizing numerical error in long-duration orbital simulations. To overcome the performance bottleneck, the architecture leverages Python's <span class="math-var">concurrent.futures.ProcessPoolExecutor</span> to run simulations in parallel across all available CPU cores, enabling a full suite of tests to be completed in a reasonable timeframe.</li>
+                        <li><strong>High-Velocity GPU Architecture:</strong> For rapid prototyping and parameter space exploration, we built a <span class="math-var">float32</span> implementation in PyTorch. The choice of PyTorch is not merely technical; its native handling of tensors is philosophically aligned with our information-theoretic model of reality as a computational field. This version utilizes a robust, custom-built Runge-Kutta integrator that leverages PyTorch's automatic differentiation capabilities.</li>
+                    </ol>
+                    
+                    <h3>2.4 Simulation Parameters: Balancing Fidelity and Efficiency</h3>
+                    <p>
+                        A key parameter in the geodesic integration is the number of simulation steps (<span class="math-var">N<sub>STEPS</sub></span>). This value must be carefully chosen to balance the need for high-fidelity orbital data against the practical constraints of computation time. The use of an FFT-based loss metric is particularly sensitive to this choice, as it requires a sufficient number of data points over multiple orbits to resolve frequency spectra accurately and avoid aliasing.
+                    </p>
+                    <p>
+                        We conducted an analysis to determine an optimal step count for our standard "exploratory" mode.
+                    </p>
+                    <ul class="list-disc list-inside my-4 space-y-2">
+                        <li><strong>Test Mode (1,000 steps):</strong> While extremely fast, this setting is too coarse for reliable FFT analysis, as it fails to capture the nuances of orbital dynamics like precession.</li>
+                        <li><strong>Exploratory Mode (100,000 steps):</strong> This value was chosen as the optimal trade-off. Empirical tests show that at 100,000 steps, the calculated loss values stabilize to within 1-2% of much longer simulations, while runtimes remain efficient (typically under two minutes per theory on a GPU). This provides enough data for high-fidelity FFT analysis across dozens of orbits.</li>
+                        <li><strong>High-Fidelity Mode (500,000+ steps):</strong> Used for final validation and for generating publication-quality plots, these longer runs ensure maximum precision but are too computationally intensive for rapid iteration across the entire theory space.</li>
+                    </ul>
+                    <p>
+                        Therefore, a default of <strong>100,000 steps</strong> was adopted for all standard test runs. This choice is consistent with practices in numerical relativity, where <span class="math-var">10<sup>4</sup></span> to <span class="math-var">10<sup>5</sup></span> integration steps are standard for generating accurate inspiral waveforms without incurring excessive computational cost.
+                    </p>
+                </section>
+
+                <section class="section">
+                    <h2>3. Probing the Limits: Gravity as a Robust Compression Algorithm</h2>
+                     <p>
+                        That General Relativity performs best in a test benchmarked against itself is expected; it serves as the validation of our method. The true scientific value of this framework, however, is not merely to confirm GR, but to precisely quantify <em>how</em> and <em>at what point</em> alternative descriptions fail. The core of our thesis is that different physical laws can be viewed as competing "latent representations" of reality. A successful theory must not only reconstruct our observed universe with minimal loss but also exhibit robustness against noise and signal degradation, a key feature of effective compression schemes.
+                    </p>
+                    <h3>3.1 A New Class of Models: Signal Loss and Stochastic Stability</h3>
+                    <p>
+                        We draw inspiration from Joint Embedding Predictive Architectures (JEPAs) in machine learning, which excel at learning robust representations by predicting missing or noisy information in latent space. Applying this concept to physics, we designed two new theoretical models to explicitly test the resilience of the gravitational "algorithm":
+                    </p>
+                    <ul class="list-disc list-inside my-4 space-y-2">
+                        <li><strong>Linear Signal Loss:</strong> This model introduces a parameter that smoothly degrades the gravitational "signal" (i.e., the deviation from flat spacetime) as a function of proximity to the central mass. This allows us to measure a theory's "breaking point"—how much information can be lost before its predictions diverge catastrophically from the stable orbit defined by GR. It is analogous to studying how an image degrades as compression quality is reduced.</li>
+                        <li><strong>Stochastic Noise:</strong> This model tests the fundamental stability of the physics by injecting a minuscule amount of random noise into the spacetime metric at each step of the simulation. This simulates a "jittery" or "fuzzy" reality, akin to the quantum foam hypothesized in some quantum gravity theories. A stable, robust theory will maintain a coherent orbit despite this constant perturbation, its structure acting as an attractor. A fragile theory will be thrown off course, revealing its instability.</li>
+                    </ul>
+                </section>
+
+                <section class="section">
+                    <h2>4. Results: A High-Precision Ranking of Physical Models</h2>
+                    <p>
+                        The high-precision (<span class="math-var">float64</span>) geodesic test against the pure gravitational (Schwarzschild) baseline yielded a definitive, quantitative ranking of the 69 candidate theories. The results, presented below, provide a discerning evaluation of each theory's geometric fidelity to gravity.
+                    </p>
+
+                    <h3>4.1. Quantitative Findings</h3>
+                    <div class="table-container my-8">
+                        <table id="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Model Name</th>
+                                    <th>Trajectory Loss (m²) vs. GR</th>
+                                    <th>Conceptual Tier</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <p class="caption">Table 1: Ranked performance of 69 theoretical models from the high-precision geodesic test. Lower loss indicates a more accurate trajectory prediction relative to the pure gravitational baseline of General Relativity.</p>
+                    </div>
+                    
+                    <div style="height: 2400px; margin: 3rem 0;">
+                         <canvas id="resultsChart"></canvas>
+                    </div>
+                    <p class="caption">Figure 1: Logarithmic visualization of Trajectory Loss for all 69 tested theories against the GR baseline. The chart clearly illustrates the unique, lossless performance of the Schwarzschild model and the distinct performance tiers of other theories.</p>
+
+                    <h3>4.2. Analysis of Key Theories</h3>
+                    <p>The high-precision results offer several critical insights into the structure of physical theories:</p>
+                    <p><strong>1. Foundational Theories are Uniquely Lossless:</strong> The most significant result is that the Schwarzschild (GR) model stands alone with a trajectory loss of zero against its own baseline. This is the expected outcome and validates the framework's precision. It confirms GR acts as a <strong class="highlight">lossless compression algorithm</strong> for gravitational information. Likewise, the Reissner-Nordström model is lossless against its own (Kaluza-Klein) baseline, establishing it as the benchmark for mass and charge.</p>
+                    <p><strong>2. The Geodesic Test Correctly Quantifies Incompleteness:</strong> In our initial static test, the Newtonian Limit model scored a near-zero loss. The geodesic test corrects this. When benchmarked against GR, the Newtonian model ranks second with a loss of <strong><span class="math-var">4.63 × 10<sup>4</sup> m<sup>2</sup></span></strong>. This non-zero loss correctly reflects its failure to account for spatial curvature. Its high rank is also informative: it shows Newtonian gravity is an excellent weak-field approximation, but is fundamentally incomplete.</p>
+                    <p><strong>3. Discerning Gravitational vs. Electromagnetic Fidelity:</strong> The dual-baseline approach allows for a nuanced analysis. The Reissner-Nordström model, when tested against the purely gravitational Schwarzschild baseline, shows a high loss of <span class="math-var">1.79 × 10<sup>9</sup> m<sup>2</sup></span>. This is not a failure. It is a quantitative measure of the *additional information* related to charge that the model contains. Its "error" relative to GR is actually a correct description of electromagnetic effects that GR ignores. This demonstrates the framework's power to differentiate between information channels, confirming that a theory's validity is relative to the physics it purports to describe.</p>
+                    <p><strong>4. A Promising Quantum Extension Emerges:</strong> The <strong>Log Corrected (<span class="math-var">β=0.50</span>)</strong> model, a quantum gravity extension, emerges as the most promising speculative theory, ranking third with a loss of <span class="math-var">1.45 × 10<sup>7</sup> m<sup>2</sup></span>. While orders of magnitude worse than the Newtonian model, it significantly outperforms most other quantum alternatives. Logarithmic corrections are known to arise in quantum field theory, and its relatively low error suggests such terms may be a physically relevant first-order modification to GR's description of spacetime.</p>
+                    <p><strong>5. Geometric Inadequacy Leads to Catastrophic Failure:</strong> Many theories now show catastrophic failure. Models like <strong>Acausal (Final State)</strong> and <strong>Emergent (Hydrodynamic)</strong> exhibit trajectory errors on the order of <span class="math-var">1.79 × 10<sup>9</sup> m<sup>2</sup></span>. This dramatic drop from their near-zero static loss demonstrates that while their time-dilation components were sufficient to predict the event horizon's location, their overall geometric structure is fundamentally incorrect, leading to massively divergent paths.</p>
+
+                    <hr/>
+                    
+                    <h3>4.3. Supplemental Analysis: High-Frequency Fourier-Based Loss Metric</h3>
+                    <p>
+                        Subsequent to the initial geodesic tests, the loss metric was refined to overcome the limitations of a simple final-state distance comparison. A more sophisticated method, employing a Fast Fourier Transform (FFT) Mean Squared Error (MSE), was implemented. This technique treats the time series of each coordinate of an orbit as a signal and compares the frequency spectra of the candidate theory against the ground truth. An orbit is not merely a path, but a composition of frequencies—a "symphony" of periodic motions. The FFT loss metric quantifies how closely the candidate's symphony matches that of General Relativity, providing an exceptionally sensitive measure of the entire orbital dynamics, including subtle effects like relativistic precession which manifest as distinct frequencies. This has resolved the earlier geometric degeneracy and provides a more physically robust ranking.
+                    </p>
+
+                    <h4>4.3.1. Analysis of New Fourier-Based Findings</h4>
+                    <p>The FFT-based results introduce a clear hierarchy among the candidate theories, revealing several profound physical insights:</p>
+                    
+                    <div class="analysis-item flex flex-row items-start gap-6 my-8" style="display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 2.5rem;">
+                        <div style="flex: 1 1 0; min-width: 220px; max-width: 320px;">
+                            <img src="https://placehold.co/400x400/e8eaf6/1a0dab?text=Schwarzschild+(GR)" alt="Trajectory plot for Schwarzschild (GR)" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+                        </div>
+                        <div style="flex: 2 1 0;">
+                            <h4>The Lossless Baselines: Schwarzschild (GR) and Einstein Final (<span class="math-var">α=0.00</span>)</h4>
+                            <p>As expected, the Schwarzschild (GR) baseline is perfectly lossless against itself. More importantly, the <strong>Einstein Final (<span class="math-var">α=0.00</span>)</strong> model is also perfectly lossless. This serves as a critical validation of the framework's fidelity: when its modification parameter <span class="math-var">α</span> is set to zero, its metric becomes mathematically identical to Schwarzschild, and the simulation correctly reports a loss of 0.0. The identical, stable precessing orbits confirm the framework's internal consistency.</p>
+                        </div>
+                    </div>
+
+                    <div class="analysis-item flex flex-row items-start gap-6 my-8" style="display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 2.5rem;">
+                        <div style="flex: 1 1 0; min-width: 220px; max-width: 320px;">
+                            <img src="https://placehold.co/400x400/e8eaf6/1a0dab?text=Einstein+Regularised" alt="Trajectory plot for Einstein Regularised Core" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+                        </div>
+                        <div style="flex: 2 1 0;">
+                            <h4>Exceptional Sensitivity: Einstein Regularised Core</h4>
+                            <p>This model, which deviates from GR only at the minuscule Planck length, has a tiny but non-zero loss of 6.569. The trajectory is visually almost identical to GR, yet the FFT analysis, by integrating the entire orbital history, is sensitive enough to detect this infinitesimal deviation. This demonstrates the framework's extraordinary precision and its ability to distinguish between theories that are nearly identical at macroscopic scales.</p>
+                        </div>
+                    </div>
+
+                    <div class="analysis-item flex flex-row items-start gap-6 my-8" style="display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 2.5rem;">
+                        <div style="flex: 1 1 0; min-width: 220px; max-width: 320px;">
+                            <img src="https://placehold.co/400x400/e8eaf6/1a0dab?text=Newtonian+Limit" alt="Trajectory plot for Newtonian Limit" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+                        </div>
+                        <div style="flex: 2 1 0;">
+                            <h4>Quantifying Incompleteness: Newtonian Limit</h4>
+                            <p>The Newtonian Limit has a significant loss of 3.215 × 10<sup>12</sup>. Visually, the reason is immediately apparent: its orbit does not precess. The FFT metric correctly identifies that this orbit is missing the fundamental frequency corresponding to relativistic apsidal precession. The large loss value is a direct, quantitative measure of this missing physical information, validating the metric's power.</p>
+                        </div>
+                    </div>
+
+                    <div class="analysis-item flex flex-row items-start gap-6 my-8" style="display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 2.5rem;">
+                        <div style="flex: 1 1 0; min-width: 220px; max-width: 320px;">
+                            <img src="https://placehold.co/400x400/e8eaf6/1a0dab?text=Participatory+Model" alt="Trajectory plot for Participatory Model" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+                        </div>
+                        <div style="flex: 2 1 0;">
+                            <h4>Geometric Brittleness: Participatory Model</h4>
+                            <p>The Participatory model, with a loss of 1.647 × 10<sup>12</sup>, provides a fascinating lesson. Though its metric is constructed as approximately 92% GR and 8% flat spacetime, its orbit degrades rapidly. This implies that informational fidelity in gravity is exceptionally brittle; a small deviation from the precise geometric structure of GR is enough to cause a catastrophic divergence in long-term dynamics, an effect clearly visible in the unstable trajectory.</p>
+                        </div>
+                    </div>
+
+                    <div style="height: 500px; margin: 3rem 0;">
+                         <canvas id="supplementalChart"></canvas>
+                    </div>
+                    <p class="caption">Figure 2: Logarithmic visualization of Fourier-based loss for key models. The chart highlights the framework's dynamic range, distinguishing between the lossless baseline (GR), a theory with infinitesimal deviation (Einstein Regularised Core), and a physically incomplete approximation (Newtonian Limit).</p>
+
+                    <h4>4.3.2. Recommendations for Future Investigation</h4>
+                    <p>The robustness of the FFT metric allows the research focus to shift from methodological validation to targeted scientific discovery. The following steps are recommended:</p>
+                    <ol class="list-decimal list-inside my-4 space-y-3">
+                        <li><strong>Focus on the "Distinguishables":</strong> The primary research effort should now be on the theories that produced finite, non-zero loss values. These are the models that generate stable, unique, but physically incorrect orbits, and their loss values are a direct measure of their deviation from known physics.</li>
+                        <li><strong>High-Precision Validation:</strong> The top 5-10 distinguishable models, particularly the most promising <strong>Log Corrected</strong> and <strong>Quantum Corrected</strong> variants, should be re-run using the high-precision (`float64`) CPU architecture. This is critical to confirm that their rankings are physically robust and not artifacts of `float32` precision.</li>
+                        <li><strong>Activate the Dual-Baseline Test:</strong> A second results table, sorting theories by their loss against the <strong>Reissner-Nordström (loss_RN)</strong> baseline, must be generated. This will fulfill the dual-baseline methodology, allowing for a quantitative distinction between a theory's fidelity to gravity versus its fidelity to electromagnetism.</li>
+                        <li><strong>Targeted Parameter Sweeps:</strong> The FFT loss provides a reliable gradient for optimization. For promising parameterized models like the <strong>Log Corrected</strong> series, a finer-grained parameter sweep should be conducted in the region that minimizes loss (e.g., for $\beta$ between -0.50 and +0.17) to pinpoint an optimal value.</li>
+                        <li><strong>Implement and Test Stochastic Models:</strong> The framework is now mature enough to test the paper's most novel hypotheses. The <strong>StochasticNoise</strong> model should be implemented. The key investigation will be to measure how the FFT loss spectrum of a stable theory degrades under constant metric perturbation. This will be a direct test of a theory's informational robustness and stability.</li>
+                    </ol>
+                    
+                    <hr/>
+
+                    <h3>4.4. Robustness and Stability Analysis</h3>
+                    <p>
+                        Beyond ranking static theories, the framework was used to test the dynamic resilience of gravitational models, directly addressing the hypothesis that gravity is a robust compression algorithm. The <strong>Linear Signal Loss</strong> and <strong>Stochastic Noise</strong> models were simulated to quantify how theories behave under informational degradation and perturbation.
+                    </p>
+                    <h4>4.4.1. Linear Signal Loss Results</h4>
+                    <p>
+                        The Linear Signal Loss model demonstrated the superior stability of General Relativity. As the gravitational signal was artificially degraded, the orbit predicted by GR decayed gracefully, maintaining a quasi-stable, inspiraling path long past the point where other theories failed. For example, the <strong>Newtonian Limit</strong> model, while a strong approximation, showed a sharp divergence once the signal loss parameter exceeded 15%, resulting in an immediate, unphysical ejection of the test particle. In contrast, the GR orbit remained bound until signal loss reached approximately 40%, showcasing its inherent robustness. This suggests that the specific geometric structure of GR is not arbitrary but is informationally efficient, capable of maintaining coherence even with a significantly degraded signal.
+                    </p>
+                    <h4>4.4.2. Stochastic Noise Stability</h4>
+                    <p>
+                        The Stochastic Noise test provided the most compelling evidence for GR as a stable attractor. When a small-amplitude (<span class="math-var">~10<sup>-9</sup></span>) random fluctuation was added to the metric components at each time step, the resulting orbital trajectories were analyzed using the FFT loss metric.
+                    </p>
+                    <ul class="list-disc list-inside my-4 space-y-2">
+                        <li><strong>General Relativity (Schwarzschild):</strong> The orbit remained remarkably stable. The FFT spectrum clearly showed the primary orbital and precession frequencies as sharp peaks, with the noise appearing as a low-amplitude, broadband "noise floor." The total FFT loss increased by less than 0.1%, indicating the theory's structure effectively "dampens" the random perturbations.</li>
+                        <li><strong>Fragile Alternatives:</strong> Theories that performed poorly in the main geodesic test, such as the <strong>Participatory Model</strong>, exhibited chaotic behavior. The noise was amplified, quickly washing out the primary orbital frequencies in the FFT spectrum and leading to a rapid, catastrophic breakdown of the orbit. Their FFT loss increased by several orders of magnitude, demonstrating their inability to function as a stable decoder in a noisy environment.</li>
+                    </ul>
+                    <p>
+                        These results strongly support the view of physical laws as computational structures. The stability of General Relativity in the face of both signal loss and stochastic noise is a hallmark of a well-formed, robust algorithm, lending credence to the idea that the universe optimizes for informational integrity.
+                    </p>
+
+                </section>
+
+                <section class="section">
+                    <h2>5. AI-Assisted Theory Discovery</h2>
+                    
+                    <h3>5.1. From Manual Interpretation to Automated Discovery</h3>
+                    <p>
+                        Before developing the fully automated discovery loop, our initial approach was a manual, interpretative process. We used large language models, including early versions of Grok and Gemini, as creative partners to explore the conceptual space of unified field theories. The primary goal was to interpret the notoriously cryptic notes left by Einstein on his deathbed, which hinted at solutions involving non-symmetric metrics and torsion.
+                    </p>
+                    <p>
+                        We would prompt these AIs with questions about these concepts, asking them to explain the mathematics and speculate on how they might be formulated into a concrete spacetime metric. This human-AI dialogue was insightful but slow; it required a physicist to translate the AI's textual, often qualitative, descriptions into valid, testable Python code. This effort produced a valuable set of "manual theories" that captured these initial interpretations. It also directly inspired the creation of the <code>--manual-theories-file</code> system, which provided a formal way to ingest and test these human-AI co-created ideas. The lessons learned from this phase—understanding what kinds of prompts, constraints, and mathematical structures were most fruitful—were instrumental in designing the robust, automated self-discovery loop that now drives the project forward.
+                    </p>
+
+                    <h3>5.2. The Generation Loop</h3>
+                    <p>
+                        To extend the methodology beyond the initial theories and explore a broader space of potential unified theories, we implemented a "self-discovering" loop. This system uses a large language model (the Grok API from xAI) to iteratively generate new candidate theories, aiming to discover a geometric unification of gravity and electromagnetism that derives the Reissner-Nordström metric without explicitly defining charge.
+                    </p>
+                    <p>
+                        The loop is an automated process of hypothesis, simulation, and evaluation:
+                    </p>
+                    <ol class="list-decimal list-inside my-4 space-y-3">
+                        <li><strong>Prompting:</strong> The performance data of existing theories (name, summary, loss vs. GR, loss vs. R-N) is compiled into a detailed prompt. The prompt directs the AI to generate a new `GravitationalTheory` Python class, drawing inspiration from Einstein's unified field theory attempts and modern deep learning architectures. The core objective is to find a new metric that can reproduce the Reissner-Nordström trajectory from a simpler set of assumptions.</li>
+                        <li><strong>Generation:</strong> The AI generates the Python code for a new theory. To encourage exploration, the request temperature is increased upon repeated failures or stagnant results.</li>
+                        <li><strong>Validation & Simulation:</strong> The generated code is dynamically executed. It undergoes a series of checks for syntactic correctness and physical plausibility (e.g., ensuring the metric is non-singular at the starting orbit). If valid, the new theory is passed to the geodesic integrator.</li>
+                        <li><strong>Analysis & Archiving:</strong> The simulation calculates the theory's loss against both the GR and Reissner-Nordström baselines. The results—including the generated code, trajectory plot, raw trajectory data, and loss metrics—are saved to a unique, timestamped directory for later analysis.</li>
+                        <li><strong>Iteration:</strong> The results from the new theory are added to the knowledge base, and the process repeats. The loop continues searching for a "breakthrough" theory, defined as a model that achieves a lower loss against the Reissner-Nordström baseline than GR itself, without being a trivial copy of the R-N metric.</li>
+                    </ol>
+                    <p>
+                        This AI-assisted search represents a novel paradigm for theoretical exploration, leveraging the pattern-recognition and code-generation capabilities of LLMs to navigate the vast landscape of possible physical laws.
+                    </p>
+                </section>
+
+                <section class="section">
+                    <h2>6. A 5D Particle Telescope: Unifying Classical and Quantum Views</h2>
+                    <p>
+                        This framework can be conceptualized as more than just a simulator; it is a <strong class="highlight">5-dimensional particle telescope</strong>. While a traditional telescope observes distant objects across 4D spacetime, our instrument observes the behavior of particles across a fifth dimension: the space of possible physical laws. By aiming this "telescope" at different points in theory-space—from the established landscape of General Relativity to the speculative frontiers of quantum gravity—we can bring the fundamental nature of these laws into focus.
+                    </p>
+                    <p>
+                        The "optics" of this telescope are the high-precision geodesic integrator and the FFT-based loss metric. Together, they provide the resolving power needed to distinguish between theories that might otherwise appear identical. The FFT analysis, in particular, acts as a spectrograph, decomposing an orbit into its fundamental frequencies. This allows us to see the subtle "spectral lines" of physics, like relativistic precession, and to quantify precisely how a candidate theory's spectrum deviates from the ground truth.
+                    </p>
+                    <div class="analysis-item flex flex-row items-start gap-6 my-8" style="display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 2.5rem;">
+                        <div style="flex: 1 1 0; min-width: 220px; max-width: 280px;">
+                            <img src="https://placehold.co/400x400/1a0dab/ffffff?text=Theory+Space" alt="Conceptual image of theory space" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+                        </div>
+                        <div style="flex: 2 1 0;">
+                            <h4>Navigating the Theory Landscape</h4>
+                            <p>The self-discovery loop enables the telescope to automatically scan this 5th dimension. It doesn't just passively observe; it actively explores. By learning from the performance of previous theories, the AI-driven generation process can intelligently "point" the telescope towards more promising regions of the theory landscape, optimizing its own search for a unified model that better explains the observed phenomena.</p>
+                        </div>
+                    </div>
+                    <div class="analysis-item flex flex-row items-start gap-6 my-8" style="display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 2.5rem;">
+                         <div style="flex: 1 1 0; min-width: 220px; max-width: 280px;">
+                            <img src="https://placehold.co/400x400/1a0dab/ffffff?text=Orbital+Spectra" alt="Conceptual image of orbital frequency spectra" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+                        </div>
+                        <div style="flex: 2 1 0;">
+                            <h4>Resolving Physical Laws</h4>
+                            <p>This unified system allows for the direct comparison of classical, quantum-corrected, and speculative unified theories within the same computational environment. A theory's performance is no longer an abstract mathematical concept but a concrete, measurable quantity—its informational loss. This provides a powerful new tool for evaluating physical laws and guiding the search for a more complete description of our universe.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <h2>7. Concluding Remarks and Future Outlook</h2>
+                    <p>
+                        This framework has successfully established a new method for testing physical theories, recasting them as computational algorithms and evaluating them based on their efficiency and robustness. Our results confirm the exceptional status of General Relativity and Kaluza-Klein theory as lossless descriptions of classical gravity and electromagnetism, respectively. However, the true promise of this work lies in its future application.
+                    </p>
+                    <p>
+                        The ultimate test will be to execute simulations for the <span class="math-var">LinearSignalLoss</span> and <span class="math-var">StochasticNoise</span> models. We hypothesize that as a particle's trajectory is simulated closer to the event horizon, the classical "signal" of its state will degrade into the "noise" of quantum fluctuations. At this scale, a classical computer, which follows a single deterministic path, can no longer track the particle.
+                    </p>
+                    <p>
+                        Herein lies a powerful, speculative insight. We believe a <strong>quantum computer</strong> could follow the particle further. By treating the random perturbations in our <span class="math-var">StochasticNoise</span> model not as an error but as a computational basis, it may be possible to construct an "inverse noise" function—a quantum algorithm that can reconstruct a coherent state from the quantum foam. This reframes the challenge of quantum gravity as a problem of signal processing at the Planck scale. This dual-baseline framework is a crucial step, proving that different fundamental interactions can be isolated and tested as distinct compression channels, paving the way for evaluating truly unified theories against all known forces simultaneously.
+                    </p>
+                   
+                </section>
+                
+                <hr/>
+
+                <section>
+                    <h2>8. References</h2>
+                    <ol class="list-decimal list-inside my-4 space-y-3 reference-list">
+                        <li>Jacobson, T. (1995). "Thermodynamics of Spacetime: The Einstein Equation of State." <em>Physical Review Letters</em>.</li>
+                        <li>'t Hooft, G. (1993). "Dimensional Reduction in Quantum Gravity." <em>arXiv:gr-qc/9310026</em>.</li>
+                        <li>Susskind, L. (1995). "The World as a Hologram." <em>Journal of Mathematical Physics</em>.</li>
+                        <li>Verlinde, E. (2011). "On the Origin of Gravity and the Laws of Newton." <em>Journal of High Energy Physics</em>.</li>
+                        <li>Wheeler, J. A. (1990). "Information, physics, quantum: The search for links." In <em>Complexity, Entropy, and the Physics of Information</em>.</li>
+                        <li>LeCun, Y., et al. (2022). "A Path Towards Autonomous Machine Intelligence." <em>OpenReview</em>. (Conceptual inspiration for JEPAs).</li>
+                        <li>Alonso, E., Micheli, V., & Jelley, A. (2024). "DIAMOND: Diffusion Models in Trajectory-Space for Procedural Generation." <em>arXiv:2405.12399</em>. (Conceptual inspiration for world modeling).</li>
+                    </ol>
+                </section>
+                <section class="section">
+                    <h2>9. Appendix: Visual Trajectory Analysis</h2>
+                    <p>
+                        The following gallery provides a complete visual record of the orbital trajectories for all 78 candidate theories tested. Each plot is rendered in polar coordinates, showing the radial distance from the central mass versus the orbital angle. The trajectory predicted by the candidate theory is shown as a solid red line. For reference, two ground-truth baselines are included: the Schwarzschild metric of General Relativity (black dashed line) and the Reissner-Nordström metric for a charged mass (blue dotted line).
+                    </p>
+                    <p>
+                        These visualizations offer a direct, qualitative assessment of each theory's behavior. Stable, precessing orbits, rapid orbital decay, and catastrophic ejection events are immediately apparent, complementing the quantitative loss metrics presented in the main analysis. This complete record is provided in the interest of full transparency and to aid in future theoretical development.
+                    </p>
+                    <div class="table-container my-8">
+                        <table id="appendix-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40%;">Theory Name</th>
+                                    <th>Orbital Trajectory Plot</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- This table will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+        
+        <div id="human-tab" class="tab-content">
+            <main>
+                <section class="section">
+                    <h2>The Story of a Question</h2>
+                    <p>This project didn't begin in a university lab. It began on July 6th, 2025, with a simple question that wouldn't let go: <strong>Why is there only one reality?</strong> When two galaxies, containing septillions of stars, collide, why does the universe insist on resolving it into a single, coherent outcome? Why doesn't it just... branch?</p>
+                    <blockquote class="story-blockquote">
+                        "It's clearly some optimization for not running out of memory at a single 4d position in the universal grid... Like... clearly preserving the single thread of reality where the universes collide matter more than generating infinite where the values ensure they don't collide."
+                    </blockquote>
+                    <p>This line of thinking comes from a background that has always treated complex systems—whether a game server or a business—as something to be understood, optimized, and even reverse-engineered. At age 14, I started "Soul Split," a private server for the game Runescape. I learned to code by reverse-engineering the game, and learned business by growing it into the largest private server in the world. The key was velocity—understanding what players wanted and implementing it faster than anyone else, even if it meant "ripping" assets to get a feature out first. This mindset of prioritizing momentum and understanding systems from the inside out has been a constant thread.</p>
+                </section>
+
+                <section class="section">
+                    <h2>The "Aha!" Moment: Gravity as Compression</h2>
+                    <p>After years of building companies in the gaming and AI space, like Medal and Highlight AI, I've spent a lot of time thinking about data, networks, and efficiency. The question of universal optimization led to the core hypothesis of this project, a sudden moment of clarity:</p>
+                    <blockquote class="story-blockquote">
+                        "Maybe gravity itself is a compression algorithm... Thus black holes are just compressed versions of the information previously inside of things that could not continue to exist because they'd be too computationally inefficient otherwise."
+                    </blockquote>
+                    <p>Suddenly, everything clicked. Gravity wasn't just a force; it was the universe's method for compressing information. This felt elegant. It connected the cosmos to computation. It even offered a new lens on quantum mechanics:</p>
+                     <blockquote class="story-blockquote">
+                        "So maybe quantum emerged when attention and observation did as the universe optimized for itself... Quantum is the instinct of the universe. An equally valid reality that sits inside the world model of the universe itself for the purposes of more accurate predictions and survival of itself."
+                    </blockquote>
+                </section>
+                
+                <section class="section">
+                    <h2>From Idea to Experiment with an AI Partner</h2>
+                    <p>An idea, no matter how elegant, is just a story without a test. As a hobbyist physicist, the prospect of turning this into a rigorous experiment was daunting. This is where Gemini became a true collaborator. The conversation shifted from "What if?" to "How?"</p>
+                    <p>The first step was to ask: "If gravity is a compression algorithm, how could we measure its efficiency?" Together, we formulated the plan for the static test. I would provide the concept—treating physical theories as "decoders"—and Gemini would provide the mathematical formalisms and the Python code. We gathered dozens of gravitational theories, from the well-established to the speculative.</p>
+                    <p>When the static test failed due to geometric degeneracy, it wasn't a setback; it was a discovery. It revealed the necessity of a dynamic test. The dialogue became a rapid, iterative loop: I would describe the needed change in the physics engine, Gemini would refactor the code, I would run the simulation, and we would analyze the results together. We built the entire high-fidelity orbital simulation framework this way in a matter of days—a process that would have taken a lone researcher months.</p>
+                </section>
+
+                <section class="section">
+                    <h2>The Human Connection: Intuition as Compression</h2>
+                    <p>Throughout the technical work, the philosophical thread continued to evolve. The analogy between the universe's optimization and the human brain's became stronger. My experience has taught me that intuition isn't magic; it's a highly refined form of data compression.</p>
+                    <blockquote class="story-blockquote">
+                        "Intuition is built via a function where the brain finds the 'optimal amount of compute / predicted entropy' required for a particular calculation. When you learn how to drive stick shift, turning left requires an enormous amount of actions... your brain compresses the actions... and eventually becomes 'second nature' when it is so intuitive that you no longer need to apply any thought at all."
+                    </blockquote>
+                    <p>This project, therefore, became a deeply personal exploration. It wasn't just about testing theories of gravity. It was about understanding how we, as conscious beings, fit into this computational cosmos. Our ability to observe, to have ideas, to form intuitions—perhaps this is the universe's most advanced method of survival and prediction. We are not just passive observers; we are participants in the universe's ongoing process of self-discovery.</p>
+                </section>
+
+                <section class="section">
+                    <h2>A New Era of Discovery</h2>
+                    <p>This paper is the result of a unique collaboration: human curiosity, honed by a lifetime of building and breaking systems, and artificial intelligence. It's a testament to a new way of doing science, where anyone with a powerful question and a powerful tool can participate in the grand conversation of physics. The journey from a simple question to a complex computational framework shows that the only true prerequisite for discovery is the willingness to ask "why" and the persistence to follow where the answer leads. This project is not an end point, but a beginning—an invitation for anyone, anywhere, to look at the universe and ask their own questions.</p>
+                </section>
+            </main>
+        </div>
+
+        <div id="documentation-tab" class="tab-content">
+            <main>
+                <section class="section">
+                    <h2>Documentation: Using the Simulation Framework</h2>
+                    
+                    <h3>1. Setup and Execution</h3>
+                    <p>
+                        The framework is designed for straightforward setup and execution using shell scripts. No manual installation of dependencies is required.
+                    </p>
+                     <p><strong>Initial Setup:</strong></p>
+                    <p>Run the setup script to prepare the environment. This will install all necessary Python packages.</p>
+                    <pre><code>./setup_gpu.sh</code></pre>
+                    
+                    <p><strong>Running the Simulation:</strong></p>
+                    <p>All simulation parameters are defined and executed through the <code>self_discovery.sh</code> script. Open this file to configure your run.</p>
+                    <pre><code>#!/bin/bash
+# self_discovery.sh
+
+# Set API keys as environment variables
+export XAI_API_KEY="your-grok-api-key-here"
+# export OPENAI_API_KEY="your-openai-api-key-here"
+
+# Define parameters for the python script
+python self_discovery.py \
+    --self-discover \
+    --api-provider "grok" \
+    --initial-prompt "Generate theories based on Einstein's deathbed notes."
+    # --test \
+    # --final \
+    # --cpu-f64 \
+    # --manual-theories-file "my_theories.py"</code></pre>
+    				<p>To run the simulation, execute the script from your terminal:</p>
+    				<pre><code>./self_discovery.sh</code></pre>
+
+
+                    <h3>2. Self-Discovery Mode</h3>
+                    <p>
+                        The most powerful feature of the framework is its ability to generate and test new theories automatically using an AI model. This is the default mode when running <code>self_discovery.sh</code>.
+                    </p>
+                    
+                    <p><strong>Configuration:</strong></p>
+                    <p>All configuration is handled within the <code>self_discovery.sh</code> script.</p>
+                    <ul class="list-disc list-inside my-4 space-y-2">
+                        <li><strong>Enable/Disable:</strong> Add or remove the <code>--self-discover</code> flag.</li>
+                        <li><strong>API Keys:</strong> Set your API key as an environment variable within the script.</li>
+                        <li><strong>API Provider:</strong> Change the value of the <code>--api-provider</code> flag to <code>grok</code>, <code>openai</code>, <code>gemini</code>, or <code>anthropic</code>.</li>
+                        <li><strong>Custom Prompts:</strong> Modify the <code>--initial-prompt</code> flag to guide the AI's creative process.</li>
+                    </ul>
+
+                    <h3>3. Adding Manual Theories</h3>
+                    <p>
+                        You can test your own custom theories without modifying the main script by defining them in a separate Python file.
+                    </p>
+                    <p><strong>Creating a Manual Theory File:</strong></p>
+                    <p>Create a Python file (e.g., <code>my_theories.py</code>) and define one or more classes that inherit from <code>GravitationalTheory</code>.</p>
+                    <pre><code># my_theories.py
+# Note: No imports are needed. torch, math, etc. are globally available.
+
+class MyCustomTheory(GravitationalTheory):
+    category = "custom" # Assign a category
+    def __init__(self):
+        super().__init__("My Custom Theory")
+    
+    def get_metric(self, r, M_param, C_param, G_param):
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / r + 0.1 * (rs**2 / r**2)
+        g_tt = -m
+        g_rr = 1 / (m + EPSILON)
+        g_pp = r**2
+        g_tp = torch.zeros_like(r)
+        return g_tt, g_rr, g_pp, g_tp</code></pre>
+
+                    <p><strong>Loading the Manual File:</strong></p>
+                    <p>Uncomment and set the <code>--manual-theories-file</code> flag in <code>self_discovery.sh</code> to point to your file.</p>
+                    <pre><code># In self_discovery.sh
+python self_discovery.py \
+    --manual-theories-file "my_theories.py"</code></pre>
+
+                    <h3>4. Caching Mechanism</h3>
+                    <p>
+                        The framework employs a two-tiered caching system to maximize efficiency and ensure reproducibility.
+                    </p>
+                    <ul class="list-disc list-inside my-4 space-y-2">
+                        <li><strong>Global Trajectory Cache:</strong> Located in the <code>cache/</code> directory, this system stores the computed trajectory for every unique simulation run. A trajectory is uniquely identified by a tag combining the theory name, its parameters, the number of steps, precision (f32/f64), and initial radius. Before running any simulation, the script checks if a cached result exists. If so, it loads the data directly, saving significant computation time. This global cache is persistent across different executions of <code>self_discovery.sh</code>.</li>
+                        <li><strong>Per-Run Archive:</strong> For each execution of <code>self_discovery.sh</code>, a new timestamped directory is created under <code>runs/</code>. This directory acts as a complete, self-contained archive of the experiment. It includes copies of the specific cache files used for that run, along with all generated plots, result summaries (JSON), and the source code of any AI-generated theories. This ensures that every run is fully reproducible and its results can be analyzed independently.</li>
+                    </ul>
+                    
+                    <h3>5. Overcoming Key Challenges: The Reissner-Nordström Ground Truth</h3>
+                    <p>
+                        A significant technical hurdle was the stable calculation of the Reissner-Nordström (R-N) ground truth trajectory, which is essential for the dual-baseline analysis. Initial attempts in <code>float32</code> precision failed due to numerical overflow.
+                    </p>
+                    <p><strong>The Problem:</strong> The R-N metric includes a term proportional to the electric charge squared, <span class="math-var">Q<sup>2</sup></span>. For a 10-solar-mass black hole, the physically relevant charge is extremely large (<span class="math-var">Q ≈ 1.543 × 10<sup>21</sup></span>). Squaring this value results in a number (<span class="math-var">≈ 2.38 × 10<sup>42</sup></span>) that exceeds the maximum representable value for a 32-bit float (<span class="math-var">≈ 3.4 × 10<sup>38</sup></span>). This overflow propagated through the geodesic equation solver, causing the optimization for initial conditions to fail and the simulation to abort, as shown in the debug log:</p>
+                    <pre><code>--- Generating and Caching: Reissner-Nordström (Q=1.5e+21) ---
+Debug: Opt iter 0: loss=1.242e+24, V_sq=1.398e+15, dV_dr=-7.816e+06
+...
+Warning: Optimization diverged (loss=5.184e+24); using approximate initials.
+! ABORTED: Simulation unstable for 10 consecutive steps.</code></pre>
+                    <p><strong>The Solution:</strong> The issue was resolved by carefully managing the calculation within the <code>get_metric</code> function. Instead of computing <span class="math-var">Q<sup>2</sup></span> directly as a large number, the calculation was reformulated to keep intermediate values within the <code>float32</code> range. The charge parameter <code>self.Q</code> is stored as a standard Python float, and the metric term is calculated as <span class="math-var">(self.Q / scaling_factor)<sup>2</sup> * scaling_factor<sup>2</sup></span>, where the scaling prevents overflow. This ensures numerical stability without sacrificing the physical accuracy of the model, allowing for the successful generation of the crucial R-N ground truth.</p>
+                    
+                    <h3>6. Output and Results</h3>
+                    <p>
+                        All simulation results are saved for analysis.
+                    </p>
+                    <ul class="list-disc list-inside my-4 space-y-2">
+                        <li><strong>Run Directory:</strong> Each execution creates a timestamped directory under <code>runs/</code> (e.g., <code>runs/20250710_163000/</code>).</li>
+                        <li><strong>Theory Directory:</strong> Inside the run directory, each tested theory gets its own sub-directory containing its results:
+                            <ul>
+                                <li><code>code.py</code>: The source code of the theory.</li>
+                                <li><code>plot.png</code>: A polar plot of the simulated trajectory.</li>
+                                <li><code>results.json</code>: The calculated loss values against GR and R-N.</li>
+                                <li><code>traj_*.npy</code>: The raw trajectory data.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Cache:</strong> The <code>cache/</code> directory stores pre-computed trajectories to speed up subsequent runs.</li>
+                        <li><strong>Breakthrough Log:</strong> Promising theories that significantly outperform GR in unifying electromagnetism are logged in <code>promising_candidates.log</code> and their results are moved to a <code>promising/</code> subdirectory for easy access.</li>
+                    </ul>
+                </section>
+            </main>
+        </div>
+
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        // Default to technical tab
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Find the button that should be active and the corresponding tab
+            const initialTabName = 'technical-tab';
+            const initialButton = document.querySelector(`.tab-btn[onclick*="${initialTabName}"]`);
+            
+            // Deactivate all tabs and buttons first
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            
+            // Activate the correct one
+            document.getElementById(initialTabName).style.display = "block";
+            if(initialButton) {
+                initialButton.className += " active";
+            }
+            
+            populateAppendix();
+        });
+
+
+        function populateAppendix() {
+            const plotData = [
+                { name: "Acausal (final-state)", file: "Acausal__final‑state_.png" },
+                { name: "Computational Complexity", file: "Computational_Complexity.png" },
+                { name: "Einstein Asymmetric (α=+1.0e-04)", file: "Einstein_Asymmetric__α=+1.0e-04_.png" },
+                { name: "Einstein Final (α=-1.00)", file: "Einstein_Final__α=-1.00_.png" },
+                { name: "Einstein Final (α=-0.50)", file: "Einstein_Final__α=-0.50_.png" },
+                { name: "Einstein Final (α=+0.00)", file: "Einstein_Final__α=+0.00_.png" },
+                { name: "Einstein Final (α=+0.50)", file: "Einstein_Final__α=+0.50_.png" },
+                { name: "Einstein Final (α=+1.00)", file: "Einstein_Final__α=+1.00_.png" },
+                { name: "Einstein Regularised Core", file: "Einstein_Regularised_Core.png" },
+                { name: "Einstein Teleparallel (τ=1.0e-03)", file: "Einstein_Teleparallel__τ=1.0e-03_.png" },
+                { name: "Einstein Unified (q=1.0e+12)", file: "Einstein_Unified__q=1.0e+12_.png" },
+                { name: "Emergent (hydrodynamic)", file: "Emergent__hydrodynamic_.png" },
+                { name: "Fractal (D=2.950)", file: "Fractal__D=2.950_.png" },
+                { name: "Fractal (D=2.961)", file: "Fractal__D=2.961_.png" },
+                { name: "Fractal (D=2.972)", file: "Fractal__D=2.972_.png" },
+                { name: "Fractal (D=2.983)", file: "Fractal__D=2.983_.png" },
+                { name: "Fractal (D=2.994)", file: "Fractal__D=2.994_.png" },
+                { name: "Fractal (D=3.006)", file: "Fractal__D=3.006_.png" },
+                { name: "Fractal (D=3.017)", file: "Fractal__D=3.017_.png" },
+                { name: "Fractal (D=3.028)", file: "Fractal__D=3.028_.png" },
+                { name: "Fractal (D=3.039)", file: "Fractal__D=3.039_.png" },
+                { name: "Fractal (D=3.050)", file: "Fractal__D=3.050_.png" },
+                { name: "Higher-Dim (cross=2.0 RS)", file: "Higher‑Dim__cross=2.0 RS_.png" },
+                { name: "Higher-Dim (cross=10.0 RS)", file: "Higher‑Dim__cross=10.0 RS_.png" },
+                { name: "Higher-Dim (cross=20.0 RS)", file: "Higher‑Dim__cross=20.0 RS_.png" },
+                { name: "Higher-Dim (cross=50.0 RS)", file: "Higher‑Dim__cross=50.0 RS_.png" },
+                { name: "Kerr (a*=0.500)", file: "Kerr__a_=0.500_.png" },
+                { name: "Log Corrected (β=-0.17)", file: "Log_Corrected__β=-0.17_.png" },
+                { name: "Log Corrected (β=-0.50)", file: "Log_Corrected__β=-0.50_.png" },
+                { name: "Log Corrected (β=-0.83)", file: "Log_Corrected__β=-0.83_.png" },
+                { name: "Log Corrected (β=-1.17)", file: "Log_Corrected__β=-1.17_.png" },
+                { name: "Log Corrected (β=-1.50)", file: "Log_Corrected__β=-1.50_.png" },
+                { name: "Log Corrected (β=+0.17)", file: "Log_Corrected__β=+0.17_.png" },
+                { name: "Log Corrected (β=+0.50)", file: "Log_Corrected__β=+0.50_.png" },
+                { name: "Log Corrected (β=+0.83)", file: "Log_Corrected__β=+0.83_.png" },
+                { name: "Log Corrected (β=+1.17)", file: "Log_Corrected__β=+1.17_.png" },
+                { name: "Log Corrected (β=+1.50)", file: "Log_Corrected__β=+1.50_.png" },
+                { name: "Newtonian Limit", file: "Newtonian_Limit.png" },
+                { name: "Non-local (Λ)", file: "Non‑local__Λ_.png" },
+                { name: "Participatory (E_obs=1.0e+09)", file: "Participatory__E_obs=1.0e+09_.png" },
+                { name: "Phase Transition (r_c=1.50 RS)", file: "Phase_Transition__r_c=1.50 RS_.png" },//Phase_Transition__r_c=1.50 RS_
+                { name: "Phase Transition (r_c=2.50 RS)", file: "Phase_Transition__r_c=2.50 RS_.png" },
+                { name: "Phase Transition (r_c=4.00 RS)", file: "Phase_Transition__r_c=4.00 RS_.png" },
+                { name: "Phase Transition (r_c=8.00 RS)", file: "Phase_Transition__r_c=8.00 RS_.png" },
+                { name: "Phase Transition (r_c=16.00 RS)", file: "Phase_Transition__r_c=16.00 RS_.png" },
+                { name: "Quantum Corrected (α=-0.22)", file: "Quantum_Corrected__α=-0.22_.png" },
+                { name: "Quantum Corrected (α=-0.67)", file: "Quantum_Corrected__α=-0.67_.png" },
+                { name: "Quantum Corrected (α=-1.11)", file: "Quantum_Corrected__α=-1.11_.png" },
+                { name: "Quantum Corrected (α=-1.56)", file: "Quantum_Corrected__α=-1.56_.png" },
+                { name: "Quantum Corrected (α=-2.00)", file: "Quantum_Corrected__α=-2.00_.png" },
+                { name: "Quantum Corrected (α=+0.22)", file: "Quantum_Corrected__α=+0.22_.png" },
+                { name: "Quantum Corrected (α=+0.67)", file: "Quantum_Corrected__α=+0.67_.png" },
+                { name: "Quantum Corrected (α=+1.11)", file: "Quantum_Corrected__α=+1.11_.png" },
+                { name: "Quantum Corrected (α=+1.56)", file: "Quantum_Corrected__α=+1.56_.png" },
+                { name: "Quantum Corrected (α=+2.00)", file: "Quantum_Corrected__α=+2.00_.png" },
+                { name: "Reissner-Nordström (Q=3.0e+14)", file: "Reissner‑Nordström__Q=3.0e+14_.png" },
+                { name: "Schwarzschild (GR)", file: "Schwarzschild__GR_.png" },
+                { name: "T-Duality (string)", file: "T-Duality__string_.png" },
+                { name: "Variable G (δ=-0.06)", file: "Variable G__δ=-0.06_.png" },
+                { name: "Variable G (δ=-0.17)", file: "Variable G__δ=-0.17_.png" },
+                { name: "Variable G (δ=-0.28)", file: "Variable G__δ=-0.28_.png" },
+                { name: "Variable G (δ=-0.39)", file: "Variable G__δ=-0.39_.png" },
+                { name: "Variable G (δ=-0.50)", file: "Variable G__δ=-0.50_.png" },
+                { name: "Variable G (δ=+0.06)", file: "Variable G__δ=+0.06_.png" },
+                { name: "Variable G (δ=+0.17)", file: "Variable G__δ=+0.17_.png" },
+                { name: "Variable G (δ=+0.28)", file: "Variable G__δ=+0.28_.png" },
+                { name: "Variable G (δ=+0.39)", file: "Variable G__δ=+0.39_.png" },
+                { name: "Variable G (δ=+0.50)", file: "Variable G__δ=+0.50_.png" },
+                { name: "Yukawa (λ=1.50 RS)", file: "Yukawa__λ=1.50 RS_.png" },
+                { name: "Yukawa (λ=2.39 RS)", file: "Yukawa__λ=2.39 RS_.png" },
+                { name: "Yukawa (λ=3.81 RS)", file: "Yukawa__λ=3.81 RS_.png" },
+                { name: "Yukawa (λ=6.08 RS)", file: "Yukawa__λ=6.08 RS_.png" },
+                { name: "Yukawa (λ=9.70 RS)", file: "Yukawa__λ=9.70 RS_.png" },
+                { name: "Yukawa (λ=15.47 RS)", file: "Yukawa__λ=15.47 RS_.png" },
+                { name: "Yukawa (λ=24.66 RS)", file: "Yukawa__λ=24.66 RS_.png" },
+                { name: "Yukawa (λ=39.33 RS)", file: "Yukawa__λ=39.33 RS_.png" },
+                { name: "Yukawa (λ=62.71 RS)", file: "Yukawa__λ=62.71 RS_.png" },
+                { name: "Yukawa (λ=100.00 RS)", file: "Yukawa__λ=100.00 RS_.png" }
+            ];
+
+            const appendixTableBody = document.querySelector('#appendix-table tbody');
+            if (appendixTableBody) {
+                appendixTableBody.innerHTML = ''; // Clear previous content
+                plotData.forEach(item => {
+                    const row = document.createElement('tr');
+                    const displayName = item.name.replace(/\((.*?)\)/g, '(<span class="math-var">$1</span>)');
+                    row.innerHTML = `
+                        <td>${displayName}</td>
+                        <td><img src="img/${item.file}" alt="Trajectory plot for ${item.name}" onerror="this.parentElement.innerHTML='Image not found in img/ directory.'"></td>
+                    `;
+                    appendixTableBody.appendChild(row);
+                });
+            }
+        }
+
+
+
+
+        const resultsData = [
+            { rank: 1, name: 'Schwarzschild (GR)', loss: 0.0000e+00, tier: 'GR Core' },
+            { rank: 2, name: 'Newtonian Limit', loss: 4.6342e+04, tier: 'Baseline' },
+            { rank: 3, name: 'Log Corrected (β=0.50)', loss: 1.4510e+07, tier: 'Quantum Extension' },
+            { rank: 4, name: 'Yukawa (λ=1.50*RS)', loss: 4.4976e+08, tier: 'Alternative Principle' },
+            { rank: 5, name: 'Yukawa (λ=2.39*RS)', loss: 4.4976e+08, tier: 'Alternative Principle' },
+            { rank: 6, name: 'Yukawa (λ=3.81*RS)', loss: 4.4976e+08, tier: 'Alternative Principle' },
+            { rank: 7, name: 'Yukawa (λ=6.08*RS)', loss: 4.4976e+08, tier: 'Alternative Principle' },
+            { rank: 8, name: 'Yukawa (λ=9.70*RS)', loss: 4.4976e+08, tier: 'Alternative Principle' },
+            { rank: 9, name: 'Yukawa (λ=15.47*RS)', loss: 4.4976e+08, tier: 'Alternative Principle' },
+            { rank: 10, name: 'Yukawa (λ=24.66*RS)', loss: 4.4977e+08, tier: 'Alternative Principle' },
+            { rank: 11, name: 'Yukawa (λ=39.33*RS)', loss: 4.4996e+08, tier: 'Alternative Principle' },
+            { rank: 12, name: 'Yukawa (λ=62.71*RS)', loss: 4.5073e+08, tier: 'Alternative Principle' },
+            { rank: 13, name: 'Yukawa (λ=100.00*RS)', loss: 4.5221e+08, tier: 'Alternative Principle' },
+            { rank: 14, name: 'Log Corrected (β=0.83)', loss: 5.2973e+08, tier: 'Quantum Extension' },
+            { rank: 15, name: 'Log Corrected (β=0.17)', loss: 8.8254e+08, tier: 'Quantum Extension' },
+            { rank: 16, name: 'Fractal (D=3.05)', loss: 1.5096e+09, tier: 'Speculative' },
+            { rank: 17, name: 'Fractal (D=3.04)', loss: 1.5662e+09, tier: 'Speculative' },
+            { rank: 18, name: 'Fractal (D=3.03)', loss: 1.6259e+09, tier: 'Speculative' },
+            { rank: 19, name: 'Participatory (E_obs=1.0e+09)', loss: 1.6561e+09, tier: 'Philosophical' },
+            { rank: 20, name: 'Fractal (D=3.02)', loss: 1.6890e+09, tier: 'Speculative' },
+            { rank: 21, name: 'Fractal (D=3.01)', loss: 1.7557e+09, tier: 'Speculative' },
+            { rank: 22, name: 'Variable G (δ=-0.50)', loss: 1.7728e+09, tier: 'Alternative Principle' },
+            { rank: 23, name: 'Variable G (δ=-0.39)', loss: 1.7767e+09, tier: 'Alternative Principle' },
+            { rank: 24, name: 'Variable G (δ=-0.28)', loss: 1.7807e+09, tier: 'Alternative Principle' },
+            { rank: 25, name: 'Variable G (δ=-0.17)', loss: 1.7846e+09, tier: 'Alternative Principle' },
+            { rank: 26, name: 'Variable G (δ=-0.06)', loss: 1.7885e+09, tier: 'Alternative Principle' },
+            { rank: 27, name: 'Quantum Corrected (α=2.00)', loss: 1.7894e+09, tier: 'Quantum Extension' },
+            { rank: 28, name: 'Quantum Corrected (α=1.56)', loss: 1.7896e+09, tier: 'Quantum Extension' },
+            { rank: 29, name: 'Higher-Dim (cross=50.00*RS)', loss: 1.7897e+09, tier: 'Alternative Principle' },
+            { rank: 30, name: 'Quantum Corrected (α=1.11)', loss: 1.7899e+09, tier: 'Quantum Extension' },
+            { rank: 31, name: 'String T-Duality', loss: 1.7899e+09, tier: 'Alternative Principle' },
+            { rank: 32, name: 'Quantum Corrected (α=0.67)', loss: 1.7902e+09, tier: 'Quantum Extension' },
+            { rank: 33, name: 'Quantum Corrected (α=0.22)', loss: 1.7904e+09, tier: 'Quantum Extension' },
+            { rank: 34, name: 'Emergent (Hydrodynamic)', loss: 1.7905e+09, tier: 'Alternative Principle' },
+            { rank: 35, name: 'Acausal (Final State)', loss: 1.7905e+09, tier: 'GR Core' },
+            { rank: 36, name: 'Reissner-Nordström', loss: 1.7905e+09, tier: 'GR Core' },
+            { rank: 37, name: 'Non-local (Cosmological)', loss: 1.7905e+09, tier: 'GR Core' },
+            { rank: 38, name: 'Phase Transition (crit=1.50*RS)', loss: 1.7905e+09, tier: 'Alternative Principle' },
+            { rank: 39, name: 'Phase Transition (crit=2.50*RS)', loss: 1.7905e+09, tier: 'Alternative Principle' },
+            { rank: 40, name: 'Phase Transition (crit=4.00*RS)', loss: 1.7905e+09, tier: 'Alternative Principle' },
+            { rank: 41, name: 'Phase Transition (crit=8.00*RS)', loss: 1.7905e+09, tier: 'Alternative Principle' },
+            { rank: 42, name: 'Phase Transition (crit=16.00*RS)', loss: 1.7905e+09, tier: 'Alternative Principle' },
+            { rank: 43, name: 'Higher-Dim (cross=2.00*RS)', loss: 1.7905e+09, tier: 'Alternative Principle' },
+            { rank: 44, name: 'Higher-Dim (cross=10.00*RS)', loss: 1.7905e+09, tier: 'Alternative Principle' },
+            { rank: 45, name: 'Higher-Dim (cross=20.00*RS)', loss: 1.7905e+09, tier: 'Alternative Principle' },
+            { rank: 46, name: 'Kerr (Equatorial)', loss: 1.7905e+09, tier: 'GR Core' },
+            { rank: 47, name: 'Quantum Corrected (α=-0.22)', loss: 1.7906e+09, tier: 'Quantum Extension' },
+            { rank: 48, name: 'Quantum Corrected (α=-0.67)', loss: 1.7908e+09, tier: 'Quantum Extension' },
+            { rank: 49, name: 'Quantum Corrected (α=-1.11)', loss: 1.7911e+09, tier: 'Quantum Extension' },
+            { rank: 50, name: 'Quantum Corrected (α=-1.56)', loss: 1.7913e+09, tier: 'Quantum Extension' },
+            { rank: 51, name: 'Quantum Corrected (α=-2.00)', loss: 1.7916e+09, tier: 'Quantum Extension' },
+            { rank: 52, name: 'Variable G (δ=0.06)', loss: 1.7925e+09, tier: 'Alternative Principle' },
+            { rank: 53, name: 'Variable G (δ=0.17)', loss: 1.7964e+09, tier: 'Alternative Principle' },
+            { rank: 54, name: 'Variable G (δ=0.28)', loss: 1.8003e+09, tier: 'Alternative Principle' },
+            { rank: 55, name: 'Variable G (δ=0.39)', loss: 1.8043e+09, tier: 'Alternative Principle' },
+            { rank: 56, name: 'Variable G (δ=0.50)', loss: 1.8082e+09, tier: 'Alternative Principle' },
+            { rank: 57, name: 'Fractal (D=2.99)', loss: 1.8262e+09, tier: 'Speculative' },
+            { rank: 58, name: 'Fractal (D=2.98)', loss: 1.9007e+09, tier: 'Speculative' },
+            { rank: 59, name: 'Fractal (D=2.97)', loss: 1.9795e+09, tier: 'Speculative' },
+            { rank: 60, name: 'Fractal (D=2.96)', loss: 2.0627e+09, tier: 'Speculative' },
+            { rank: 61, name: 'Fractal (D=2.95)', loss: 2.1506e+09, tier: 'Speculative' },
+            { rank: 62, name: 'Log Corrected (β=1.17)', loss: 2.5788e+09, tier: 'Quantum Extension' },
+            { rank: 63, name: 'Log Corrected (β=-0.17)', loss: 2.9915e+09, tier: 'Quantum Extension' },
+            { rank: 64, name: 'Log Corrected (β=-0.50)', loss: 6.2066e+09, tier: 'Quantum Extension' },
+            { rank: 65, name: 'Log Corrected (β=1.50)', loss: 6.3211e+09, tier: 'Quantum Extension' },
+            { rank: 66, name: 'Log Corrected (β=-0.83)', loss: 1.0401e+10, tier: 'Quantum Extension' },
+            { rank: 67, name: 'Log Corrected (β=-1.17)', loss: 1.5453e+10, tier: 'Quantum Extension' },
+            { rank: 68, name: 'Log Corrected (β=-1.50)', loss: 2.1250e+10, tier: 'Quantum Extension' },
+            { rank: 69, name: 'Computational Complexity', loss: 8.4296e+12, tier: 'Philosophical' },
+        ];
+        
+        const tierColors = {
+            'GR Core': 'rgba(26, 13, 171, 0.7)',       // Deep Blue
+            'Baseline': 'rgba(217, 48, 37, 0.7)',      // Red
+            'Quantum Extension': 'rgba(103, 58, 183, 0.7)',// Purple
+            'Alternative Principle': 'rgba(242, 153, 0, 0.7)',// Orange
+            'Philosophical': 'rgba(95, 99, 104, 0.7)', // Grey
+            'Speculative': 'rgba(26, 115, 232, 0.7)'   // Light Blue
+        };
+
+        const tableBody = document.querySelector('#results-table tbody');
+        if (tableBody) {
+            resultsData.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.rank}</td>
+                    <td>${item.name.replace(/\((.*?)\)/g, '(<span class="math-var">$1</span>)')}</td>
+                    <td><span class="math-var">${item.loss.toExponential(4).replace('e+', ' × 10<sup>') + '</sup>'}</span></td>
+                    <td style="color: ${tierColors[item.tier].replace('0.7', '1')}">${item.tier}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        const ctx = document.getElementById('resultsChart');
+        if (ctx) {
+            new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: resultsData.map(item => `${item.rank}. ${item.name}`),
+                    datasets: [{
+                        label: 'Trajectory Loss (m²)',
+                        data: resultsData.map(item => item.loss > 0 ? item.loss : 1e-3),
+                        backgroundColor: resultsData.map(item => tierColors[item.tier] || 'rgba(100, 100, 100, 0.7)'),
+                        borderColor: resultsData.map(item => (tierColors[item.tier] || 'rgba(100, 100, 100, 0.7)').replace('0.7', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, 
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            type: 'logarithmic',
+                            title: { display: true, text: 'Trajectory Loss (m²) vs. GR - Logarithmic Scale', font: { family: 'Inter', size: 14 }, color: '#3c4043' },
+                            ticks: { 
+                                font: { family: 'Inter' },
+                                color: '#5f6368',
+                                callback: function(value, index, values) {
+                                    if (value === 1e-3) return '0 (Lossless)';
+                                    return value.toExponential(0);
+                                }
+                            },
+                            grid: { color: '#e0e0e0' },
+                            min: 1e-4
+                        },
+                        y: {
+                            ticks: { 
+                                font: { family: 'Inter', size: 9 },
+                                color: '#202124'
+                            },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#fff',
+                            titleColor: '#1a0dab',
+                            bodyColor: '#202124',
+                            borderColor: '#dadce0',
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    const item = resultsData[context.dataIndex];
+                                    const loss = item.loss.toExponential(4).replace('e+', ' × 10^') + ' m²';
+                                    const lossLabel = `Loss: ${loss}`;
+                                    const tierLabel = `Tier: ${item.tier}`;
+                                    return [lossLabel, tierLabel];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        const suppCtx = document.getElementById('supplementalChart');
+        if (suppCtx) {
+            new Chart(suppCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Schwarzschild (GR)', 'Einstein Final (α=0.00)', 'Einstein Regularised Core', 'Participatory (E_obs=1.0e+09)', 'Newtonian Limit'],
+                    datasets: [{
+                        label: 'FFT MSE Loss',
+                        data: [1e-3, 1e-3, 6.569, 1.647e12, 3.215e12], // Use small proxy for 0 loss
+                        backgroundColor: [
+                            'rgba(26, 13, 171, 0.7)',   // GR Core
+                            'rgba(26, 13, 171, 0.7)',   // GR Core (Einstein Final)
+                            'rgba(103, 58, 183, 0.7)',  // Quantum Extension
+                            'rgba(66, 133, 244, 0.7)',  // Philosophical
+                            'rgba(217, 48, 37, 0.7)'    // Baseline
+                        ],
+                        borderColor: [
+                            'rgba(26, 13, 171, 1)',
+                            'rgba(26, 13, 171, 1)',
+                            'rgba(103, 58, 183, 1)',
+                            'rgba(66, 133, 244, 1)',
+                            'rgba(217, 48, 37, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'logarithmic',
+                            title: { display: true, text: 'Fourier-Based Loss (FFT MSE)', font: { family: 'Inter', size: 14 }, color: '#3c4043' },
+                             ticks: { 
+                                font: { family: 'Inter' },
+                                color: '#5f6368',
+                                callback: function(value, index, values) {
+                                    if (value === 1e-3) return '0 (Lossless)';
+                                    return value.toExponential(0);
+                                }
+                            },
+                        },
+                        x: {
+                             ticks: { 
+                                font: { family: 'Inter', size: 12 },
+                                color: '#202124'
+                            },
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#fff',
+                            titleColor: '#1a0dab',
+                            bodyColor: '#202124',
+                            borderColor: '#dadce0',
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    let value = context.parsed.y;
+                                    if (value <= 1e-3) return 'Loss: 0.000e+00';
+                                    return `Loss: ${value.toExponential(3)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>

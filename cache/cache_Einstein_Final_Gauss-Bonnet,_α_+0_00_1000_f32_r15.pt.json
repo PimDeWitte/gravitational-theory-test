@@ -1,6 +1,6 @@
 {
-    "model_name": "Reissner\u2011Nordstr\u00f6m (Q=1.0e+00)",
-    "tag": "Reissner\u2011Nordstr\u00f6m_Q_1_0e+00_1000_f32_r15",
+    "model_name": "Einstein Final (Gauss-Bonnet, \u03b1=+0.00)",
+    "tag": "Einstein_Final_Gauss-Bonnet,_\u03b1_+0_00_1000_f32_r15",
     "N_STEPS": 1000,
     "DTau": 5.086747478344478e-05,
     "r0": 443119.0,
@@ -8,5 +8,5 @@
     "precision_tag": "f32",
     "device": "mps",
     "dtype": "torch.float32",
-    "timestamp": "20250710_165843"
+    "timestamp": "20250710_172841"
 }
