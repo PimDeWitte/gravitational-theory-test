@@ -72,6 +72,7 @@ from scipy.constants import G, c, k, hbar, epsilon_0
 # <reason>chain: Imported physical constants.</reason>
 import random  # For fallback if needed
 # <reason>chain: Imported random for fallback.</reason>
+import shutil
 # <reason>chain: Imports unchanged; foundational for API, tensors, and plotting.</reason>
 
 # ---------------------------------------------------------------------------
@@ -191,7 +192,8 @@ class GravitationalTheory:
         Returns a unique tag for caching this theory's trajectory.
         Subclasses should override to include parameters, e.g., return f"{self.name}_alpha{self.alpha}"
         """
-        return self.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
+        base = self.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
+        return f"{base}_{N_STEPS}_{precision_tag}_r{r0_tag}"
 
     def __init__(self, name: str) -> None:
         self.name = name
@@ -288,6 +290,7 @@ _all_theory_classes, predefined_theories = _get_theory_classes()
 
 classical_predefined = []
 quantum_predefined = []
+unified_predefined = []
 
 for cls in _all_theory_classes:
     # Handle parameter sweeps if defined
@@ -301,6 +304,8 @@ for cls in _all_theory_classes:
                     instance = cls(**{param: float(v)})
                     if category == "quantum":
                         quantum_predefined.append(instance)
+                    elif category == "unified":
+                        unified_predefined.append(instance)
                     else:
                         classical_predefined.append(instance)
                 except Exception:
@@ -310,6 +315,8 @@ for cls in _all_theory_classes:
         if instance is not None:
             if category == "quantum":
                 quantum_predefined.append(instance)
+            elif category == "unified":
+                unified_predefined.append(instance)
             else:
                 classical_predefined.append(instance)
 # <reason>
@@ -358,6 +365,7 @@ It must:
 - Optionally override get_cache_tag(self, N_STEPS, precision_tag, r0_tag) to return a unique string including parameters for caching.
 - Add <reason>reasoning chain</reason> comments explaining the physical and inspirational reasoning for each part of the metric.
 - Add a <summary>concise description of the theory, including the key metric formula</summary> as a comment at the top of the class.
+- Add category = 'unified' as a class variable, since this is a unified field theory attempt.
 
 For Einstein!
 
@@ -567,13 +575,14 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
 
         valid_models = []
         for cls in new_classes:
+            category = getattr(cls, "category", "generated")
             try:
                 test_model = cls()
                 test_r = torch.tensor(10.0, device=device, dtype=DTYPE)
                 gtt, grr, gpp, gtp = test_model.get_metric(test_r, M, c, G)
                 if not all(torch.isfinite(t).all() for t in (gtt, grr, gpp, gtp)):
                     raise ValueError("Non-finite metric values")
-                valid_models.append((test_model, summary, content))
+                valid_models.append((test_model, summary, content, category))
             except Exception as e:
                 print(f"Invalid theory {cls.__name__}: {e}")
                 continue
@@ -650,11 +659,14 @@ class GeodesicIntegrator:
     # <reason>chain: RK4 step; no change.</reason>
 
 # Generalize cached_run to run_trajectory, which handles caching for any model if cacheable
-def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int) -> Tensor:
+def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int) -> tuple[Tensor, str]:
     """
     Runs a simulation for a given model, caching the result if model.cacheable.
     Assumes subclasses override get_cache_tag to include params like Q for RN.
     """
+    precision_tag = "f64" if DTYPE == torch.float64 else "f32"
+    r0_tag = int(r0.item() / RS.item())
+    tag = model.get_cache_tag(N_STEPS, precision_tag, r0_tag)
     if not model.cacheable:
         # Run without caching
         print(f"\n--- Running (non-cacheable): {model.name} ---")
@@ -678,15 +690,11 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
                 consecutive_failures = 0
             if y[1] <= RS * 1.01:
                 hist = hist[:i+2]; break
-        return hist
-
+        return hist, tag
     # Cacheable case
-    precision_tag = "f64" if DTYPE == torch.float64 else "f32"
-    r0_tag = int(r0.item() / RS.item())
-    tag = model.get_cache_tag(N_STEPS, precision_tag, r0_tag)
     fname = f"cache_{tag}.pt"
     if os.path.exists(fname): 
-        return torch.load(fname, map_location=device)
+        return torch.load(fname, map_location=device), tag
     print(f"\n--- Generating and Caching: {model.name} ({tag}) ---")
     y0_full = get_initial_conditions(model, r0)
     y0_state = y0_full[[0, 1, 2, 4]].clone()
@@ -709,17 +717,21 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
         if y[1] <= RS * 1.01:
             hist = hist[:i+2]; break
     torch.save(hist, fname)
-    return hist
+    return hist, tag
 
 # ---------------------------------------------------------------------------
 # 4.  ANALYSIS & MAIN DRIVER
 # ---------------------------------------------------------------------------
 
-def calculate_fft_loss(traj_ref: Tensor, traj_pred: Tensor) -> float:
+def calculate_fft_loss(traj_ref: Tensor, traj_pred: Tensor, ref_tag: str = None, pred_tag: str = None) -> float:
     """
     Calculates the informational loss between two trajectories using FFT MSE.
     <reason>This function is the core of the paper's methodology. It compares the full frequency spectrum of orbital dynamics, capturing subtle differences in precession and shape that a simple endpoint comparison would miss. It is a direct, quantitative measure of a theory's informational fidelity.</reason>
     """
+    if ref_tag and pred_tag:
+        cache_file = f"cache_loss_{ref_tag}_vs_{pred_tag}.pt"
+        if os.path.exists(cache_file):
+            return torch.load(cache_file).item()
     min_len = min(len(traj_ref), len(traj_pred))
     if min_len < 2: return float("inf")
     r_ref, r_pred = traj_ref[:min_len, 1], traj_pred[:min_len, 1]
@@ -729,7 +741,10 @@ def calculate_fft_loss(traj_ref: Tensor, traj_pred: Tensor) -> float:
     mse = torch.mean((torch.abs(fft_ref) - torch.abs(fft_pred)) ** 2).item()
     norm_factor = torch.mean(torch.abs(fft_ref)**2).item()  # Normalize for unitless comparability
     # <reason>chain: Added normalization to make losses scale-invariant and comparable, addressing huge raw values and enabling meaningful comparisons/breakthroughs.</reason>
-    return mse / (norm_factor + EPSILON) if norm_factor > 0 else mse
+    loss = mse / (norm_factor + EPSILON) if norm_factor > 0 else mse
+    if ref_tag and pred_tag:
+        torch.save(torch.tensor(loss), cache_file)
+    return loss
 # <reason>chain: FFT loss; added EPSILON to norm_factor to prevent div0 in edge cases like flat metrics.</reason>
 
 def get_initial_conditions(model: GravitationalTheory, r0: Tensor) -> Tensor:
@@ -746,7 +761,31 @@ def get_initial_conditions(model: GravitationalTheory, r0: Tensor) -> Tensor:
     return y0_full
 # <reason>chain: Added get_initial_conditions to compute per-model initial 4-velocity normalization, fixing RN generation issue; added speculative v_tan adjustment comment but not implemented to avoid instability; used G_T and C_T for type consistency.</reason>
 
-def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "") -> dict:
+def downsample(arr, max_points=5000):
+    """
+    Downsamples a trajectory array for plotting to prevent OverflowError in matplotlib.
+    
+    Matplotlib's Agg backend has a cell block limit that can be exceeded when rendering
+    paths with too many points (e.g., millions of steps in high-N_STEPS runs). This function
+    reduces the number of points by uniform sampling, ensuring the plot remains visually
+    representative without overwhelming the renderer.
+    
+    The original full-resolution data is still saved to disk and used for loss calculations.
+    Only the plotted lines are downsampled; start/end markers use original points.
+    
+    Args:
+        arr (np.ndarray): Trajectory array [steps, 4] with columns [t, r, phi, dr/dtau]
+        max_points (int): Maximum points to plot; if exceeded, sample every len//max_points
+    
+    Returns:
+        np.ndarray: Downsampled array
+    """
+    if len(arr) <= max_points:
+        return arr
+    step = len(arr) // max_points
+    return arr[::step]
+
+def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "", GR_tag: str = None, RN_tag: str = None) -> dict:
     """
     Evaluates a theory by running the simulation and saving results.
     """
@@ -780,11 +819,9 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     # <reason>chain: Save prompt/response; no change.</reason>
 
     print(f"\nEvaluating: {model.name} ({category})")
-    traj = run_trajectory(model, r0, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
-    # <reason>chain: Used run_trajectory for caching if applicable.</reason>
-
-    loss_GR = calculate_fft_loss(GR_hist, traj)
-    loss_RN = calculate_fft_loss(RN_hist, traj)
+    traj, tag = run_trajectory(model, r0, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
+    loss_GR = calculate_fft_loss(GR_hist, traj, ref_tag=GR_tag, pred_tag=tag)
+    loss_RN = calculate_fft_loss(RN_hist, traj, ref_tag=RN_tag, pred_tag=tag)
     res = {
         "name": model.name,
         "loss_GR": loss_GR,
@@ -797,11 +834,15 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     # Save plot
     GR_np, RN_np = GR_hist.cpu().numpy(), RN_hist.cpu().numpy()
     pred_np = res["traj"]
+    GR_plot = downsample(GR_np)
+    RN_plot = downsample(RN_np)
+    pred_plot = downsample(pred_np)
+
     plt.figure(figsize=(8, 8))
     ax = plt.subplot(111, projection="polar")
-    ax.plot(GR_np[:, 2], GR_np[:, 1], "k--", label="GR", linewidth=1.5, zorder=5)
-    ax.plot(RN_np[:, 2], RN_np[:, 1], "b:",  label="R-N", linewidth=1.5, zorder=5)
-    ax.plot(pred_np[:, 2], pred_np[:, 1], "r-", label=res["name"], zorder=4)
+    ax.plot(GR_plot[:, 2], GR_plot[:, 1], "k--", label="GR", linewidth=1.5, zorder=5)
+    ax.plot(RN_plot[:, 2], RN_plot[:, 1], "b:",  label="R-N", linewidth=1.5, zorder=5)
+    ax.plot(pred_plot[:, 2], pred_plot[:, 1], "r-", label=res["name"], zorder=4)
     ax.plot(pred_np[0, 2], pred_np[0, 1], "go", markersize=8, label="start", zorder=6)
     ax.plot(pred_np[-1, 2], pred_np[-1, 1], "rx", markersize=10, mew=2, label="end", zorder=6)
     ax.set_title(res["name"], pad=20)
@@ -824,6 +865,18 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
             "loss_RN": res["loss_RN"],
         }, f)
     # <reason>chain: Save JSON; no change.</reason>
+
+    # Copy cache files to theory_dir for debugging
+    traj_cache = f"cache_{tag}.pt"
+    if os.path.exists(traj_cache):
+        shutil.copy(traj_cache, theory_dir)
+    for baseline_tag in [GR_tag, RN_tag]:
+        baseline_cache = f"cache_{baseline_tag}.pt"
+        if os.path.exists(baseline_cache):
+            shutil.copy(baseline_cache, theory_dir)
+        loss_cache = f"cache_loss_{baseline_tag}_vs_{tag}.pt"
+        if os.path.exists(loss_cache):
+            shutil.copy(loss_cache, theory_dir)
 
     return res
 # <reason>chain: Evaluate theory updated to use model-specific initial conditions.</reason>
@@ -853,6 +906,8 @@ def main() -> None:
             cat = getattr(m.__class__, "category", "classical")
             if cat == "quantum":
                 quantum_predefined.append(m)
+            elif cat == "unified":
+                unified_predefined.append(m)
             else:
                 classical_predefined.append(m)
     # <reason>Now manual theories are also categorized by their class variable, not arbitrarily.</reason>
@@ -883,9 +938,13 @@ def main() -> None:
     # <reason>chain: Run params; no change.</reason>
     
     # -- Ground-Truth Trajectory Generation (Cached) --
-    GR_hist = run_trajectory(predefined_theories.Schwarzschild(), r0, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
-    RN_hist = run_trajectory(predefined_theories.ReissnerNordstrom(Q_PARAM), r0, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
-    GR_loss_vs_RN = calculate_fft_loss(RN_hist, GR_hist)
+    precision_tag = "f64" if DTYPE == torch.float64 else "f32"
+    r0_tag = int(r0.item() / RS.item())
+    GR_model = predefined_theories.Schwarzschild()
+    GR_hist, GR_tag = run_trajectory(GR_model, r0, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
+    RN_model = predefined_theories.ReissnerNordstrom(Q=Q_PARAM)
+    RN_hist, RN_tag = run_trajectory(RN_model, r0, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
+    GR_loss_vs_RN = calculate_fft_loss(RN_hist, GR_hist, ref_tag=RN_tag, pred_tag=GR_tag)
     # <reason>chain: Generated ground truths with per-model init conds.</reason>
 
     # Update baselines with actual losses
@@ -895,9 +954,9 @@ def main() -> None:
 
     # Evaluate predefined theories
     results = []
-    for category, theories in [("classical_predefined", classical_predefined), ("quantum_predefined", quantum_predefined)]:
+    for category, theories in [("classical_predefined", classical_predefined), ("quantum_predefined", quantum_predefined), ("unified_predefined", unified_predefined)]:
         for model in theories:
-            res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
+            res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, GR_tag=GR_tag, RN_tag=RN_tag)
             results.append(res)
             history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": res["summary"]})
     # <reason>chain: Evaluated predefined; uses updated evaluate_theory with per-model init.</reason>
@@ -916,8 +975,8 @@ def main() -> None:
 
             print(f"Testing {len(new_theories)} new models: {[m[0].name for m in new_theories]}")
 
-            for idx, (model, summary, gen_content) in enumerate(new_theories, 1):
-                res = evaluate_theory(model, "generated", r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary)
+            for idx, (model, summary, gen_content, category) in enumerate(new_theories, 1):
+                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, GR_tag=GR_tag, RN_tag=RN_tag)
                 results.append(res)
                 history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": summary})
 
