@@ -36,15 +36,25 @@
 # - Added validity check for generated code.
 # - Save theory code, plot, results, and data per theory with timestamp.
 # - Infinite loop until breakthrough found.
+# - Added debugging prints for API calls and retry mechanism to guarantee generation.
+# - Increased max_tokens to 4096 to avoid length issues.
+# - Removed paper reference in prompt, described objective instead.
+# - Changed to prompt for 1 theory at a time.
+# - Parse generated content to extract code from markdown blocks.
+# - Instruct API to add <reason>reasoning chain</reason> comments for self-documentation.
+# - Added <summary>description</summary> for theory summary, extract and include in history/prompt.
+# - Fixed source saving by using generated content instead of inspect.getsource.
+# - Return model, summary, content from generate_new_theories to fix NameError.
 # ---------------------------------------------------------------------------
 
 from __future__ import annotations
-import os, time, math, argparse, warnings, inspect, json
+import os, time, math, argparse, warnings, inspect, json, re
 import requests
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.constants import G, c, k, hbar, epsilon_0
+import random  # For fallback if needed
 
 # ---------------------------------------------------------------------------
 # 0.  CLI ARGUMENTS & GLOBAL CONFIG
@@ -163,95 +173,168 @@ You are Grok, a physics researcher built by xAI, tasked with discovering a unifi
 Draw heavy inspiration from Einstein's 30-year pursuit of a unified field theory, where he attempted to derive electromagnetism from pure geometry (e.g., non-symmetric metrics, teleparallelism, extra dimensions like Kaluza-Klein).
 Also inspire from deep learning architectures in PyTorch, viewing the metric as a compression function (autoencoder-like), where spacetime geometry encodes high-dimensional quantum information into low-dimensional classical reality. For example, think of higher-order terms as residual connections or attention over radial scales.
 
-The objective is NOT to rediscover the Reissner-Nordström (R-N) metric directly, but to find a more fundamental geometric principle (e.g., a modification to the field equations or metric structure) that naturally produces the R-N form as a consequence, without explicitly including charge Q or electromagnetic stress-energy. This validates the unification method: showing that EM emerges from geometry alone, proving the thesis that physical laws are lossless decoders.
+The objective is to formalize and test the hypothesis that gravity is an information encoding process, where the universe compresses high-dimensional quantum state information into stable, low-dimensional classical geometric spacetime. Physical theories act as "decoders". Use a computational framework to measure "decoding loss" of candidate theories via dynamic orbital mechanics tests, benchmarked against lossless decoders for gravity (Schwarzschild metric) and electromagnetism (Reissner-Nordström metric). Results confirm unique, lossless status of General Relativity and Kaluza-Klein theory, establishing a methodology for evaluating laws based on informational fidelity.
 
-Based on the paper "Our Reality Matters" (July 8, 2025), which tested 69 theories using FFT-based loss on orbital trajectories against GR (Schwarzschild) and R-N baselines.
-
-Previous results ( theory name, loss vs GR, loss vs R-N ):
+Previous results ( theory name: summary, loss vs GR, loss vs R-N ):
 """
     for h in history:
-        prompt += f"{h['name']}: loss_GR={h['loss_GR']:.3e}, loss_RN={h['loss_RN']:.3e}\n"
+        summary = h.get('summary', 'No summary available')
+        prompt += f"{h['name']}: {summary}, loss_GR={h['loss_GR']:.3e}, loss_RN={h['loss_RN']:.3e}\n"
 
     prompt += """
-Suggest 3 new, unique GravitationalTheory subclasses as complete Python class definitions.
-Each must:
+Suggest 1 new, unique GravitationalTheory subclass as a complete Python class definition.
+It must:
 - Inherit from GravitationalTheory.
-- Have a unique name (e.g., EinsteinUnifiedAlpha0_5).
+- Have a unique name.
 - Implement __init__ with super().__init__(name).
-- Implement get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor].
-- Use only torch operations, no external imports.
-- Avoid explicit Q; instead, introduce geometric terms (e.g., alpha * (rs**2 / r**2), non-diagonal g_tphi for field-like effects, logarithmic/higher-order corrections inspired by quantum/DL).
+- Implement get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor] for g_tt, g_rr, g_φφ, g_tφ.
+- Use only torch operations, no imports in the code.
+- Avoid explicit Q; instead, introduce geometric terms (e.g., alpha * (rs**2 / r**2), non-diagonal g_tφ for field-like effects, logarithmic/higher-order corrections inspired by quantum/DL).
 - Parameterize where useful (e.g., alpha for sweeps), inspired by Einstein's attempts.
+- Add <reason>reasoning chain</reason> comments explaining the physical and inspirational reasoning for each part of the metric.
+- Add a <summary>concise description of the theory, including the key metric formula</summary> as a comment at the top of the class.
 
-Focus on variants like "Einstein Final" (parameterized modifications to geometry that reduce to GR at alpha=0 but introduce EM-like repulsion at non-zero alpha).
+For Einstein!
 
-Output ONLY the Python code for the 3 classes, no explanations or extra text.
+Output ONLY the Python code for the class, no explanations or extra text.
 """
     return prompt
 
-def generate_new_theories(history: list[dict]) -> list[GravitationalTheory]:
+def generate_new_theories(history: list[dict]) -> list[tuple[GravitationalTheory, str, str]]:
     """
     Calls the Grok API to generate new theory classes based on history.
     Executes the returned code to define the classes dynamically.
+    Returns list of (model instance, summary, content)
     """
     prompt = build_prompt(history)
-    data = {
-        "model": "grok-4",  # Ensuring Grok 4 is called
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.8,
-        "max_tokens": 2048,
-    }
-    resp = requests.post(
-        "https://api.x.ai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"},
-        json=data,
-    )
-    resp.raise_for_status()
-    content = resp.json()["choices"][0]["message"]["content"]
-    print(f"\nGenerated theory code:\n{content}\n")
+    print("\nDebug: Prompt sent to API:\n", prompt)
 
-    # Save the full generated code
-    gen_timestamp = time.strftime("%Y%m%d_%H%M%S")
-    os.makedirs("generated_codes", exist_ok=True)
-    with open(f"generated_codes/{gen_timestamp}_generated.py", "w") as f:
-        f.write(content)
-
-    # Get existing theories before exec
-    existing_classes = {
-        cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
-    }
-
-    # Execute the code to define new classes
-    try:
-        exec(content, globals())
-    except Exception as e:
-        print(f"Error executing generated code: {e}")
-        return []
-
-    # Find newly defined classes
-    all_classes = {
-        cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
-    }
-    new_classes = all_classes - existing_classes
-
-    if not new_classes:
-        print("No new theories generated from API response.")
-        return []
-
-    valid_models = []
-    for cls in new_classes:
+    max_retries = 5
+    temperature = 0.8
+    for attempt in range(1, max_retries + 1):
+        print(f"\nDebug: API Call Attempt {attempt}/{max_retries} with temperature={temperature}")
+        data = {
+            "model": "grok-4",  # Ensuring Grok 4 is called
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": 4096,  # Increased to avoid length issues
+        }
+        print("Debug: API Request Data:", json.dumps(data, indent=2))
         try:
-            test_model = cls()
-            test_r = torch.tensor(10.0, device=device, dtype=DTYPE)
-            gtt, grr, gpp, gtp = test_model.get_metric(test_r, M, c, G)
-            if not all(torch.isfinite(t).all() for t in (gtt, grr, gpp, gtp)):
-                raise ValueError("Non-finite metric values")
-            valid_models.append(cls)
+            resp = requests.post(
+                "https://api.x.ai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"},
+                json=data,
+            )
+            print("Debug: API Response Status Code:", resp.status_code)
+            if resp.status_code != 200:
+                print("Debug: API Response Text:", resp.text)
+                temperature += 0.2  # Increase temperature for retry
+                time.sleep(2 ** attempt)  # Exponential backoff
+                continue
+            response_json = resp.json()
+            print("Debug: API Response JSON:", json.dumps(response_json, indent=2))
+            if "choices" not in response_json or not response_json["choices"]:
+                print("Debug: No choices in response.")
+                temperature += 0.2
+                time.sleep(2 ** attempt)
+                continue
+            content = response_json["choices"][0]["message"]["content"]
+            print(f"\nGenerated theory code:\n{content}\n")
+            if not content.strip():
+                print("Debug: Empty content received.")
+                temperature += 0.2
+                time.sleep(2 ** attempt)
+                continue
         except Exception as e:
-            print(f"Invalid theory {cls.__name__}: {e}")
+            print(f"Debug: API Call Error: {e}")
+            temperature += 0.2
+            time.sleep(2 ** attempt)
             continue
 
-    return [cls() for cls in valid_models]  # Instantiate valid ones
+        # Parse content to extract code from markdown if present
+        match = re.search(r'```python\s*(.*?)```', content, re.DOTALL)
+        if match:
+            content = match.group(1).strip()
+
+        # Remove any import statements
+        content = re.sub(r'^(from|import)\s+.*$', '', content, flags=re.MULTILINE).strip()
+
+        print(f"\nCleaned theory code:\n{content}\n")
+
+        # Extract summary
+        summary_match = re.search(r'<summary>(.*?)</summary>', content, re.DOTALL)
+        summary = summary_match.group(1).strip() if summary_match else "No summary provided"
+
+        # Save the full generated code
+        gen_timestamp = time.strftime("%Y%m%d_%H%M%S")
+        os.makedirs("generated_codes", exist_ok=True)
+        with open(f"generated_codes/{gen_timestamp}_generated.py", "w") as f:
+            f.write(content)
+
+        # Get existing theories before exec
+        existing_classes = {
+            cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
+        }
+
+        # Execute the code to define new classes
+        try:
+            exec(content, globals())
+        except Exception as e:
+            print(f"Error executing generated code: {e}")
+            temperature += 0.2
+            time.sleep(2 ** attempt)
+            continue
+
+        # Find newly defined classes
+        all_classes = {
+            cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
+        }
+        new_classes = all_classes - existing_classes
+
+        if not new_classes:
+            print("No new theories generated from API response.")
+            temperature += 0.2
+            time.sleep(2 ** attempt)
+            continue
+
+        valid_models = []
+        for cls in new_classes:
+            try:
+                test_model = cls()
+                test_r = torch.tensor(10.0, device=device, dtype=DTYPE)
+                gtt, grr, gpp, gtp = test_model.get_metric(test_r, M, c, G)
+                if not all(torch.isfinite(t).all() for t in (gtt, grr, gpp, gtp)):
+                    raise ValueError("Non-finite metric values")
+                valid_models.append((test_model, summary, content))
+            except Exception as e:
+                print(f"Invalid theory {cls.__name__}: {e}")
+                continue
+
+        if valid_models:
+            return valid_models
+        else:
+            print("No valid models after validation.")
+            temperature += 0.2
+            time.sleep(2 ** attempt)
+
+    # If all retries fail, generate a fallback theory
+    print("All API retries failed. Generating a fallback theory.")
+    fallback_content = """
+class FallbackTheory(GravitationalTheory):
+    def __init__(self):
+        super().__init__(f"FallbackTheory_{random.randint(1, 100)}")
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / r
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+"""
+    fallback_summary = "Fallback theory similar to Schwarzschild: g_tt = -(1 - rs/r), g_rr = 1/(1 - rs/r), g_φφ = r^2, g_tφ = 0"
+    exec(fallback_content, globals())
+    fallback_cls = FallbackTheory
+    fallback_model = fallback_cls()
+    return [(fallback_model, fallback_summary, fallback_content)]
 
 # ---------------------------------------------------------------------------
 # 3.  GEODESIC INTEGRATOR (RK‑4)
@@ -324,7 +407,10 @@ def main() -> None:
     print("=" * 80)
 
     # Initial history from baselines
-    history = []
+    history = [
+        {"name": "Schwarzschild (GR)", "loss_GR": 0.0, "loss_RN": 0.0, "summary": "Standard GR metric: g_tt = -(1 - rs/r), g_rr = 1/(1 - rs/r), g_φφ = r^2, g_tφ = 0"},
+        {"name": "Reissner‑Nordström (Q=3.0e14)", "loss_GR": 0.0, "loss_RN": 0.0, "summary": "Charged GR metric: g_tt = -(1 - rs/r + rq^2/r^2), g_rr = 1/(1 - rs/r + rq^2/r^2), g_φφ = r^2, g_tφ = 0"}
+    ]
 
     # -- Initial Conditions --
     r0 = 4.0 * RS
@@ -369,40 +455,35 @@ def main() -> None:
     RN_hist = cached_run(ReissnerNordstrom(Q_PARAM), "RN")
     GR_loss_vs_RN = calculate_fft_loss(RN_hist, GR_hist)
 
-    # Add baselines to history
-    history.append({"name": "Schwarzschild (GR)", "loss_GR": 0.0, "loss_RN": GR_loss_vs_RN})
-    history.append({"name": "Reissner‑Nordström (Q=3.0e14)", "loss_GR": GR_loss_vs_RN, "loss_RN": 0.0})
+    # Update baselines with actual losses (if needed, but since lossless, 0)
+    history[0]["loss_RN"] = GR_loss_vs_RN
+    history[1]["loss_GR"] = GR_loss_vs_RN
 
     # -- Iterative Evaluation Loop --
     breakthrough_found = False
     iteration = 1
     while True:
         print(f"\n--- Iteration {iteration}: Generating new theories ---")
-        new_models = generate_new_theories(history)
-        if not new_models:
+        new_theories = generate_new_theories(history)
+        if not new_theories:
             print("No valid new models generated. Continuing...")
             iteration += 1
             continue
 
-        print(f"Testing {len(new_models)} new models: {[m.name for m in new_models]}")
+        print(f"Testing {len(new_theories)} new models: {[m[0].name for m in new_theories]}")
 
         results = []
-        for idx, model in enumerate(new_models, 1):
+        for idx, (model, summary, gen_content) in enumerate(new_theories, 1):
             timestamp = time.strftime("%Y%m%d_%H%M%S")
             safe_name = model.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
             theory_dir = f"theories/{timestamp}_{safe_name}"
             os.makedirs(theory_dir, exist_ok=True)
 
-            # Save theory code
-            cls = type(model)
-            try:
-                source = inspect.getsource(cls)
-            except:
-                source = "# Source not available"
-            with open(f"{theory_dir}/code.py", "w") as f:
-                f.write(source)
+            # Save theory code using the generated content
+            with open(f"{ theory_dir}/code.py", "w") as f:
+                f.write(gen_content)
 
-            print(f"\n[{idx:03}/{len(new_models)}] Evaluating: {model.name}")
+            print(f"\n[{idx:03}/{len(new_theories)}] Evaluating: {model.name}")
             integ = GeodesicIntegrator(model, y0_full, M, c, G)
             traj = torch.empty((N_STEPS + 1, 4), device=device, dtype=DTYPE)
             traj[0], y = y0_state, y0_state.clone()
@@ -426,7 +507,7 @@ def main() -> None:
                 "traj": traj.cpu().numpy(),
             }
             results.append(res)
-            history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"]})  # Append to history without traj
+            history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": summary})  # Append with summary
 
             # Save plot
             GR_np, RN_np = GR_hist.cpu().numpy(), RN_hist.cpu().numpy()
@@ -440,12 +521,12 @@ def main() -> None:
             ax.plot(pred_np[-1, 2], pred_np[-1, 1], "rx", markersize=10, mew=2, label="end", zorder=6)
             ax.set_title(res["name"], pad=20)
             ax.legend(); plt.tight_layout()
-            plt.savefig(f"{theory_dir}/plot.png")
+            plt.savefig(f"{ theory_dir}/plot.png")
             plt.close()
 
             # Save results and data
-            np.save(f"{theory_dir}/traj.npy", pred_np)
-            with open(f"{theory_dir}/results.json", "w") as f:
+            np.save(f"{ theory_dir}/traj.npy", pred_np)
+            with open(f"{ theory_dir}/results.json", "w") as f:
                 json.dump({
                     "name": res["name"],
                     "loss_GR": res["loss_GR"],
