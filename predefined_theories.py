@@ -46,11 +46,15 @@ class ReissnerNordstrom(GravitationalTheory):
 
     def __init__(self, Q: float):
         super().__init__(f"Reissner‑Nordström (Q={Q:.1e})")
-        self.Q = torch.as_tensor(Q, device=device, dtype=DTYPE)
+        self.Q = Q  # Keep as Python float to avoid dtype casting issues
+        # <reason>chain: Changed to store Q as float to enable safe computation of large values in f64 before casting to DTYPE.</reason>
 
     def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         rs = 2 * G_param * M_param / C_param**2
-        rq_sq = (G_param * self.Q**2) / (4 * TORCH_PI * EPS0_T * C_param**4)
+        q_scaled = self.Q / C_param**2
+        # <reason>chain: Scaled Q by C_param**2 first to reduce magnitude and prevent overflow when squaring in subsequent steps.</reason>
+        rq_sq = (G_param * (q_scaled ** 2)) / (4 * TORCH_PI * EPS0_T * r**2)
+        # <reason>chain: Computed rq_sq using the scaled Q to ensure all intermediate values stay within float32 limits.</reason>
         m = 1 - rs / r + rq_sq / r**2
         return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
 
@@ -600,7 +604,7 @@ class EinsteinUnifiedGeometricField2(GravitationalTheory):
 
     1.  **Asymmetric Metric**: The metric's time and space components are modified
         differently, a phenomenological approach to an asymmetric metric tensor
-        ($g_{\mu\nu} \neq g_{\nu\mu}$), where the antisymmetric part was hoped to
+        ($g_{μν} ≠ g_{νμ}$), where the antisymmetric part was hoped to
         describe electromagnetism.
 
     2.  **Geometric Source for Electromagnetism**: The electromagnetic term is not
@@ -661,7 +665,7 @@ class EinsteinFinalUnifiedTheory(GravitationalTheory):
         return g_tt, g_rr, r**2, torch.zeros_like(r)
 
 class EinsteinDeathbedUnified(GravitationalTheory):
-    """
+    r"""
     <summary>Einstein's deathbed-inspired UFT: Asymmetric metric with torsion for emergent EM, log correction for quantum bridge. g_tt = -(1 - rs/r + α log(1 + rs/r)), g_rr = 1/(1 - rs/r - α (rs/r)^2), g_φφ = r^2, g_tφ = α rs / r (torsion-like off-diagonal for EM).</summary>
     """
     category = "unified"

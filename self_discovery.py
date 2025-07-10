@@ -2,8 +2,8 @@
 from __future__ import annotations
 # sim_gpu.py  ── July 2025
 # ---------------------------------------------------------------------------
-# Float‑32 black‑hole orbital integrator for Apple‑silicon (M‑series) GPUs.
-# All known mathematical / computational bugs are fixed; optional Torch‑Dynamo
+# Float-32 black-hole orbital integrator for Apple-silicon (M-series) GPUs.
+# All known mathematical / computational bugs are fixed; optional Torch-Dynamo
 # compilation can be enabled with `TORCH_COMPILE=1`.
 #
 # --- MODIFICATION NOTES (JULY 2025) ---
@@ -341,7 +341,7 @@ Also inspire from deep learning architectures in PyTorch, viewing the metric as 
 
 The objective is to formalize and test the hypothesis that gravity is an information encoding process, where the universe compresses high-dimensional quantum state information into stable, low-dimensional classical geometric spacetime. Physical theories act as "decoders". Use a computational framework to measure "decoding loss" of candidate theories via dynamic orbital mechanics tests, benchmarked against lossless decoders for gravity (Schwarzschild metric) and electromagnetism (Reissner-Nordström metric with high charge Q~1.5e21 C for distinct EM effects). Results confirm unique, lossless status of General Relativity and Kaluza-Klein theory, establishing a methodology for evaluating laws based on informational fidelity. A breakthrough is when a non-baseline theory has lower loss vs RN than GR's loss vs RN, meaning it unifies better without explicit charge.
 
-Incorporate Einstein's deathbed notes: asymmetric metrics with torsion S_μν^λ for EM, log terms for quantum bridge, α~1/137 coupling.
+Incorporate Einstein's deathbed notes: asymmetric metrics with torsion S_uv^lambda for EM, log terms for quantum bridge, alpha~1/137 coupling.
 
 """ + initial_prompt + """
 
@@ -357,15 +357,16 @@ It must:
 - Inherit from GravitationalTheory.
 - Have a unique name.
 - Implement __init__ with super().__init__(name).
-- Implement get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor] for g_tt, g_rr, g_φφ, g_tφ.
+- Implement get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor] for g_tt, g_rr, g_pp, g_tp.
 - Use only torch operations, no imports in the code.
-- Avoid explicit Q; instead, introduce geometric terms (e.g., alpha * (rs**2 / r**2), non-diagonal g_tφ for field-like effects, logarithmic/higher-order corrections inspired by quantum/DL) to mimic EM without charge.
+- Avoid explicit Q; instead, introduce geometric terms (e.g., alpha * (rs**2 / r**2), non-diagonal g_tp for field-like effects, logarithmic/higher-order corrections inspired by quantum/DL) to mimic EM without charge.
 - Parameterize where useful (e.g., alpha for sweeps), inspired by Einstein's attempts.
 - Add cacheable = True as a class variable to enable trajectory caching.
 - Optionally override get_cache_tag(self, N_STEPS, precision_tag, r0_tag) to return a unique string including parameters for caching.
 - Add <reason>reasoning chain</reason> comments explaining the physical and inspirational reasoning for each part of the metric.
 - Add a <summary>concise description of the theory, including the key metric formula</summary> as a comment at the top of the class.
 - Add category = 'unified' as a class variable, since this is a unified field theory attempt.
+- Use ASCII characters only (e.g., mu, nu instead of Greek letters) to avoid syntax issues.
 
 For Einstein!
 
@@ -582,7 +583,7 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
                 gtt, grr, gpp, gtp = test_model.get_metric(test_r, M, c, G)
                 if not all(torch.isfinite(t).all() for t in (gtt, grr, gpp, gtp)):
                     raise ValueError("Non-finite metric values")
-                valid_models.append((test_model, summary, content, category))
+                valid_models.append((test_model, summary, content, category, prompt))
             except Exception as e:
                 print(f"Invalid theory {cls.__name__}: {e}")
                 continue
@@ -623,6 +624,7 @@ class GeodesicIntegrator:
         g_tt0, _, g_pp0, g_tp0 = self.model.get_metric(r0, self.M, self.c, self.G)
         self.E  = -(g_tt0 * self.c * dt_dtau0 + g_tp0 * dphi_dtau0)
         self.Lz =  g_tp0 * self.c * dt_dtau0 + g_pp0 * dphi_dtau0
+        self.torsion_detected = False
         if os.environ.get("TORCH_COMPILE") == "1" and hasattr(torch, "compile"):
             self._ode = torch.compile(self._ode_impl, fullgraph=True, mode="reduce-overhead", dynamic=True)
         else:
@@ -634,8 +636,9 @@ class GeodesicIntegrator:
         _, r, _, dr_dtau = y_state
         r_grad = r.clone().detach().requires_grad_(True)
         g_tt, g_rr, g_pp, g_tp = self.model.get_metric(r_grad, self.M, self.c, self.G)
-        if torch.any(g_tp != 0):
-            print(f"Torsion detected in {self.model.name}: g_tp mean = {g_tp.mean().item()}")  # Log for unification signal.
+        if torch.any(g_tp != 0) and not self.torsion_detected:
+            print(f"Torsion detected in {self.model.name}: g_tp mean = {g_tp.mean().item()}")
+            self.torsion_detected = True
         det = g_tp ** 2 - g_tt * g_pp
         if torch.abs(det) < EPSILON: return torch.zeros_like(y_state)
         u_t   = (self.E * g_pp + self.Lz * g_tp) / det
@@ -682,6 +685,33 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
             hist[i + 1] = y
             if (i + 1) % STEP_PRINT == 0: print(f"  ...step {i+1:,}/{N_STEPS:,} | r={y[1]/RS:.3f} RS")
             if not torch.all(torch.isfinite(y)):
+                print(f"Debug: Non-finite state detected at step {i+1}: y={y.tolist()}")
+                # Use previous r if current is non-finite
+                r_curr = y[1] if torch.isfinite(y[1]) else hist[i, 1]
+                r_curr = r_curr.clone().detach().requires_grad_(True)
+                g_tt, g_rr, g_pp, g_tp = model.get_metric(r_curr, M, c, G)
+                print(f"Debug: Metric at r={r_curr.item() / RS.item():.3f} RS: g_tt={g_tt.item():.3e}, g_rr={g_rr.item():.3e}, g_pp={g_pp.item():.3e}, g_tp={g_tp.item():.3e}")
+                det = g_tp ** 2 - g_tt * g_pp
+                print(f"Debug: det={det.item():.3e}")
+                if torch.abs(det) < EPSILON:
+                    print("Debug: Small determinant may cause instability.")
+                else:
+                    u_t = (integ.E * g_pp + integ.Lz * g_tp) / det
+                    u_phi = -(integ.E * g_tp + integ.Lz * g_tt) / det
+                    inner = g_tt * u_t ** 2 + g_pp * u_phi ** 2 + 2 * g_tp * u_t * u_phi
+                    print(f"Debug: inner={inner.item():.3e}")
+                    V_sq = (-integ.c ** 2 - inner) / g_rr
+                    print(f"Debug: V_sq={V_sq.item():.3e}")
+                    if not torch.isfinite(V_sq):
+                        print("Debug: Non-finite V_sq detected.")
+                        if g_rr <= 0:
+                            print("Debug: Negative g_rr contributing to instability.")
+                    # Attempt to compute gradient
+                    try:
+                        (dV_dr,) = torch.autograd.grad(V_sq, r_curr, create_graph=False, retain_graph=False)
+                        print(f"Debug: dV_dr={dV_dr.item():.3e}")
+                    except Exception as e:
+                        print(f"Debug: Gradient computation failed: {e}")
                 consecutive_failures += 1
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                     print(f"  ! ABORTED: Simulation unstable for {consecutive_failures} consecutive steps.")
@@ -692,7 +722,7 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
                 hist = hist[:i+2]; break
         return hist, tag
     # Cacheable case
-    fname = f"cache_{tag}.pt"
+    fname = f"cache/cache_{tag}.pt"
     if os.path.exists(fname): 
         return torch.load(fname, map_location=device), tag
     print(f"\n--- Generating and Caching: {model.name} ({tag}) ---")
@@ -716,6 +746,21 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
             consecutive_failures = 0
         if y[1] <= RS * 1.01:
             hist = hist[:i+2]; break
+    debug_dict = {
+        "model_name": model.name,
+        "tag": tag,
+        "N_STEPS": N_STEPS,
+        "DTau": DTau.item(),
+        "r0": r0.item(),
+        "r0_tag": r0_tag,
+        "precision_tag": precision_tag,
+        "device": str(device),
+        "dtype": str(DTYPE),
+        "timestamp": time.strftime("%Y%m%d_%H%M%S")
+    }
+    json_fname = f"{fname}.json"
+    with open(json_fname, "w") as f:
+        json.dump(debug_dict, f, indent=4)
     torch.save(hist, fname)
     return hist, tag
 
@@ -729,7 +774,7 @@ def calculate_fft_loss(traj_ref: Tensor, traj_pred: Tensor, ref_tag: str = None,
     <reason>This function is the core of the paper's methodology. It compares the full frequency spectrum of orbital dynamics, capturing subtle differences in precession and shape that a simple endpoint comparison would miss. It is a direct, quantitative measure of a theory's informational fidelity.</reason>
     """
     if ref_tag and pred_tag:
-        cache_file = f"cache_loss_{ref_tag}_vs_{pred_tag}.pt"
+        cache_file = f"cache/cache_loss_{ref_tag}_vs_{pred_tag}.pt"
         if os.path.exists(cache_file):
             return torch.load(cache_file).item()
     min_len = min(len(traj_ref), len(traj_pred))
@@ -743,6 +788,15 @@ def calculate_fft_loss(traj_ref: Tensor, traj_pred: Tensor, ref_tag: str = None,
     # <reason>chain: Added normalization to make losses scale-invariant and comparable, addressing huge raw values and enabling meaningful comparisons/breakthroughs.</reason>
     loss = mse / (norm_factor + EPSILON) if norm_factor > 0 else mse
     if ref_tag and pred_tag:
+        debug_dict = {
+            "ref_tag": ref_tag,
+            "pred_tag": pred_tag,
+            "loss": loss,
+            "timestamp": time.strftime("%Y%m%d_%H%M%S")
+        }
+        json_fname = f"{cache_file}.json"
+        with open(json_fname, "w") as f:
+            json.dump(debug_dict, f, indent=4)
         torch.save(torch.tensor(loss), cache_file)
     return loss
 # <reason>chain: FFT loss; added EPSILON to norm_factor to prevent div0 in edge cases like flat metrics.</reason>
@@ -752,11 +806,87 @@ def get_initial_conditions(model: GravitationalTheory, r0: Tensor) -> Tensor:
     Computes initial conditions normalized using the given model's metric at r0.
     <reason>To ensure consistent physical initial conditions (r0, v_tan Newtonian circular), but proper 4-velocity normalization per theory's metric. This fixes the issue where RN ground truth was not generating properly because initial dt_dtau0 was calculated with GR metric, leading to incorrect normalization for RN.</reason>
     """
+    # New: Solve for exact circular E, Lz
+    def compute_V_sq_and_grad(r, E, Lz):
+        r.requires_grad_(True)
+        g_tt, g_rr, g_pp, g_tp = model.get_metric(r, M, c, G)
+        if not all(torch.isfinite(t).all() for t in (g_tt, g_rr, g_pp, g_tp)):
+            return torch.tensor(1e20, device=device, dtype=DTYPE), torch.tensor(1e20, device=device, dtype=DTYPE)
+        det = g_tp**2 - g_tt * g_pp
+        if torch.abs(det) < EPSILON or not torch.isfinite(det):
+            return torch.tensor(1e20, device=device, dtype=DTYPE), torch.tensor(1e20, device=device, dtype=DTYPE)
+        u_t = (E * g_pp + Lz * g_tp) / det
+        u_phi = - (E * g_tp + Lz * g_tt) / det
+        inner = g_tt * u_t**2 + g_pp * u_phi**2 + 2 * g_tp * u_t * u_phi
+        V_sq = (-c ** 2 - inner) / g_rr
+        if not torch.isfinite(V_sq):
+            return V_sq, torch.tensor(1e20, device=device, dtype=DTYPE)
+        (dV_dr,) = torch.autograd.grad(V_sq, r, create_graph=True)
+        return V_sq, dV_dr
+
+    # Initial guess from approximate
     v_tan = torch.sqrt(G_T * M / r0)
-    g_tt0, _, g_pp0, _ = model.get_metric(r0, M, c, G)
+    g_tt0, _, g_pp0, g_tp0 = model.get_metric(r0, M, c, G)
     norm_sq = -g_tt0 - g_pp0 * (v_tan / (r0 * C_T)) ** 2
-    dt_dtau0 = 1.0 / torch.sqrt(norm_sq + EPSILON)  # Added EPSILON for stability
-    dphi_dtau0 = (v_tan / r0) * dt_dtau0
+    dt_dtau0_approx = 1.0 / torch.sqrt(norm_sq + EPSILON)
+    dphi_dtau0_approx = (v_tan / r0) * dt_dtau0_approx
+    E = -(g_tt0 * C_T * dt_dtau0_approx + g_tp0 * dphi_dtau0_approx)
+    Lz = g_tp0 * C_T * dt_dtau0_approx + g_pp0 * dphi_dtau0_approx
+
+    # After computing E, Lz from approximate
+    E_scale = E.clone()
+    Lz_scale = Lz.clone()
+    params = torch.tensor([1.0, 1.0], device=device, dtype=DTYPE, requires_grad=True)
+
+    def closure():
+        optimizer.zero_grad()
+        E_param = params[0] * E_scale
+        Lz_param = params[1] * Lz_scale
+        V_sq_val, dV_dr_val = compute_V_sq_and_grad(r0.clone(), E_param, Lz_param)
+        loss = V_sq_val**2 + dV_dr_val**2
+        if not torch.isfinite(loss):
+            return loss
+        try:
+            loss.backward()
+        except Exception as e:
+            print(f"Debug: Backward error in optimization for {model.name}: {e}")
+        return loss
+
+    optimizer = torch.optim.LBFGS([params], lr=0.01, max_iter=20, tolerance_grad=1e-8, tolerance_change=1e-10)
+    for iter in range(500):
+        current_loss = closure()
+        optimizer.step(closure)
+        params.data = torch.clamp(params.data, 0.5, 2.0)  # Prevent extreme values
+        if iter % 100 == 0:
+            E_param = params[0] * E_scale
+            Lz_param = params[1] * Lz_scale
+            V_sq_val, dV_dr_val = compute_V_sq_and_grad(r0.clone(), E_param, Lz_param)
+            print(f"Debug: Opt iter {iter}: loss={current_loss.item():.3e}, V_sq={V_sq_val.item():.3e}, dV_dr={dV_dr_val.item():.3e}")
+            print(f"Debug: Params E={params[0].item():.3e}, Lz={params[1].item():.3e}")
+        if current_loss < 1e-8:
+            break
+    # After loop
+    final_loss = closure()
+    if not torch.isfinite(final_loss) or final_loss > 1e10:
+        print(f"Warning: Optimization diverged (loss={final_loss.item():.3e}); using approximate initials.")
+        dt_dtau0 = dt_dtau0_approx
+        dphi_dtau0 = dphi_dtau0_approx
+    else:
+        E_param = params[0] * E_scale
+        Lz_param = params[1] * Lz_scale
+        # Compute u_t, u_phi
+        g_tt, g_rr, g_pp, g_tp = model.get_metric(r0, M, c, G)
+        det = g_tp**2 - g_tt * g_pp
+        u_t = (E_param * g_pp + Lz_param * g_tp) / det
+        u_phi = - (E_param * g_tp + Lz_param * g_tt) / det
+        dt_dtau0 = u_t / c
+        dphi_dtau0 = u_phi
+        # Verify normalization
+        inner = g_tt * (dt_dtau0 / c)**2 + g_pp * dphi_dtau0**2 + 2 * g_tp * (dt_dtau0 / c) * dphi_dtau0  # Adjust for units
+        norm_check = inner + 1.0  # For time-like u^mu u_mu = -1 (in c=1 units, adjust if needed)
+        if torch.abs(norm_check) > 1e-4:
+            print(f"Warning: Normalization check failed for {model.name}: {norm_check.item()}")
+
     y0_full = torch.tensor([0.0, r0.item(), 0.0, dt_dtau0.item(), 0.0, dphi_dtau0.item()], device=device, dtype=DTYPE)
     return y0_full
 # <reason>chain: Added get_initial_conditions to compute per-model initial 4-velocity normalization, fixing RN generation issue; added speculative v_tan adjustment comment but not implemented to avoid instability; used G_T and C_T for type consistency.</reason>
@@ -785,11 +915,10 @@ def downsample(arr, max_points=5000):
     step = len(arr) // max_points
     return arr[::step]
 
-def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "", GR_tag: str = None, RN_tag: str = None) -> dict:
+def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "", GR_tag: str = None, RN_tag: str = None, GR_loss_vs_RN: float = None, run_timestamp: str = "") -> dict:
     """
     Evaluates a theory by running the simulation and saving results.
     """
-    run_timestamp = time.strftime("%Y%m%d_%H%M%S")
     base_dir = f"runs/{run_timestamp}/{category}"
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     safe_name = model.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
@@ -867,21 +996,73 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     # <reason>chain: Save JSON; no change.</reason>
 
     # Copy cache files to theory_dir for debugging
-    traj_cache = f"cache_{tag}.pt"
+    traj_cache = f"cache/cache_{tag}.pt"
     if os.path.exists(traj_cache):
         shutil.copy(traj_cache, theory_dir)
+        json_cache = f"{traj_cache}.json"
+        if os.path.exists(json_cache):
+            shutil.copy(json_cache, theory_dir)
     for baseline_tag in [GR_tag, RN_tag]:
-        baseline_cache = f"cache_{baseline_tag}.pt"
+        baseline_cache = f"cache/cache_{baseline_tag}.pt"
         if os.path.exists(baseline_cache):
             shutil.copy(baseline_cache, theory_dir)
-        loss_cache = f"cache_loss_{baseline_tag}_vs_{tag}.pt"
+            baseline_json = f"{baseline_cache}.json"
+            if os.path.exists(baseline_json):
+                shutil.copy(baseline_json, theory_dir)
+        loss_cache = f"cache/cache_loss_{baseline_tag}_vs_{tag}.pt"
         if os.path.exists(loss_cache):
             shutil.copy(loss_cache, theory_dir)
+            loss_json = f"{loss_cache}.json"
+            if os.path.exists(loss_json):
+                shutil.copy(loss_json, theory_dir)
+
+    # New: Check if breakthrough
+    is_breakthrough = not math.isnan(res["loss_RN"]) and res["loss_RN"] < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in res["name"] and "Reissner" not in res["name"]
+    if is_breakthrough:
+        promising_dir = f"{base_dir}/promising"
+        os.makedirs(promising_dir, exist_ok=True)
+        promising_theory_dir = f"{promising_dir}/{timestamp}_{safe_name}"
+        shutil.move(theory_dir, promising_theory_dir)  # Move to promising subdir inside run
+        # Log to root
+        log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {promising_theory_dir}\n"
+        with open("promising_candidates.log", "a") as log_file:
+            log_file.write(log_entry)
+        print(f"Breakthrough! Moved {theory_dir} to {promising_theory_dir} and logged.")
+
+    # After trajectory plot
+    # New: Metric components plot
+    r_vals = torch.linspace(RS * 1.01, r0 * 2, 1000, device=device, dtype=DTYPE)
+    # <reason>chain: Created r_vals tensor for metric evaluation over a range from near horizon to twice initial radius.</reason>
+    GR_model = predefined_theories.Schwarzschild()
+    RN_model = predefined_theories.ReissnerNordstrom(Q=Q_PARAM)
+    # <reason>chain: Instantiated GR and RN models to compute their metrics.</reason>
+    models = [('GR', GR_model, 'k--'), ('R-N', RN_model, 'b:'), (res['name'], model, 'r-')]
+    # <reason>chain: List of models with labels and styles for plotting.</reason>
+    plt.figure(figsize=(12, 8))
+    components = ['g_tt', 'g_rr', 'g_pp', 'g_tp']
+    for idx, comp in enumerate(components, 1):
+        ax = plt.subplot(2, 2, idx)
+        for label, mod, style in models:
+            gtt, grr, gpp, gtp = mod.get_metric(r_vals, M, c, G)
+            vals = {'g_tt': gtt, 'g_rr': grr, 'g_pp': gpp, 'g_tp': gtp}[comp]
+            ax.plot((r_vals / RS).cpu().numpy(), vals.cpu().numpy(), style, label=label)
+        ax.set_xlabel('r / RS')
+        ax.set_ylabel(comp)
+        ax.legend()
+        ax.grid(True)
+    # After creating subplots\nis_gr = 'Schwarzschild' in res['name']\nis_rn = 'Reissner' in res['name']\nstatus = ' (GR Baseline)' if is_gr else ' (RN Baseline)' if is_rn else ''\nsteps = len(res['traj'])\nplt.suptitle(f'Metric Components for {res["name"]}{status} (Steps: {steps:,})', y=0.98)\n# <reason>chain: Updated suptitle to include baseline status and step count.</reason>\nfig.text(0.5, 0.01, f"Summary: {res['summary']}\nLoss vs GR: {res['loss_GR']:.3e} | Loss vs RN: {res['loss_RN']:.3e}", ha='center', va='bottom', fontsize=8, wrap=True)\n# <reason>chain: Added text at bottom for summary and losses.</reason>\nplt.tight_layout(rect=[0, 0.03, 1, 0.95])\n# <reason>chain: Adjusted tight_layout to make space for bottom text.</reason>\n# Before saving
+    plt.suptitle(f'Metric Components for {res["name"]}', y=0.95)
+    plt.tight_layout()
+    plt.savefig(f"{theory_dir}/metric_plot.png")
+    plt.close()
+    # <reason>chain: Created and saved metric components plot comparing the theory to GR and RN baselines.</reason>
 
     return res
 # <reason>chain: Evaluate theory updated to use model-specific initial conditions.</reason>
 
 def main() -> None:
+    os.makedirs('cache', exist_ok=True)
+    run_timestamp = time.strftime("%Y%m%d_%H%M%S")
     """
     Main driver for the simulation.
     <reason>This function orchestrates the entire process: setting up models, defining initial conditions, running the simulations, calculating losses, and reporting the results.</reason>
@@ -920,23 +1101,26 @@ def main() -> None:
     # <reason>chain: History init; no change.</reason>
 
     # -- Initial Conditions Setup (global r0 and v_tan) --
-    r0 = 15.0 * RS  # Increased to 15 RS for stronger-field tests and stability near horizons.
-    # <reason>chain: Increased r0 to 15 RS for stronger-field tests (per paper's closer-to-horizon hypothesis, Section 5) and to reduce instability in charged/quantum models.</reason>
+    r0 = 15.0 * RS  # Starting radius: 15 Schwarzschild radii (RS). Chosen for strong-field gravitational effects without immediate orbital plunge, allowing multiple stable orbits for accurate FFT-based loss calculations across theories. Closer starts (e.g., 6-10 RS) risk rapid instability in non-GR models; farther (e.g., 50 RS) weaken sensitivity to metric differences. This radius initiates the orbital trajectory simulation, which spans 100,000 steps (or 1,000 in test mode, or 5,000,000 in final mode), during which the particle may spiral towards the event horizon depending on the gravitational theory being tested.
+    v_tan = torch.sqrt(G_T * M / r0)
+    period_est = 2 * TORCH_PI * r0 / v_tan
+    DTau = period_est / 1000.0
 
     # -- Run Parameters --
-    DTau = 0.01
     MAX_CONSECUTIVE_FAILURES = 10
     if args.test:
-        N_STEPS, STEP_PRINT = 1000, 100
+        N_STEPS = 1000
         print("Mode: TEST (quick benchmarking)")
     elif args.final:
-        N_STEPS, STEP_PRINT = 5_000_000, 250_000
+        N_STEPS = 5_000_000
         print("Mode: FINAL (high precision, long duration)")
     else:
-        N_STEPS, STEP_PRINT = 500_000, 10_000
-        print("Mode: EXPLORATORY (fast, for prototyping)")
-    # <reason>chain: Run params; no change.</reason>
-    
+        N_STEPS = 100_000  # Exploratory steps: 100,000 chosen to capture ~10 orbits with ~100 points per orbit (based on period_est), ensuring reliable FFT spectra for loss while keeping runs efficient (~1-2 min/theory on GPU). Higher (e.g., 500k) increases accuracy marginally but slows iteration; lower risks aliasing in frequency analysis.
+        print("Mode: EXPLORATORY (balanced accuracy/efficiency)")
+    STEP_PRINT = max(1, N_STEPS // 50)
+
+    # Remove the old assignments with STEP_PRINT
+
     # -- Ground-Truth Trajectory Generation (Cached) --
     precision_tag = "f64" if DTYPE == torch.float64 else "f32"
     r0_tag = int(r0.item() / RS.item())
@@ -956,7 +1140,7 @@ def main() -> None:
     results = []
     for category, theories in [("classical_predefined", classical_predefined), ("quantum_predefined", quantum_predefined), ("unified_predefined", unified_predefined)]:
         for model in theories:
-            res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, GR_tag=GR_tag, RN_tag=RN_tag)
+            res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
             results.append(res)
             history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": res["summary"]})
     # <reason>chain: Evaluated predefined; uses updated evaluate_theory with per-model init.</reason>
@@ -975,8 +1159,8 @@ def main() -> None:
 
             print(f"Testing {len(new_theories)} new models: {[m[0].name for m in new_theories]}")
 
-            for idx, (model, summary, gen_content, category) in enumerate(new_theories, 1):
-                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, GR_tag=GR_tag, RN_tag=RN_tag)
+            for idx, (model, summary, gen_content, category, prompt) in enumerate(new_theories, 1):
+                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
                 results.append(res)
                 history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": summary})
 
