@@ -1,0 +1,12 @@
+{
+    "model_name": "Deathbed Unified (\u03b1=0.0073)",
+    "tag": "Deathbed_Unified_\u03b1_0_0073_1000_f32_r15",
+    "N_STEPS": 1000,
+    "DTau": 5.086747478344478e-05,
+    "r0": 443119.0,
+    "r0_tag": 15,
+    "precision_tag": "f32",
+    "device": "mps",
+    "dtype": "torch.float32",
+    "timestamp": "20250710_183006"
+}

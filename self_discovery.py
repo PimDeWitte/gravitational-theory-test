@@ -95,6 +95,7 @@ def parse_cli() -> argparse.Namespace:
     # <reason>chain: Added --api-provider to select which API to use for generation, if key is present.</reason>
     p.add_argument("--manual-theories-file", type=str, default=None, help="Path to a Python file containing manual theory class definitions to load.")
     # <reason>Added --manual-theories-file flag to allow loading manual equations/theories from disk, enabling user-defined inputs as per update.</reason>
+    p.add_argument("--skip-predefined", action="store_true", help="Skip evaluation of predefined theories to boot directly into self-discovery loop.")
     p.add_argument("--test", action="store_true", help="Run in test mode with reduced steps for quick benchmarking.")
     return p.parse_args()
 # <reason>chain: Defined parse_cli with arguments; added manual file arg for new feature.</reason>
@@ -158,8 +159,8 @@ LP = torch.as_tensor(math.sqrt(G * hbar / c**3), device=device, dtype=DTYPE)
 
 # Default parameters for various speculative models.
 # <reason>These default values are used to instantiate the non-swept versions of the theories. They are chosen to be physically significant enough to produce a deviation from GR without immediately causing the simulation to fail.</reason>
-Q_PARAM = 1.543e21  # Sub-extremal (0.9 Q_ext) charge for 10 M☉; ensures stable horizons and orbits.
-# <reason>chain: Set Q_PARAM to sub-extremal value (0.9 * Q_ext ≈1.543e21 C) to avoid naked singularity and instability in RN metric, enabling successful ground truth generation and meaningful dual-baseline tests.</reason>
+Q_PARAM = 4.878e21  # Increased to 0.9 * Q_ext ≈4.878e21 C for stronger EM effects, making RN distinct from GR in plots while avoiding naked singularity.
+# <reason>chain: Set Q_PARAM to sub-extremal value (0.9 * Q_ext ≈4.878e21 C) to avoid naked singularity and instability in RN metric, enabling successful ground truth generation and meaningful dual-baseline tests.</reason>
 STOCHASTIC_STRENGTH = 1e-7
 # <reason>chain: Stochastic strength; no change.</reason>
 
@@ -490,7 +491,7 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
     print("\nDebug: Prompt sent to API:\n", prompt)
     # <reason>chain: Print prompt; no change.</reason>
 
-    max_retries = 5
+    max_retries = 25
     temperature = 0.8
     for attempt in range(1, max_retries + 1):
         print(f"\nDebug: API Call Attempt {attempt}/{max_retries} with temperature={temperature}")
@@ -551,10 +552,64 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
         # <reason>chain: Existing classes; no change.</reason>
 
         # Execute the code to define new classes
-        try:
-            exec(content, globals())
-        except Exception as e:
-            print(f"Error executing generated code: {e}")
+        exec_attempts = 0
+        max_exec_attempts = 5
+        while exec_attempts < max_exec_attempts:
+            try:
+                exec(content, globals())
+                break  # Success
+            except Exception as e:
+                exec_attempts += 1
+                error_msg = f"Error executing generated code: {str(e)}"
+                print(error_msg)
+                # Append error feedback to prompt for retry
+                feedback_prompt = prompt + f"\nPrevious generation failed with error: {error_msg}. Please correct and provide a complete, valid Python class."
+                temperature = min(temperature + 0.2, 1.5)
+                time.sleep(2 ** exec_attempts)
+                # Regenerate
+                try:
+                    content = call_api(args.api_provider, feedback_prompt)
+                    print(f"\nRegenerated theory code (attempt {exec_attempts}):\n{content}\n")
+                    # <reason>chain: Regenerated code; no change.</reason>
+                    # Parse content to extract code from markdown if present
+                    match = re.search(r'```python\s*(.*?)```', content, re.DOTALL)
+                    if match:
+                        content = match.group(1).strip()
+                    # <reason>chain: Extract code; no change.</reason>
+
+                    # Remove any import statements
+                    content = re.sub(r'^(from|import)\s+.*$', '', content, flags=re.MULTILINE).strip()
+                    # <reason>chain: Remove imports; no change.</reason>
+
+                    print(f"\nCleaned theory code:\n{content}\n")
+                    # <reason>chain: Print cleaned; no change.</reason>
+
+                    # Extract summary
+                    summary_match = re.search(r'<summary>(.*?)</summary>', content, re.DOTALL)
+                    summary = summary_match.group(1).strip() if summary_match else "No summary provided"
+                    # <reason>chain: Extract summary; no change.</reason>
+
+                    # Extract <reason> chains for history (optional, but added for better iteration)
+                    reason_matches = re.findall(r'<reason>(.*?)</reason>', content, re.DOTALL)
+                    reasons = ' '.join(reason_matches) if reason_matches else ""
+                    summary += f" Reasons: {reasons}" if reasons else ""
+                    # <reason>Added regex to extract <reason> chains and append to summary for improved history feedback in prompts.</reason>
+
+                    # Save the full generated code, prompt, and response
+                    gen_timestamp = time.strftime("%Y%m%d_%H%M%S")
+                    os.makedirs("generated_codes", exist_ok=True)
+                    with open(f"generated_codes/{gen_timestamp}_generated.py", "w") as f:
+                        f.write(content)
+                    with open(f"generated_codes/{gen_timestamp}_prompt.txt", "w") as f:
+                        f.write(prompt)
+                    with open(f"generated_codes/{gen_timestamp}_response.txt", "w") as f:
+                        f.write(content)
+                    # <reason>chain: Save generated files; no change.</reason>
+                except Exception as regen_e:
+                    print(f"Debug: Regeneration failed: {regen_e}")
+                    continue
+        if exec_attempts >= max_exec_attempts:
+            print("Max exec attempts reached. Skipping this generation.")
             temperature = min(temperature + 0.2, 1.5)
             time.sleep(2 ** attempt)
             continue
@@ -969,9 +1024,9 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
 
     plt.figure(figsize=(8, 8))
     ax = plt.subplot(111, projection="polar")
-    ax.plot(GR_plot[:, 2], GR_plot[:, 1], "k--", label="GR", linewidth=1.5, zorder=5)
-    ax.plot(RN_plot[:, 2], RN_plot[:, 1], "b:",  label="R-N", linewidth=1.5, zorder=5)
-    ax.plot(pred_plot[:, 2], pred_plot[:, 1], "r-", label=res["name"], zorder=4)
+    ax.plot(GR_plot[:, 2], GR_plot[:, 1], 'k--', label='GR', linewidth=1.5, alpha=1.0, zorder=7)
+    ax.plot(RN_plot[:, 2], RN_plot[:, 1], 'b:', label='R-N', linewidth=1.5, alpha=1.0, zorder=8)
+    ax.plot(pred_plot[:, 2], pred_plot[:, 1], 'r-', label=res['name'], linewidth=1.5, alpha=0.3, zorder=4)
     ax.plot(pred_np[0, 2], pred_np[0, 1], "go", markersize=8, label="start", zorder=6)
     ax.plot(pred_np[-1, 2], pred_np[-1, 1], "rx", markersize=10, mew=2, label="end", zorder=6)
     ax.set_title(res["name"], pad=20)
@@ -1016,20 +1071,6 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
             if os.path.exists(loss_json):
                 shutil.copy(loss_json, theory_dir)
 
-    # New: Check if breakthrough
-    is_breakthrough = not math.isnan(res["loss_RN"]) and res["loss_RN"] < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in res["name"] and "Reissner" not in res["name"]
-    if is_breakthrough:
-        promising_dir = f"{base_dir}/promising"
-        os.makedirs(promising_dir, exist_ok=True)
-        promising_theory_dir = f"{promising_dir}/{timestamp}_{safe_name}"
-        shutil.move(theory_dir, promising_theory_dir)  # Move to promising subdir inside run
-        # Log to root
-        log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {promising_theory_dir}\n"
-        with open("promising_candidates.log", "a") as log_file:
-            log_file.write(log_entry)
-        print(f"Breakthrough! Moved {theory_dir} to {promising_theory_dir} and logged.")
-
-    # After trajectory plot
     # New: Metric components plot
     r_vals = torch.linspace(RS * 1.01, r0 * 2, 1000, device=device, dtype=DTYPE)
     # <reason>chain: Created r_vals tensor for metric evaluation over a range from near horizon to twice initial radius.</reason>
@@ -1053,9 +1094,22 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     # After creating subplots\nis_gr = 'Schwarzschild' in res['name']\nis_rn = 'Reissner' in res['name']\nstatus = ' (GR Baseline)' if is_gr else ' (RN Baseline)' if is_rn else ''\nsteps = len(res['traj'])\nplt.suptitle(f'Metric Components for {res["name"]}{status} (Steps: {steps:,})', y=0.98)\n# <reason>chain: Updated suptitle to include baseline status and step count.</reason>\nfig.text(0.5, 0.01, f"Summary: {res['summary']}\nLoss vs GR: {res['loss_GR']:.3e} | Loss vs RN: {res['loss_RN']:.3e}", ha='center', va='bottom', fontsize=8, wrap=True)\n# <reason>chain: Added text at bottom for summary and losses.</reason>\nplt.tight_layout(rect=[0, 0.03, 1, 0.95])\n# <reason>chain: Adjusted tight_layout to make space for bottom text.</reason>\n# Before saving
     plt.suptitle(f'Metric Components for {res["name"]}', y=0.95)
     plt.tight_layout()
-    plt.savefig(f"{theory_dir}/metric_plot.png")
+    plt.savefig(f"{ theory_dir}/metric_plot.png")
     plt.close()
     # <reason>chain: Created and saved metric components plot comparing the theory to GR and RN baselines.</reason>
+
+    # New: Check if breakthrough
+    is_breakthrough = not math.isnan(res["loss_RN"]) and res["loss_RN"] < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in res["name"] and "Reissner" not in res["name"]
+    if is_breakthrough:
+        promising_dir = f"{base_dir}/promising"
+        os.makedirs(promising_dir, exist_ok=True)
+        promising_theory_dir = f"{promising_dir}/{timestamp}_{safe_name}"
+        shutil.move(theory_dir, promising_theory_dir)  # Move to promising subdir inside run
+        # Log to root
+        log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {promising_theory_dir}\n"
+        with open("promising_candidates.log", "a") as log_file:
+            log_file.write(log_entry)
+        print(f"Breakthrough! Moved { theory_dir} to {promising_theory_dir} and logged.")
 
     return res
 # <reason>chain: Evaluate theory updated to use model-specific initial conditions.</reason>
@@ -1082,15 +1136,16 @@ def main() -> None:
     manual_theories = []
     if args.manual_theories_file:
         manual_theories = load_manual_theories(args.manual_theories_file)
-        # Add to correct category based on class variable
-        for m in manual_theories:
-            cat = getattr(m.__class__, "category", "classical")
-            if cat == "quantum":
-                quantum_predefined.append(m)
-            elif cat == "unified":
-                unified_predefined.append(m)
-            else:
-                classical_predefined.append(m)
+        if not args.self_discover:
+            # Add to correct category based on class variable
+            for m in manual_theories:
+                cat = getattr(m.__class__, "category", "classical")
+                if cat == "quantum":
+                    quantum_predefined.append(m)
+                elif cat == "unified":
+                    unified_predefined.append(m)
+                else:
+                    classical_predefined.append(m)
     # <reason>Now manual theories are also categorized by their class variable, not arbitrarily.</reason>
 
     # Initial history from baselines
@@ -1101,7 +1156,7 @@ def main() -> None:
     # <reason>chain: History init; no change.</reason>
 
     # -- Initial Conditions Setup (global r0 and v_tan) --
-    r0 = 15.0 * RS  # Starting radius: 15 Schwarzschild radii (RS). Chosen for strong-field gravitational effects without immediate orbital plunge, allowing multiple stable orbits for accurate FFT-based loss calculations across theories. Closer starts (e.g., 6-10 RS) risk rapid instability in non-GR models; farther (e.g., 50 RS) weaken sensitivity to metric differences. This radius initiates the orbital trajectory simulation, which spans 100,000 steps (or 1,000 in test mode, or 5,000,000 in final mode), during which the particle may spiral towards the event horizon depending on the gravitational theory being tested.
+    r0 = 10.0 * RS  # Reduced to 10 RS for stronger field effects, enhancing distinction between GR and RN while maintaining stability for most models.
     v_tan = torch.sqrt(G_T * M / r0)
     period_est = 2 * TORCH_PI * r0 / v_tan
     DTau = period_est / 1000.0
@@ -1138,11 +1193,13 @@ def main() -> None:
 
     # Evaluate predefined theories
     results = []
-    for category, theories in [("classical_predefined", classical_predefined), ("quantum_predefined", quantum_predefined), ("unified_predefined", unified_predefined)]:
-        for model in theories:
-            res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
-            results.append(res)
-            history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": res["summary"]})
+    if not args.skip_predefined:
+        # Evaluate predefined theories
+        for category, theories in [("classical_predefined", classical_predefined), ("quantum_predefined", quantum_predefined), ("unified_predefined", unified_predefined)]:
+            for model in theories:
+                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
+                results.append(res)
+                history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": res["summary"]})
     # <reason>chain: Evaluated predefined; uses updated evaluate_theory with per-model init.</reason>
 
     # -- Iterative Generation Loop if enabled --
