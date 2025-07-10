@@ -1,0 +1,14 @@
+class NonSymmetricAttentionTheory(GravitationalTheory):
+    # <summary>A unified field theory inspired by Einstein's non-symmetric metric approach and deep learning attention mechanisms, modeling gravity as an attentional compression of high-dimensional quantum information into asymmetric geometric spacetime. The metric incorporates exponential attention weights for radial scale focusing, logarithmic terms for multi-scale information encoding, tanh for bounded asymmetric corrections, sinusoidal components for periodic field effects, and a non-diagonal term for electromagnetic unification: g_tt = -(1 - rs/r + alpha * torch.exp(-rs/r) * torch.log(1 + rs/r) * torch.tanh(rs/r)), g_rr = 1/(1 - rs/r + alpha * torch.sin(rs/r) * torch.exp(-(rs/r)^2)), g_φφ = r^2 * (1 + alpha * torch.tanh(rs/r) * torch.sin(rs/r)), g_tφ = alpha * (rs / r) * torch.log(1 + rs/r) * torch.exp(-rs/r).</summary>
+
+    def __init__(self):
+        super().__init__("NonSymmetricAttentionTheory")
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        alpha = 0.1  # <reason>Alpha parameterizes the strength of unified field corrections, allowing sweeps to test geometric unification of gravity and electromagnetism, inspired by Einstein's affine and non-symmetric attempts to incorporate EM via geometry.</reason>
+        rs = 2 * G_param * M_param / C_param**2  # <reason>Schwarzschild radius provides the base gravitational scale, grounding the theory in General Relativity while extending it geometrically.</reason>
+        g_tt = -(1 - rs/r + alpha * torch.exp(-rs/r) * torch.log(1 + rs/r) * torch.tanh(rs/r))  # <reason>Base GR term extended with exponential decay for attention-like weighting on radial scales, logarithmic for multi-scale quantum encoding, and tanh for bounded non-symmetric corrections, mimicking EM potential emergence from geometry as in Einstein's pursuits.</reason>
+        g_rr = 1/(1 - rs/r + alpha * torch.sin(rs/r) * torch.exp(-(rs/r)**2))  # <reason>Inverse form preserves GR structure, with sinusoidal for periodic extra-dimensional-like effects and Gaussian exponential for diffusion-attention over scales, encoding high-dim info into low-dim spacetime asymmetry.</reason>
+        g_phiphi = r**2 * (1 + alpha * torch.tanh(rs/r) * torch.sin(rs/r))  # <reason>Angular component with tanh-bounded and sinusoidal corrections for non-symmetric geometric encoding, inspired by attention mechanisms focusing on periodic quantum features compressed into classical geometry.</reason>
+        g_tphi = alpha * (rs / r) * torch.log(1 + rs/r) * torch.exp(-rs/r)  # <reason>Non-diagonal term introduces EM-like field via geometric off-diagonal components, with log for entropy-like regularization and exp for attentional decay, unifying forces through information-theoretic geometry as per the hypothesis.</reason>
+        return g_tt, g_rr, g_phiphi, g_tphi

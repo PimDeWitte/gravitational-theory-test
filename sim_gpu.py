@@ -33,14 +33,17 @@
 # - Added --cpu-f64 flag for high-precision validation runs.
 # - Implemented exponential backoff for failing simulations to save compute.
 # ---------------------------------------------------------------------------
+# <reason>chain: Maintained the original header for context, including the update date matching the current date of July 10, 2025. Added 'chain' to tag as per user instruction for reasoning chain.</reason>
 
 from __future__ import annotations
 import os, time, math, argparse, warnings
+# <reason>chain: Imports standard libraries; no changes needed here as they are foundational. Used 'chain' tag for consistency.</reason>
 
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.constants import G, c, k, hbar, epsilon_0
+# <reason>chain: Imports scientific and plotting libraries; essential for computations and visualizations.</reason>
 
 # ---------------------------------------------------------------------------
 # 0.  CLI ARGUMENTS & GLOBAL CONFIG
@@ -56,16 +59,20 @@ def parse_cli() -> argparse.Namespace:
     p.add_argument("--plots", action="store_true", help="Generate and save plots for the top-ranked models.")
     p.add_argument("--no-plots", action="store_true", help="Explicitly disable all plotting, even if other flags would enable it.")
     p.add_argument("--cpu-f64", action="store_true", help="Run on CPU with float64 precision for validation. Overrides default GPU/float32 settings.")
+    p.add_argument("--self-discover", action="store_true", help="Generate new theories via Grok API.")
+    # <reason>chain: Added --self-discover flag to prepare for AI-assisted theory generation as per paper's Section 5.1.</reason>
     return p.parse_args()
 
 args = parse_cli()
 XAI_API_KEY = os.environ.get("XAI_API_KEY")
+# <reason>chain: Retrieves API key for potential self-discovery mode.</reason>
 
 # Set device and data type based on CLI flags. This must be done before any tensors are created.
 # <reason>This block allows for flexible hardware and precision choices. The default is fast GPU/float32 for exploration, while --cpu-f64 enables high-precision CPU runs for validating key results, as recommended in the research plan.</reason>
-if args.cpu_f64:
+if args.final or args.cpu_f64:
     DTYPE  = torch.float64
     device = torch.device("cpu")
+    # <reason>chain: Set to high-precision by default in --final mode, aligning with paper's recommendation for validation runs.</reason>
 else:
     DTYPE  = torch.float32
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -95,7 +102,8 @@ LP = torch.as_tensor(math.sqrt(G * hbar / c**3), device=device, dtype=DTYPE)
 
 # Default parameters for various speculative models.
 # <reason>These default values are used to instantiate the non-swept versions of the theories. They are chosen to be physically significant enough to produce a deviation from GR without immediately causing the simulation to fail.</reason>
-Q_PARAM = 3.0e14
+Q_PARAM = 1.543e21  # Sub-extremal (0.9 Q_ext) charge for 10 M☉; ensures stable horizons and orbits.
+# <reason>chain: Set Q_PARAM to sub-extremal value (0.9 * Q_ext ≈1.543e21 C) to avoid naked singularity and instability in RN metric, enabling successful ground truth generation and meaningful dual-baseline tests.</reason>
 STOCHASTIC_STRENGTH = 1e-7
 
 # ---------------------------------------------------------------------------
@@ -103,6 +111,7 @@ STOCHASTIC_STRENGTH = 1e-7
 # ---------------------------------------------------------------------------
 
 Tensor = torch.Tensor  # Type alias for brevity
+# <reason>chain: Defines a type alias for readability.</reason>
 
 class GravitationalTheory:
     """
@@ -215,6 +224,81 @@ class VariableG(GravitationalTheory):
         G_eff = G_param * (1 + self.delta * torch.log1p(r / rs))
         m = 1 - 2 * G_eff * M_param / (C_param**2 * r)
         return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
+class StochasticNoise(GravitationalTheory):
+    """
+    Tests informational robustness by adding Gaussian noise to the metric, simulating quantum fluctuations.
+    <reason>Directly implements paper's recommendation (Section 3.1, 4.3.2) for noise resilience; loss measures stability as attractor. Re-introduced as a promising model for testing quantum foam hypotheses.</reason>
+    """
+    def __init__(self, strength: float = STOCHASTIC_STRENGTH):
+        super().__init__(f"Stochastic Noise (σ={strength:.1e})")
+        self.strength = torch.as_tensor(strength, device=device, dtype=DTYPE)
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        m = 1 - rs / (r + EPSILON)
+        noise = torch.normal(0, self.strength, size=m.shape, device=device, dtype=DTYPE)
+        m_noisy = m + noise  # Apply to g_tt; could extend to others
+        return -m_noisy, 1 / (m_noisy + EPSILON), r**2, torch.zeros_like(r)
+
+class LinearSignalLoss(GravitationalTheory):
+    """
+    Introduces a parameter that smoothly degrades the gravitational signal as a function of proximity to the central mass.
+    <reason>Re-introduced from paper (Section 3.1) as a promising model to measure breaking points in informational fidelity, analogous to compression quality degradation.</reason>
+    """
+    def __init__(self, gamma: float):
+        super().__init__(f"Linear Signal Loss (γ={gamma:+.2f})")
+        self.gamma = torch.as_tensor(gamma, device=device, dtype=DTYPE)
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        degradation = self.gamma * (rs / r)
+        m = (1 - degradation) * (1 - rs / (r + EPSILON))
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
+class Participatory(GravitationalTheory):
+    """
+    A model where the metric is a weighted average of GR and flat spacetime, simulating observer participation.
+    <reason>Re-introduced from paper (Section 4.3.1) as it demonstrates geometric brittleness; small deviations cause rapid degradation, highlighting GR's precision.</reason>
+    """
+    def __init__(self, weight: float = 0.92):
+        super().__init__(f"Participatory (w={weight:.2f})")
+        self.weight = torch.as_tensor(weight, device=device, dtype=DTYPE)
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        m_gr = 1 - rs / (r + EPSILON)
+        m_flat = torch.ones_like(r)
+        m = self.weight * m_gr + (1 - self.weight) * m_flat
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
+class AcausalFinalState(GravitationalTheory):
+    """
+    An acausal model considering the final state in metric calculation.
+    <reason>Re-introduced from paper (Section 4.2) to test catastrophic failures in geodesic tests, as it showed high losses despite static test performance.</reason>
+    """
+    def __init__(self): super().__init__("Acausal (Final State)")
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        # Simplified acausal adjustment; in practice, would require full trajectory knowledge, but approximate as perturbation
+        perturbation = 0.01 * (rs / r)**2  # Placeholder for final-state influence
+        m = 1 - rs / (r + EPSILON) + perturbation
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
+class EmergentHydrodynamic(GravitationalTheory):
+    """
+    An emergent model treating gravity as hydrodynamic flow.
+    <reason>Re-introduced from paper (Section 4.2) for its high loss in dynamics, validating the framework's sensitivity to incorrect geometries.</reason>
+    """
+    def __init__(self): super().__init__("Emergent (Hydrodynamic)")
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        # Hydrodynamic approximation: velocity-like term
+        flow_term = 0.05 * torch.sqrt(rs / r)
+        m = 1 - rs / r - flow_term
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
         
 # ---------------------------------------------------------------------------
 # 3.  GEODESIC INTEGRATOR (RK‑4)
@@ -230,8 +314,8 @@ class GeodesicIntegrator:
         self.model, self.M, self.c, self.G = model, M_param, C_param, G_param
         _, r0, _, dt_dtau0, _, dphi_dtau0 = y0_full
         g_tt0, _, g_pp0, g_tp0 = self.model.get_metric(r0, self.M, self.c, self.G)
-        self.E  = -(g_tt0 * self.c * dt_dtau0 + g_tp0 * dphi_dtau0)
-        self.Lz =  g_tp0 * self.c * dt_dtau0 + g_pp0 * dphi_dtau0
+        self.E  = -(g_tt0 * dt_dtau0 + g_tp0 * dphi_dtau0)
+        self.Lz =  g_tp0 * dt_dtau0 + g_pp0 * dphi_dtau0
         if os.environ.get("TORCH_COMPILE") == "1" and hasattr(torch, "compile"):
             self._ode = torch.compile(self._ode_impl, fullgraph=True, mode="reduce-overhead", dynamic=True)
         else:
@@ -246,11 +330,11 @@ class GeodesicIntegrator:
         if torch.abs(det) < EPSILON: return torch.zeros_like(y_state)
         u_t   = (self.E * g_pp + self.Lz * g_tp) / det
         u_phi = -(self.E * g_tp + self.Lz * g_tt) / det
-        V_sq = (-self.c ** 2 - (g_tt * u_t ** 2 + g_pp * u_phi ** 2 + 2 * g_tp * u_t * u_phi)) / g_rr
+        V_sq = (-1 - (g_tt * u_t ** 2 + g_pp * u_phi ** 2 + 2 * g_tp * u_t * u_phi)) / g_rr
         if not torch.all(torch.isfinite(V_sq)): return torch.full_like(y_state, float('nan'))
         (dV_dr,) = torch.autograd.grad(V_sq, r_grad, create_graph=False, retain_graph=False)
         d2r_dtau2 = 0.5 * dV_dr
-        return torch.stack((u_t / self.c, dr_dtau, u_phi, d2r_dtau2))
+        return torch.stack((u_t, dr_dtau, u_phi, d2r_dtau2))
 
     def rk4_step(self, y: Tensor, dτ: float) -> Tensor:
         """Performs a single Runge-Kutta 4th order integration step."""
@@ -275,7 +359,10 @@ def calculate_fft_loss(traj_ref: Tensor, traj_pred: Tensor) -> float:
     if not (torch.all(torch.isfinite(r_ref)) and torch.all(torch.isfinite(r_pred))):
         return float('nan')
     fft_ref, fft_pred = torch.fft.fft(r_ref), torch.fft.fft(r_pred)
-    return torch.mean((torch.abs(fft_ref) - torch.abs(fft_pred)) ** 2).item()
+    mse = torch.mean((torch.abs(fft_ref) - torch.abs(fft_pred)) ** 2).item()
+    norm_factor = torch.mean(torch.abs(fft_ref)**2).item()  # Normalize for unitless comparability
+    # <reason>chain: Added normalization to make losses scale-invariant and comparable across runs, addressing large raw values in results.</reason>
+    return mse / norm_factor if norm_factor > 0 else mse
 
 def main() -> None:
     """
@@ -286,19 +373,30 @@ def main() -> None:
     print(f"PyTorch Orbital Test | device={device} | dtype={DTYPE}")
     print("=" * 80)
 
+    # Diagnostic for rq/RS
+    rq_sq = (G * Q_PARAM**2) / (4 * math.pi * epsilon_0 * c**4)
+    rq = math.sqrt(rq_sq)
+    print(f"Computed rq: {rq:.2e} m | RS: {RS_SI:.2e} m | rq/RS: {rq / RS_SI:.2f}")
+    # <reason>chain: Added diagnostic print to confirm RN distinction after Q_PARAM increase.</reason>
+
     # -- Model Registry --
     # <reason>This registry defines the core, most promising theories based on the latest results. The list has been pruned of less competitive models to focus computational resources.</reason>
     models: list[GravitationalTheory] = [
         Schwarzschild(), NewtonianLimit(), ReissnerNordstrom(Q_PARAM),
         EinsteinRegularized(),
+        StochasticNoise(),  # Newly added
+        Participatory(), AcausalFinalState(), EmergentHydrodynamic(),  # Re-introduced from paper
     ]
+    # <reason>chain: Ensured all original theories are present; re-introduced promising/discarded ones like Participatory, Acausal, Emergent for broader testing as per user request.</reason>
     
     # <reason>Parameter sweeps are focused on the two most promising classes of theories, Log Corrected and Quantum Corrected, and the most stable regime of Variable G. The parameter ranges have been refined to concentrate on areas that previously yielded lower loss values.</reason>
     sweeps = {
-        "QuantumCorrected": (QuantumCorrected, dict(alpha=np.linspace(-2.0, 2.0, 5))),
-        "LogCorrected": (LogCorrected, dict(beta=np.linspace(-1.5, 1.5, 5))),
-        "VariableG": (VariableG, dict(delta=np.linspace(-0.5, -0.05, 5))),
+        "QuantumCorrected": (QuantumCorrected, dict(alpha=np.linspace(-2.0, 2.0, 9))),  # Finer sweep: 9 points
+        "LogCorrected": (LogCorrected, dict(beta=np.linspace(-0.50, 0.17, 7))),  # Focused on low-loss region per paper
+        "VariableG": (VariableG, dict(delta=np.linspace(-0.5, 0.1, 7))),  # Include small positive delta
+        "LinearSignalLoss": (LinearSignalLoss, dict(gamma=np.linspace(0.0, 1.0, 5))),  # Sweep for newly added model
     }
+    # <reason>chain: Refined sweeps for finer resolution; added sweep for LinearSignalLoss as a re-introduced promising model.</reason>
     for cls, pd in sweeps.values():
         key, vals = next(iter(pd.items()))
         models += [cls(**{key: float(v)}) for v in vals]
@@ -306,7 +404,8 @@ def main() -> None:
     print(f"Total models to be tested: {len(models)}")
 
     # -- Initial Conditions --
-    r0 = 4.0 * RS
+    r0 = 10.0 * RS  # Increased initial radius to 10 RS for stability in charged/strong-field regimes.
+    # <reason>chain: Increased r0 to 10 RS to start orbits farther from the central region, reducing instability in models like RN (inner horizon) and EmergentHydrodynamic.</reason>
     v_tan = torch.sqrt(G * M / r0)
     g_tt0, _, g_pp0, _ = Schwarzschild().get_metric(r0, M, c, G)
     norm_sq = -g_tt0 - g_pp0 * (v_tan / (r0 * c)) ** 2
@@ -322,8 +421,9 @@ def main() -> None:
         N_STEPS, STEP_PRINT, SAVE_PLOTS = 5_000_000, 250_000, True
         print("Mode: FINAL (high precision, long duration)")
     else:
-        N_STEPS, STEP_PRINT, SAVE_PLOTS = 100_000, 10_000, args.plots
+        N_STEPS, STEP_PRINT, SAVE_PLOTS = 500_000, 10_000, args.plots
         print("Mode: EXPLORATORY (fast, for prototyping)")
+    # <reason>chain: Increased N_STEPS in exploratory mode to 500,000 for better FFT resolution without full final cost.</reason>
     
     # -- Ground-Truth Trajectory Generation (Cached) --
     def cached_run(model: GravitationalTheory, tag: str) -> Tensor:
@@ -425,8 +525,24 @@ def main() -> None:
             plt.close()
         print("Plots saved successfully.")
 
+    if args.self_discover:
+        import requests
+        import json
+        print("\n--- Self-Discovery Mode: Querying Grok API for New Theories ---")
+        # Prepare prompt with current results
+        prompt = "Based on these results: " + json.dumps(results, default=str) + "\nGenerate a new GravitationalTheory subclass inspired by Einstein's unified field attempts and deep learning architectures. Provide the full class code."
+        response = requests.post("https://api.x.ai/v1/chat/completions", headers={"Authorization": f"Bearer {XAI_API_KEY}"}, json={"model": "grok-4", "messages": [{"role": "user", "content": prompt}]})
+        if response.status_code == 200:
+            new_code = response.json()['choices'][0]['message']['content']
+            print(f"Generated new theory code:\n{new_code}")
+            # Optionally: exec(new_code) to add dynamically, but with caution
+        else:
+            print("API call failed.")
+    # <reason>chain: Added stub for --self-discover using XAI_API_KEY, implementing basic prompt with results for iterative theory generation as per paper's 5.1.</reason>
+
     print("\nDone.")
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
     main()
+# <reason>chain: Maintained original entry point; added self-discover logic at end to avoid disrupting core flow.</reason>
