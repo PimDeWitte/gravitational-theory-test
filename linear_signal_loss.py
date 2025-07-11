@@ -18,59 +18,90 @@ class Schwarzschild(GravitationalTheory):
         m = 1 - rs / (r + EPSILON)
         return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
 
-class NewtonianLimit(GravitationalTheory):
+# Create explicit LinearSignalLoss variants instead of using sweep
+class LinearSignalLoss_gamma_0_00(GravitationalTheory):
     """
-    The Newtonian approximation of gravity.
-    <reason>This theory is included as a 'distinguishable' model. It correctly lacks spatial curvature (g_rr = 1), and its significant but finite loss value validates the framework's ability to quantify physical incompleteness.</reason>
+    Linear Signal Loss with γ=0.00
+    <reason>Baseline - no signal degradation, equivalent to Schwarzschild</reason>
     """
     category = "classical"
-    sweep = None
     cacheable = True
 
     def __init__(self):
-        super().__init__("Newtonian Limit")
+        super().__init__("Linear Signal Loss (γ=+0.00)")
+        self.gamma = torch.as_tensor(0.00, device=device, dtype=DTYPE)
 
     def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         rs = 2 * G_param * M_param / C_param**2
-        m = 1 - rs / r
-        return -m, torch.ones_like(r), r**2, torch.zeros_like(r)
-
-class ReissnerNordstrom(GravitationalTheory):
-    """
-    The Reissner-Nordström metric for a charged, non-rotating black hole.
-    <reason>This is the exact solution for a charged mass and serves as the second ground truth (the Kaluza-Klein baseline) for testing a theory's ability to unify gravity and electromagnetism.</reason>
-    """
-    category = "classical"
-    sweep = None
-    cacheable = True
-
-    def __init__(self, Q: float):
-        super().__init__(f"Reissner‑Nordström (Q={Q:.1e})")
-        self.Q = Q
-        # Precompute rq_sq in Python float (f64) to avoid overflow in f32
-        rq_sq_py = (G * (Q ** 2)) / (4 * math.pi * epsilon_0 * (c ** 4))
-        self.rq_sq = torch.as_tensor(rq_sq_py, device=device, dtype=DTYPE)
-        # <reason>chain: Precomputed rq_sq using Python doubles to handle large Q**2 without overflow, then convert to tensor with DTYPE.</reason>
-
-    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        rs = 2 * G_param * M_param / C_param**2
-        # No q_scaled needed now
-        m = 1 - rs / r + self.rq_sq / r**2
-        # <reason>chain: Used precomputed rq_sq directly in m, removing incorrect / r**2 from rq_sq and eliminating scaling to restore standard RN metric.</reason>
+        degradation = self.gamma * (rs / r)
+        m = (1 - degradation) * (1 - rs / (r + EPSILON))
         return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
 
-class LinearSignalLoss(GravitationalTheory):
+class LinearSignalLoss_gamma_0_25(GravitationalTheory):
     """
-    Introduces a parameter that smoothly degrades the gravitational signal as a function of proximity to the central mass.
-    <reason>Re-introduced from paper (Section 3.1) as a promising model to measure breaking points in informational fidelity, analogous to compression quality degradation.</reason>
+    Linear Signal Loss with γ=0.25
+    <reason>25% signal degradation based on proximity to central mass</reason>
     """
     category = "classical"
-    sweep = dict(gamma=np.linspace(0.0, 1.0, 5))
     cacheable = True
 
-    def __init__(self, gamma: float):
-        super().__init__(f"Linear Signal Loss (γ={gamma:+.2f})")
-        self.gamma = torch.as_tensor(gamma, device=device, dtype=DTYPE)
+    def __init__(self):
+        super().__init__("Linear Signal Loss (γ=+0.25)")
+        self.gamma = torch.as_tensor(0.25, device=device, dtype=DTYPE)
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        degradation = self.gamma * (rs / r)
+        m = (1 - degradation) * (1 - rs / (r + EPSILON))
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
+class LinearSignalLoss_gamma_0_50(GravitationalTheory):
+    """
+    Linear Signal Loss with γ=0.50
+    <reason>50% signal degradation - significant compression loss</reason>
+    """
+    category = "classical"
+    cacheable = True
+
+    def __init__(self):
+        super().__init__("Linear Signal Loss (γ=+0.50)")
+        self.gamma = torch.as_tensor(0.50, device=device, dtype=DTYPE)
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        degradation = self.gamma * (rs / r)
+        m = (1 - degradation) * (1 - rs / (r + EPSILON))
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
+class LinearSignalLoss_gamma_0_75(GravitationalTheory):
+    """
+    Linear Signal Loss with γ=0.75
+    <reason>75% signal degradation - severe compression artifacts</reason>
+    """
+    category = "classical"
+    cacheable = True
+
+    def __init__(self):
+        super().__init__("Linear Signal Loss (γ=+0.75)")
+        self.gamma = torch.as_tensor(0.75, device=device, dtype=DTYPE)
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        degradation = self.gamma * (rs / r)
+        m = (1 - degradation) * (1 - rs / (r + EPSILON))
+        return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+
+class LinearSignalLoss_gamma_1_00(GravitationalTheory):
+    """
+    Linear Signal Loss with γ=1.00
+    <reason>100% signal degradation at Schwarzschild radius - complete information loss</reason>
+    """
+    category = "classical"
+    cacheable = True
+
+    def __init__(self):
+        super().__init__("Linear Signal Loss (γ=+1.00)")
+        self.gamma = torch.as_tensor(1.00, device=device, dtype=DTYPE)
 
     def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         rs = 2 * G_param * M_param / C_param**2

@@ -1,0 +1,12 @@
+{
+    "model_name": "Log Corrected (\u03b2=+0.17)",
+    "tag": "Log_Corrected_\u03b2_+0_17_1000_f32_r10",
+    "N_STEPS": 1000,
+    "DTau": 2.76887458312558e-05,
+    "r0": 295412.65625,
+    "r0_tag": 10,
+    "precision_tag": "f32",
+    "device": "mps",
+    "dtype": "torch.float32",
+    "timestamp": "20250710_203553"
+}

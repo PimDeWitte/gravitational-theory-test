@@ -42,7 +42,7 @@ from __future__ import annotations
 # - Removed paper reference in prompt, described objective instead.
 # - Changed to prompt for 1 theory at a time.
 # - Parse generated content to extract code from markdown blocks.
-# - Instruct API to add <reason>reason>reasoning chain</reason> comments for self-documentation.
+# - Instruct API to add <reason>reasoning chain</reason> comments for self-documentation.
 # - Added <summary>description</summary> for theory summary, extract and include in history/prompt.
 # - Fixed source saving by using generated content instead of inspect.getsource.
 # - Return model, summary, content from generate_new_theories to fix NameError.
@@ -95,9 +95,7 @@ def parse_cli() -> argparse.Namespace:
     # <reason>chain: Added --api-provider to select which API to use for generation, if key is present.</reason>
     p.add_argument("--manual-theories-file", type=str, default=None, help="Path to a Python file containing manual theory class definitions to load.")
     # <reason>Added --manual-theories-file flag to allow loading manual equations/theories from disk, enabling user-defined inputs as per update.</reason>
-    p.add_argument("--skip-predefined", action="store_true", help="Skip evaluation of predefined theories to boot directly into self-discovery loop.")
     p.add_argument("--test", action="store_true", help="Run in test mode with reduced steps for quick benchmarking.")
-    p.add_argument("--validate-promising", action="store_true", help="Validate promising candidates with longer trajectories.")
     return p.parse_args()
 # <reason>chain: Defined parse_cli with arguments; added manual file arg for new feature.</reason>
 
@@ -288,14 +286,12 @@ def _instantiate_theory(cls):
 # --- Dynamically load all theory classes and build instance lists ---
 
 # New: No hardcoded name lists. Use class variables for category and sweep.
-_all_theory_classes, predefined_theories = _get_theory_classes()
-
 classical_predefined = []
 quantum_predefined = []
 unified_predefined = []
-
+# Always load predefined_theories module to ensure baseline models are available
+_all_theory_classes, predefined_theories = _get_theory_classes()
 for cls in _all_theory_classes:
-    # Handle parameter sweeps if defined
     sweep = getattr(cls, "sweep", None)
     category = getattr(cls, "category", "classical")
     if sweep and isinstance(sweep, dict):
@@ -321,6 +317,85 @@ for cls in _all_theory_classes:
                 unified_predefined.append(instance)
             else:
                 classical_predefined.append(instance)
+
+# Load manual theories if file provided
+def load_manual_theories(file_path: str) -> list[GravitationalTheory]:
+    """
+    Loads manual theory classes from a Python file on disk and instantiates them.
+    
+    This function allows users to define custom theories/equations in a separate file,
+    which are then dynamically loaded and added to the predefined lists.
+    
+    Example file structure (manual_theories.py):
+    
+    class CustomTheory1(GravitationalTheory):
+        def __init__(self):
+            super().__init__("CustomTheory1")
+        
+        def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+            rs = 2 * G_param * M_param / C_param**2
+            m = 1 - rs / r
+            return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
+    
+    class CustomTheory2(GravitationalTheory):
+        # ... similar structure ...
+    
+    The file should contain one or more classes inheriting from GravitationalTheory,
+    with proper __init__ and get_metric implementations. No imports needed in the file,
+    as globals like torch, EPSILON are available.
+    
+    Returns a list of instantiated models from the loaded classes.
+    """
+    if not os.path.exists(file_path):
+        print(f"Manual theories file not found: {file_path}")
+        return []
+    
+    with open(file_path, "r") as f:
+        code = f.read()
+    
+    # Get existing classes before exec
+    existing_classes = {
+        cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
+    }
+    
+    # Execute the code to define new classes
+    try:
+        exec(code, globals())
+    except Exception as e:
+        print(f"Error loading manual theories: {e}")
+        return []
+    
+    # Find newly defined classes
+    all_classes = {
+        cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
+    }
+    new_classes = all_classes - existing_classes
+    
+    manual_models = []
+    for cls in new_classes:
+        try:
+            model = cls()
+            manual_models.append(model)
+        except Exception as e:
+            print(f"Error instantiating manual theory {cls.__name__}: {e}")
+    
+    print(f"Loaded {len(manual_models)} manual theories from {file_path}")
+    return manual_models
+# <reason>Added load_manual_theories function to enable inputting manual equations from a disk file, with example structure in docstring, allowing user-defined theories without modifying main script.</reason>
+
+manual_theories = []
+if args.manual_theories_file:
+    manual_theories = load_manual_theories(args.manual_theories_file)
+# Add manual theories to lists if not self_discover
+if not args.self_discover and args.manual_theories_file:
+    for m in manual_theories:
+        cat = getattr(m.__class__, "category", "classical")
+        if cat == "quantum":
+            quantum_predefined.append(m)
+        elif cat == "unified":
+            unified_predefined.append(m)
+        else:
+            classical_predefined.append(m)
 # <reason>
 # Now, all theory classes in predefined_theories.py can specify their category (e.g. category="quantum" or "classical")
 # and optionally a sweep dictionary (e.g. sweep={"alpha": np.linspace(-2,2,9)}).
@@ -407,7 +482,7 @@ def call_api(provider: str, prompt: str) -> str:
         "max_tokens": 4096,
     }
     # <reason>chain: Data; no change.</reason>
-    resp = requests.post(url, headers=headers, json=data, timeout=60)
+    resp = requests.post(url, headers=headers, json=data)
     # <reason>chain: Post request; no change.</reason>
     if resp.status_code == 200:
         response_json = resp.json()
@@ -416,70 +491,6 @@ def call_api(provider: str, prompt: str) -> str:
     else:
         raise ValueError(f"API call failed: {resp.text}")
 # <reason>chain: Call api function; no change.</reason>
-
-def load_manual_theories(file_path: str) -> list[GravitationalTheory]:
-    """
-    Loads manual theory classes from a Python file on disk and instantiates them.
-    
-    This function allows users to define custom theories/equations in a separate file,
-    which are then dynamically loaded and added to the predefined lists.
-    
-    Example file structure (manual_theories.py):
-    
-    class CustomTheory1(GravitationalTheory):
-        def __init__(self):
-            super().__init__("CustomTheory1")
-        
-        def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-            rs = 2 * G_param * M_param / C_param**2
-            m = 1 - rs / r
-            return -m, 1 / (m + EPSILON), r**2, torch.zeros_like(r)
-    
-    class CustomTheory2(GravitationalTheory):
-        # ... similar structure ...
-    
-    The file should contain one or more classes inheriting from GravitationalTheory,
-    with proper __init__ and get_metric implementations. No imports needed in the file,
-    as globals like torch, EPSILON are available.
-    
-    Returns a list of instantiated models from the loaded classes.
-    """
-    if not os.path.exists(file_path):
-        print(f"Manual theories file not found: {file_path}")
-        return []
-    
-    with open(file_path, "r") as f:
-        code = f.read()
-    
-    # Get existing classes before exec
-    existing_classes = {
-        cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
-    }
-    
-    # Execute the code to define new classes
-    try:
-        exec(code, globals())
-    except Exception as e:
-        print(f"Error loading manual theories: {e}")
-        return []
-    
-    # Find newly defined classes
-    all_classes = {
-        cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
-    }
-    new_classes = all_classes - existing_classes
-    
-    manual_models = []
-    for cls in new_classes:
-        try:
-            model = cls()
-            manual_models.append(model)
-        except Exception as e:
-            print(f"Error instantiating manual theory {cls.__name__}: {e}")
-    
-    print(f"Loaded {len(manual_models)} manual theories from {file_path}")
-    return manual_models
-# <reason>Added load_manual_theories function to enable inputting manual equations from a disk file, with example structure in docstring, allowing user-defined theories without modifying main script.</reason>
 
 def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list[tuple[GravitationalTheory, str, str]]:
     """
@@ -502,12 +513,12 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
             if not content.strip():
                 print("Debug: Empty content received.")
                 temperature = min(temperature + 0.2, 1.5)  # Increased cap to 1.5 for more creativity on failures.
-                time.sleep(min(2 ** attempt, 60))
+                time.sleep(2 ** attempt)
                 continue
         except Exception as e:
             print(f"Debug: API Call Error: {e}")
             temperature = min(temperature + 0.2, 1.5)  # Increased cap.
-            time.sleep(min(2 ** attempt, 60))
+            time.sleep(2 ** attempt)
             continue
         # <reason>chain: API call and handling; updated temperature cap to 1.5 for better generation on retries.</reason>
 
@@ -566,7 +577,7 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
                 # Append error feedback to prompt for retry
                 feedback_prompt = prompt + f"\nPrevious generation failed with error: {error_msg}. Please correct and provide a complete, valid Python class."
                 temperature = min(temperature + 0.2, 1.5)
-                time.sleep(min(2 ** exec_attempts, 60))
+                time.sleep(2 ** exec_attempts)
                 # Regenerate
                 try:
                     content = call_api(args.api_provider, feedback_prompt)
@@ -612,7 +623,7 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
         if exec_attempts >= max_exec_attempts:
             print("Max exec attempts reached. Skipping this generation.")
             temperature = min(temperature + 0.2, 1.5)
-            time.sleep(min(2 ** attempt, 60))
+            time.sleep(2 ** attempt)
             continue
         # <reason>chain: Exec code; no change.</reason>
 
@@ -626,7 +637,7 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
         if not new_classes:
             print("No new theories generated from API response.")
             temperature = min(temperature + 0.2, 1.5)
-            time.sleep(min(2 ** attempt, 60))
+            time.sleep(2 ** attempt)
             continue
         # <reason>chain: Check new; no change.</reason>
 
@@ -650,13 +661,13 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
         else:
             print("No valid models after validation.")
             temperature = min(temperature + 0.2, 1.5)
-            time.sleep(min(2 ** attempt, 60))
+            time.sleep(2 ** attempt)
     # <reason>chain: Retry loop; updated temp cap.</reason>
 
     # If all retries fail, generate a fallback theory
     print("All API retries failed. Holding with exponential backoff. Halting if persistent.")
     for hold_attempt in range(8):
-        wait_time = min(2 ** (hold_attempt + 2), 60)  # Start at 4s, then 8s, 16s, ..., capped at 60s
+        wait_time = 2 ** (hold_attempt + 2)  # Start at 4s, then 8s, 16s, ...
         print(f"Holding for {wait_time} seconds (attempt {hold_attempt+1}/8)...")
         time.sleep(wait_time)
         # Optionally, could try to re-call the API here, but per instruction, just hold.
@@ -975,7 +986,7 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     """
     Evaluates a theory by running the simulation and saving results.
     """
-    base_dir = f"{base_folder}/{run_timestamp}/{category}"
+    base_dir = f"runs/{run_timestamp}/{category}"
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     safe_name = model.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
     theory_dir = f"{base_dir}/{timestamp}_{safe_name}"
@@ -1110,19 +1121,7 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
         log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {promising_theory_dir}\n"
         with open("promising_candidates.log", "a") as log_file:
             log_file.write(log_entry)
-        print(f"Breakthrough! Moved { theory_dir} to {promising_theory_dir} and logged.")
-
-    if args.validate_promising:
-        is_potential_breakthrough = not math.isnan(res["loss_RN"]) and res["loss_RN"] < 0.7 * GR_loss_vs_RN and "Schwarzschild" not in res["name"] and "Reissner" not in res["name"]
-        if is_potential_breakthrough:
-            breakthrough_dir = f"{base_dir}/potential_breakthrough"
-            os.makedirs(breakthrough_dir, exist_ok=True)
-            breakthrough_theory_dir = f"{breakthrough_dir}/{timestamp}_{safe_name}"
-            shutil.move(theory_dir, breakthrough_theory_dir)
-            log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {breakthrough_theory_dir}\n"
-            with open("potential_breakthrough.log", "a") as log_file:
-                log_file.write(log_entry)
-            print(f"Potential breakthrough! Moved {theory_dir} to {breakthrough_theory_dir} and logged.")
+        print(f"Promising! Moved { theory_dir} to {promising_theory_dir} and logged.")
 
     return res
 # <reason>chain: Evaluate theory updated to use model-specific initial conditions.</reason>
@@ -1130,8 +1129,6 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
 def main() -> None:
     os.makedirs('cache', exist_ok=True)
     run_timestamp = time.strftime("%Y%m%d_%H%M%S")
-    base_folder = "runs" if not args.validate_promising else "validation_runs"
-    os.makedirs(base_folder, exist_ok=True)
     """
     Main driver for the simulation.
     <reason>This function orchestrates the entire process: setting up models, defining initial conditions, running the simulations, calculating losses, and reporting the results.</reason>
@@ -1184,11 +1181,8 @@ def main() -> None:
     elif args.final:
         N_STEPS = 5_000_000
         print("Mode: FINAL (high precision, long duration)")
-    elif args.validate_promising:
-        N_STEPS = 100_000
-        print("Mode: VALIDATE PROMISING (higher precision validation on selected theories)")
     else:
-        N_STEPS = 100_000
+        N_STEPS = 100_000  # Exploratory steps: 100,000 chosen to capture ~10 orbits with ~100 points per orbit (based on period_est), ensuring reliable FFT spectra for loss while keeping runs efficient (~1-2 min/theory on GPU). Higher (e.g., 500k) increases accuracy marginally but slows iteration; lower risks aliasing in frequency analysis.
         print("Mode: EXPLORATORY (balanced accuracy/efficiency)")
     STEP_PRINT = max(1, N_STEPS // 50)
 
@@ -1209,87 +1203,68 @@ def main() -> None:
     history[1]["loss_GR"] = GR_loss_vs_RN
     # <reason>chain: Updated baselines; no change.</reason>
 
-    # Evaluate predefined theories
+    # Evaluate theories (predefined and/or manual)
     results = []
-    if not args.validate_promising:
-        # Evaluate predefined theories
-        for category, theories in [("classical_predefined", classical_predefined), ("quantum_predefined", quantum_predefined), ("unified_predefined", unified_predefined)]:
-            for model in theories:
-                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
-                results.append(res)
-                history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": res["summary"]})
-    else:
-        promising_theories = []
-        import re
-        with open("promising_candidates.log", "r") as f:
-            for line in f:
-                parts = line.strip().split(" | ")
-                if len(parts) < 7:
-                    continue
-                theory_str = parts[2].split(": ")[1]
-                dir_path = parts[6].split(": ")[1]
-                code_path = os.path.join(dir_path, "code.py")
-                if not os.path.exists(code_path):
-                    print(f"Code file not found: {code_path}")
-                    continue
-                with open(code_path, "r") as cf:
-                    code = cf.read()
-                local_dict = {}
-                exec(code, local_dict)
-                classes = [obj for obj in local_dict.values() if inspect.isclass(obj) and issubclass(obj, GravitationalTheory) and obj != GravitationalTheory]
-                if not classes:
-                    print(f"No theory class found in {code_path}")
-                    continue
-                cls = classes[0]
-                sig = inspect.signature(cls.__init__)
-                init_params = [p.name for p in sig.parameters.values() if p.name != 'self' and p.default is inspect.Parameter.empty]
-                if len(init_params) == 1:
-                    match = re.search(r'\((.+?)=([+-]?\d*\.?\d+)\)', theory_str)
-                    if match:
-                        _, value_str = match.groups()
-                        value = float(value_str)
-                        model = cls(**{init_params[0]: value})
-                        category = getattr(cls, "category", "validated")
-                        promising_theories.append((model, "", "", category, ""))
-                    else:
-                        print(f"Can't parse param from {theory_str}")
-                        continue
-                elif len(init_params) == 0:
-                    model = cls()
-                    category = getattr(cls, "category", "validated")
-                    promising_theories.append((model, "", "", category, ""))
-                else:
-                    print(f"Unsupported number of params for {theory_str}")
-                    continue
-        for model, summary, gen_content, category, prompt in promising_theories:
-            res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
+    for category, theories in [("classical_predefined", classical_predefined), ("quantum_predefined", quantum_predefined), ("unified_predefined", unified_predefined)]:
+        for model in theories:
+            res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
             results.append(res)
-            history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": summary})
+            history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": res["summary"]})
+    # <reason>chain: Evaluated predefined; uses updated evaluate_theory with per-model init.</reason>
 
-        results.sort(key=lambda d: (math.isnan(d["loss_GR"]), d["loss_GR"]))
-        print("\n\n" + "="*80)
-        print("--- RANKING vs. GENERAL RELATIVITY (GR) ---")
-        print("Rank | Model                                | Loss_GR (FFT MSE)")
-        print("-" * 60)
-        for rank, res in enumerate(results, 1):
-            print(f"{rank:4d} | {res['name']:<36} | {res['loss_GR']:10.3e}")
-        print("="*80)
+    # -- Iterative Generation Loop if enabled --
+    breakthrough_found = False
+    iteration = 1
+    if args.self_discover:
+        while True:
+            print(f"\n--- Iteration {iteration}: Generating new theories ---")
+            new_theories = generate_new_theories(history, args.initial_prompt)
+            if not new_theories:
+                print("No valid new models generated. Continuing...")
+                iteration += 1
+                continue
 
-        results.sort(key=lambda d: (math.isnan(d["loss_RN"]), d["loss_RN"]))
-        print("\n--- RANKING vs. REISSNER-NORDSTRÖM (R-N) ---")
-        print(f"(GR baseline loss vs R-N is: {GR_loss_vs_RN:.3e})")
-        print("Rank | Model                                | Loss_RN (FFT MSE)")
-        print("-" * 60)
-        for rank, res in enumerate(results, 1):
-            loss_val = res["loss_RN"]
-            name = res['name']
-            is_breakthrough = not math.isnan(loss_val) and loss_val < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in name and "Reissner" not in name
-            if is_breakthrough:
-                print(f"{GREEN_BG}{BOLD}{rank:4d} | {name:<36} | {loss_val:10.3e} [BREAKTHROUGH]{RESET}")
-                breakthrough_found = True
-            else:
-                print(f"{rank:4d} | {name:<36} | {loss_val:10.3e}")
-        print("="*80)
+            print(f"Testing {len(new_theories)} new models: {[m[0].name for m in new_theories]}")
+
+            for idx, (model, summary, gen_content, category, prompt) in enumerate(new_theories, 1):
+                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
+                results.append(res)
+                history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": summary})
+
+            # -- Reporting --
+            BOLD, GREEN_BG, RESET = "\033[1m", "\033[42m", "\033[0m"
+
+            results.sort(key=lambda d: (math.isnan(d["loss_GR"]), d["loss_GR"]))
+            print("\n\n" + "="*80)
+            print("--- RANKING vs. GENERAL RELATIVITY (GR) ---")
+            print("Rank | Model                                | Loss_GR (FFT MSE)")
+            print("-" * 60)
+            for rank, res in enumerate(results, 1):
+                print(f"{rank:4d} | {res['name']:<36} | {res['loss_GR']:10.3e}")
+            print("="*80)
+
+            results.sort(key=lambda d: (math.isnan(d["loss_RN"]), d["loss_RN"]))
+            print("\n--- RANKING vs. REISSNER-NORDSTRÖM (R-N) ---")
+            print(f"(GR baseline loss vs R-N is: {GR_loss_vs_RN:.3e})")
+            print("Rank | Model                                | Loss_RN (FFT MSE)")
+            print("-" * 60)
+            for rank, res in enumerate(results, 1):
+                loss_val = res["loss_RN"]
+                name = res['name']
+                is_breakthrough = not math.isnan(loss_val) and loss_val < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in name and "Reissner" not in name
+                if is_breakthrough:
+                    print(f"{GREEN_BG}{BOLD}{rank:4d} | {name:<36} | {loss_val:10.3e} [BREAKTHROUGH]{RESET}")
+                    breakthrough_found = True
+                else:
+                    print(f"{rank:4d} | {name:<36} | {loss_val:10.3e}")
+            print("="*80)
+
+            if breakthrough_found:
+                print("\nBreakthrough theory found! Continuing to find potentially better ones.")
+                # Continue infinitely, do not break
+
+            iteration += 1
+    # <reason>chain: Main loop; uses updated cached_run and evaluate_theory; tightened breakthrough to <0.9*GR_loss_vs_RN for robustness buffer.</reason>
 
     print("\nDone.")
 # <reason>chain: Main function updated with per-model initial conditions to fix RN generation, increased r0, manual theories loading, and breakthrough tightening.</reason>
