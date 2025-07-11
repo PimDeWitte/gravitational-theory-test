@@ -164,6 +164,28 @@
             padding: 0;
             border-radius: 0;
         }
+
+        /* Collapsible Table Styles */
+        .collapsible-table .collapsible-row {
+            display: none;
+        }
+        .collapsible-table.expanded .collapsible-row {
+            display: table-row;
+        }
+        .toggle-button {
+            background-color: #f8f9fa;
+            border: 1px solid #dadce0;
+            padding: 0.5rem 1rem;
+            width: 100%;
+            text-align: center;
+            cursor: pointer;
+            color: #1a0dab;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .toggle-button:hover {
+            background-color: #f1f3f4;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -181,7 +203,7 @@
 
         <div class="tab-container">
             <button class="tab-btn active" onclick="openTab(event, 'technical-tab')">Technical</button>
-            <button class="tab-btn" onclick="openTab(event, 'human-tab')">Background</button>
+            <button class="tab-btn" onclick="openTab(event, 'inspiration-tab')">Inspiration</button>
             <button class="tab-btn" onclick="openTab(event, 'documentation-tab')">Documentation</button>
         </div>
 
@@ -280,7 +302,7 @@
 
                     <h3>4.1. Quantitative Findings</h3>
                     <div class="table-container my-8">
-                        <table id="results-table">
+                        <table id="results-table" class="collapsible-table">
                             <thead>
                                 <tr>
                                     <th>Rank</th>
@@ -291,13 +313,12 @@
                             </thead>
                             <tbody></tbody>
                         </table>
-                        <p class="caption">Table 1: Ranked performance of 69 theoretical models from the high-precision geodesic test. Lower loss indicates a more accurate trajectory prediction relative to the pure gravitational baseline of General Relativity.</p>
                     </div>
                     
-                    <div style="height: 2400px; margin: 3rem 0;">
+                    <div id="results-chart-container" style="height: 2400px; margin: 3rem 0; display: none;">
                          <canvas id="resultsChart"></canvas>
                     </div>
-                    <p class="caption">Figure 1: Logarithmic visualization of Trajectory Loss for all 69 tested theories against the GR baseline. The chart clearly illustrates the unique, lossless performance of the Schwarzschild model and the distinct performance tiers of other theories.</p>
+                    <p class="caption" id="results-chart-caption" style="display: none;">Figure 1: Logarithmic visualization of Trajectory Loss for all 69 tested theories against the GR baseline. The chart clearly illustrates the unique, lossless performance of the Schwarzschild model and the distinct performance tiers of other theories.</p>
 
                     <h3>4.2. Analysis of Key Theories</h3>
                     <p>The high-precision results offer several critical insights into the structure of physical theories:</p>
@@ -397,17 +418,107 @@
                 </section>
 
                 <section class="section">
-                    <h2>5. AI-Assisted Theory Discovery</h2>
+                    <h2>5. Promising Candidates: A Unified Information-Theoretic Ranking</h2>
+                    <p>
+                        Beyond the main performance ranking, our dual-baseline methodology revealed a select group of theories that demonstrate exceptional promise for unifying gravity and electromagnetism. These "promising candidates" are distinguished by their ability to maintain relatively low loss values against both the Schwarzschild (pure gravity) and Reissner-Nordström (unified gravity-electromagnetic) baselines simultaneously.
+                    </p>
+                    <p>
+                        A theory's appearance in this select group indicates it may possess genuine insight into the fundamental structure of spacetime, rather than being merely an approximation to one physical domain. The computational framework automatically identified these candidates based on their balanced performance across both information channels, suggesting they encode structural knowledge about both gravitational and electromagnetic phenomena.
+                    </p>
+
+                    <h3>5.1 The Participatory Universe Model</h3>
+                    <div class="analysis-item flex flex-col md:flex-row items-start gap-6 my-8">
+                        <div class="md:w-1/3">
+                            <img src="runs/20250710_193244/classical_predefined/promising/20250710_193614_Participatory_w_0_92/plot.png" alt="Participatory Model Trajectory" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+                        </div>
+                        <div class="md:w-2/3">
+                            <p><strong>Performance:</strong> Loss vs. GR: 0.030, Loss vs. RN: 0.184</p>
+                            <p><strong>Mathematical Form:</strong> <span class="math-var">g<sub>tt</sub> = -(0.92 × (1 - r<sub>s</sub>/r) + 0.08 × 1)</span></p>
+                            <p>
+                                The Participatory model represents a profound philosophical departure from traditional field theory. By weighting the metric as 92% General Relativity and 8% flat spacetime, it embodies Wheeler's "participatory universe" concept—the idea that observation itself contributes to the structure of reality. Its exceptionally low loss against the gravitational baseline (0.030) while maintaining finite loss against the electromagnetic baseline (0.184) suggests it captures the essence of gravitational physics while hinting at a deeper information-theoretic structure.
+                            </p>
+                            <p>
+                                The model's geometric interpretation is striking: it suggests that spacetime is not rigidly curved according to GR, but rather maintains a small "flat" component that could represent quantum vacuum fluctuations or the contribution of observer states to the metric. This is consistent with information-theoretic approaches to quantum gravity, where the act of measurement partially determines the classical spacetime that emerges.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3>5.2 Linear Signal Loss: Testing Information Fidelity</h3>
+                    <div class="analysis-item flex flex-col md:flex-row items-start gap-6 my-8">
+                        <div class="md:w-1/3">
+                            <img src="runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+0_75/plot.png" alt="Linear Signal Loss Trajectory" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+                        </div>
+                        <div class="md:w-2/3">
+                            <p><strong>Performance (γ=0.75):</strong> Loss vs. GR: 0.153, Loss vs. RN: 0.161</p>
+                            <p><strong>Mathematical Form:</strong> <span class="math-var">g<sub>tt</sub> = -(1 - γ(r<sub>s</sub>/r)) × (1 - r<sub>s</sub>/r)</span></p>
+                            <p>
+                                The Linear Signal Loss model directly tests our central hypothesis that gravity functions as a compression algorithm. By introducing a parameter γ that systematically degrades the gravitational "signal" (the deviation from flat spacetime), we can measure the breaking point where informational fidelity collapses. The γ=0.75 parameter represents a 75% degradation of the gravitational signal, yet the system maintains relatively balanced performance across both baselines.
+                            </p>
+                            <p>
+                                This result is profound: it suggests that even with significant information loss, the gravitational system exhibits remarkable resilience. The near-equal loss values against both baselines (0.153 vs. 0.161) indicate that the degraded signal affects gravity and electromagnetism proportionally, supporting the idea that both phenomena emerge from the same underlying information-theoretic substrate.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3>5.3 Variable G: Probing Fundamental Constants</h3>
+                    <div class="analysis-item flex flex-col md:flex-row items-start gap-6 my-8">
+                        <div class="md:w-1/3">
+                            <img src="runs/20250710_193244/classical_predefined/promising/20250710_194520_Variable_G_δ_-0_10/plot.png" alt="Variable G Trajectory" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+                        </div>
+                        <div class="md:w-2/3">
+                            <p><strong>Performance (δ=-0.10):</strong> Loss vs. GR: 0.197, Loss vs. RN: 0.083</p>
+                            <p><strong>Mathematical Form:</strong> <span class="math-var">G<sub>eff</sub> = G(1 + δ·ln(1 + r/r<sub>s</sub>))</span></p>
+                            <p>
+                                The Variable G model tests whether the gravitational constant might vary with distance, a possibility suggested by some unified field theories and cosmological observations. The δ=-0.10 parameter represents a 10% weakening of gravity at large distances, following a logarithmic profile. Remarkably, this model shows superior performance against the electromagnetic baseline (0.083) compared to the gravitational baseline (0.197).
+                            </p>
+                            <p>
+                                This asymmetric performance is highly significant: it suggests that a weakening of gravitational strength may actually improve the theory's ability to describe electromagnetic phenomena. This could indicate that our current understanding of the gravitational constant may be incomplete, and that G itself might be an emergent parameter related to the information compression process rather than a fundamental constant.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3>5.4 Implications for Unified Field Theory</h3>
+                    <p>
+                        The promising candidates share several key characteristics that provide insights into the structure of a potential unified theory:
+                    </p>
+                    <ul class="list-disc list-inside my-4 space-y-2">
+                        <li><strong>Balanced Performance:</strong> All promising theories maintain relatively low loss values against both baselines, suggesting they encode information about both gravitational and electromagnetic phenomena rather than being specialized approximations.</li>
+                        <li><strong>Information-Theoretic Structure:</strong> The models that perform best are those that can be interpreted as modifications to the information processing (compression/decompression) rather than simple mathematical perturbations to the metric.</li>
+                        <li><strong>Emergent Constants:</strong> Several promising theories suggest that what we consider "fundamental constants" (like G) may actually be emergent properties of the underlying information-theoretic process.</li>
+                        <li><strong>Observer Dependence:</strong> The success of the Participatory model hints that the structure of spacetime may depend on observation, consistent with information-theoretic approaches to quantum gravity.</li>
+                    </ul>
+                    <p>
+                        These results suggest that the next generation of unified field theories should focus not on finding new fields or dimensions, but on understanding the computational and information-theoretic processes that give rise to the classical spacetime we observe. The framework developed here provides a quantitative method for evaluating such theories based on their efficiency as information compression algorithms.
+                    </p>
+                </section>
+
+                <section class="section">
+                    <h2>6. AI-Assisted Theory Discovery</h2>
                     
-                    <h3>5.1. From Manual Interpretation to Automated Discovery</h3>
+                    <h3>6.1. From Manual Interpretation to Automated Discovery</h3>
                     <p>
                         Before developing the fully automated discovery loop, our initial approach was a manual, interpretative process. We used large language models, including early versions of Grok and Gemini, as creative partners to explore the conceptual space of unified field theories. The primary goal was to interpret the notoriously cryptic notes left by Einstein on his deathbed, which hinted at solutions involving non-symmetric metrics and torsion.
                     </p>
                     <p>
-                        We would prompt these AIs with questions about these concepts, asking them to explain the mathematics and speculate on how they might be formulated into a concrete spacetime metric. This human-AI dialogue was insightful but slow; it required a physicist to translate the AI's textual, often qualitative, descriptions into valid, testable Python code. This effort produced a valuable set of "manual theories" that captured these initial interpretations. It also directly inspired the creation of the <code>--manual-theories-file</code> system, which provided a formal way to ingest and test these human-AI co-created ideas. The lessons learned from this phase—understanding what kinds of prompts, constraints, and mathematical structures were most fruitful—were instrumental in designing the robust, automated self-discovery loop that now drives the project forward.
+                        We would prompt these AIs with questions about these concepts, asking them to explain the mathematics and speculate on how they might be formulated into a concrete spacetime metric. This human-AI dialogue was insightful but slow; it required a physicist to translate the AI's textual, often qualitative, descriptions into valid, testable Python code. This effort produced a valuable set of "manual theories" that captured these initial interpretations, summarized below. It also directly inspired the creation of the <code>--manual-theories-file</code> system, which provided a formal way to ingest and test these human-AI co-created ideas. The lessons learned from this phase—understanding what kinds of prompts, constraints, and mathematical structures were most fruitful—were instrumental in designing the robust, automated self-discovery loop that now drives the project forward.
                     </p>
+                    <div class="table-container my-8">
+                        <table id="e-theories-table" class="collapsible-table">
+                             <thead>
+                                <tr>
+                                    <th>Theory Name</th>
+                                    <th>Metric Modification (<span class="math-var">g<sub>μν</sub> - g<sub>μν, GR</sub></span>)</th>
+                                    <th>Conceptual Basis</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
 
-                    <h3>5.2. The Generation Loop</h3>
+
+                    <h3>6.2. The Generation Loop</h3>
                     <p>
                         To extend the methodology beyond the initial theories and explore a broader space of potential unified theories, we implemented a "self-discovering" loop. This system uses a large language model (the Grok API from xAI) to iteratively generate new candidate theories, aiming to discover a geometric unification of gravity and electromagnetism that derives the Reissner-Nordström metric without explicitly defining charge.
                     </p>
@@ -427,27 +538,29 @@
                 </section>
 
                 <section class="section">
-                    <h2>6. A 5D Particle Telescope: Unifying Classical and Quantum Views</h2>
+                    <h2>7. A 5D Particle Telescope: Unifying Classical and Quantum Views</h2>
                     <p>
                         This framework can be conceptualized as more than just a simulator; it is a <strong class="highlight">5-dimensional particle telescope</strong>. While a traditional telescope observes distant objects across 4D spacetime, our instrument observes the behavior of particles across a fifth dimension: the space of possible physical laws. By aiming this "telescope" at different points in theory-space—from the established landscape of General Relativity to the speculative frontiers of quantum gravity—we can bring the fundamental nature of these laws into focus.
                     </p>
                     <p>
                         The "optics" of this telescope are the high-precision geodesic integrator and the FFT-based loss metric. Together, they provide the resolving power needed to distinguish between theories that might otherwise appear identical. The FFT analysis, in particular, acts as a spectrograph, decomposing an orbit into its fundamental frequencies. This allows us to see the subtle "spectral lines" of physics, like relativistic precession, and to quantify precisely how a candidate theory's spectrum deviates from the ground truth.
                     </p>
-                    <div class="analysis-item flex flex-row items-start gap-6 my-8" style="display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 2.5rem;">
-                        <div style="flex: 1 1 0; min-width: 220px; max-width: 280px;">
-                            <img src="https://placehold.co/400x400/1a0dab/ffffff?text=Theory+Space" alt="Conceptual image of theory space" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+                    <div class="analysis-item flex flex-col md:flex-row items-start gap-6 my-8">
+                        <div class="md:w-1/3">
+                            <img src="http://googleusercontent.com/file_content/1" alt="Trajectory of Linear Signal Loss Theory" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
                         </div>
-                        <div style="flex: 2 1 0;">
-                            <h4>Navigating the Theory Landscape</h4>
-                            <p>The self-discovery loop enables the telescope to automatically scan this 5th dimension. It doesn't just passively observe; it actively explores. By learning from the performance of previous theories, the AI-driven generation process can intelligently "point" the telescope towards more promising regions of the theory landscape, optimizing its own search for a unified model that better explains the observed phenomena.</p>
+                        <div class="md:w-2/3">
+                            <h4>Visualizing Informational Degradation</h4>
+                            <p>
+                               This visualization of the <strong>Linear Signal Loss</strong> theory provides a clear picture of informational decay. The theory's metric, <span class="math-var">m = (1 - γ(r_s/r))(1 - r_s/r)</span>, directly multiplies the GR metric by a degradation factor. With a high gamma (<span class="math-var">γ=0.75</span>), the gravitational signal is severely weakened. The plot shows the immediate consequence: while the particle starts on the same path as the GR (black) and R-N (blue) baselines, its orbit cannot be sustained. It rapidly decays and spirals inward, demonstrating a catastrophic failure to preserve the stable geometry of the ground truth theories. This is a visual confirmation of the "breaking point" concept—a direct measure of how much information can be lost before a stable system collapses.
+                            </p>
                         </div>
                     </div>
-                    <div class="analysis-item flex flex-row items-start gap-6 my-8" style="display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 2.5rem;">
-                         <div style="flex: 1 1 0; min-width: 220px; max-width: 280px;">
+                    <div class="analysis-item flex flex-col md:flex-row items-start gap-6 my-8">
+                         <div class="md:w-1/3">
                             <img src="https://placehold.co/400x400/1a0dab/ffffff?text=Orbital+Spectra" alt="Conceptual image of orbital frequency spectra" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
                         </div>
-                        <div style="flex: 2 1 0;">
+                        <div class="md:w-2/3">
                             <h4>Resolving Physical Laws</h4>
                             <p>This unified system allows for the direct comparison of classical, quantum-corrected, and speculative unified theories within the same computational environment. A theory's performance is no longer an abstract mathematical concept but a concrete, measurable quantity—its informational loss. This provides a powerful new tool for evaluating physical laws and guiding the search for a more complete description of our universe.</p>
                         </div>
@@ -455,7 +568,7 @@
                 </section>
 
                 <section class="section">
-                    <h2>7. Concluding Remarks and Future Outlook</h2>
+                    <h2>8. Concluding Remarks and Future Outlook</h2>
                     <p>
                         This framework has successfully established a new method for testing physical theories, recasting them as computational algorithms and evaluating them based on their efficiency and robustness. Our results confirm the exceptional status of General Relativity and Kaluza-Klein theory as lossless descriptions of classical gravity and electromagnetism, respectively. However, the true promise of this work lies in its future application.
                     </p>
@@ -471,7 +584,7 @@
                 <hr/>
 
                 <section>
-                    <h2>8. References</h2>
+                    <h2>9. References</h2>
                     <ol class="list-decimal list-inside my-4 space-y-3 reference-list">
                         <li>Jacobson, T. (1995). "Thermodynamics of Spacetime: The Einstein Equation of State." <em>Physical Review Letters</em>.</li>
                         <li>'t Hooft, G. (1993). "Dimensional Reduction in Quantum Gravity." <em>arXiv:gr-qc/9310026</em>.</li>
@@ -483,7 +596,7 @@
                     </ol>
                 </section>
                 <section class="section">
-                    <h2>9. Appendix: Visual Trajectory Analysis</h2>
+                    <h2>10. Appendix: Visual Trajectory Analysis</h2>
                     <p>
                         The following gallery provides a complete visual record of the orbital trajectories for all 78 candidate theories tested. Each plot is rendered in polar coordinates, showing the radial distance from the central mass versus the orbital angle. The trajectory predicted by the candidate theory is shown as a solid red line. For reference, two ground-truth baselines are included: the Schwarzschild metric of General Relativity (black dashed line) and the Reissner-Nordström metric for a charged mass (blue dotted line).
                     </p>
@@ -491,7 +604,7 @@
                         These visualizations offer a direct, qualitative assessment of each theory's behavior. Stable, precessing orbits, rapid orbital decay, and catastrophic ejection events are immediately apparent, complementing the quantitative loss metrics presented in the main analysis. This complete record is provided in the interest of full transparency and to aid in future theoretical development.
                     </p>
                     <div class="table-container my-8">
-                        <table id="appendix-table">
+                        <table id="appendix-table" class="collapsible-table">
                             <thead>
                                 <tr>
                                     <th style="width: 40%;">Theory Name</th>
@@ -507,48 +620,41 @@
             </main>
         </div>
         
-        <div id="human-tab" class="tab-content">
+        <div id="inspiration-tab" class="tab-content">
             <main>
                 <section class="section">
-                    <h2>The Story of a Question</h2>
-                    <p>This project didn't begin in a university lab. It began on July 6th, 2025, with a simple question that wouldn't let go: <strong>Why is there only one reality?</strong> When two galaxies, containing septillions of stars, collide, why does the universe insist on resolving it into a single, coherent outcome? Why doesn't it just... branch?</p>
+                    <h2>Inspiration: A Search for the Source Code</h2>
+                    <p>This project started with a systems-level question. When two galaxies collide, the universe computes a single, coherent result. It doesn't crash. It doesn't fork into multiple instances to save on computation. Why?</p>
                     <blockquote class="story-blockquote">
                         "It's clearly some optimization for not running out of memory at a single 4d position in the universal grid... Like... clearly preserving the single thread of reality where the universes collide matter more than generating infinite where the values ensure they don't collide."
                     </blockquote>
-                    <p>This line of thinking comes from a background that has always treated complex systems—whether a game server or a business—as something to be understood, optimized, and even reverse-engineered. At age 14, I started "Soul Split," a private server for the game Runescape. I learned to code by reverse-engineering the game, and learned business by growing it into the largest private server in the world. The key was velocity—understanding what players wanted and implementing it faster than anyone else, even if it meant "ripping" assets to get a feature out first. This mindset of prioritizing momentum and understanding systems from the inside out has been a constant thread.</p>
+                    <p>This implies a fundamental optimization at the heart of reality. From a background of reverse-engineering game servers and building large-scale software, this looks like a design pattern. The universe isn't just a set of physical laws; it's a running system, and it has a source code. This project is an attempt to find it.</p>
                 </section>
 
                 <section class="section">
-                    <h2>The "Aha!" Moment: Gravity as Compression</h2>
-                    <p>After years of building companies in the gaming and AI space, like Medal and Highlight AI, I've spent a lot of time thinking about data, networks, and efficiency. The question of universal optimization led to the core hypothesis of this project, a sudden moment of clarity:</p>
+                    <h2>Gravity as the Compression Algorithm</h2>
+                    <p>The first "aha" moment was realizing what the core algorithm might be. It's not a force in the classical sense; it's a process for managing information.</p>
                     <blockquote class="story-blockquote">
                         "Maybe gravity itself is a compression algorithm... Thus black holes are just compressed versions of the information previously inside of things that could not continue to exist because they'd be too computationally inefficient otherwise."
                     </blockquote>
-                    <p>Suddenly, everything clicked. Gravity wasn't just a force; it was the universe's method for compressing information. This felt elegant. It connected the cosmos to computation. It even offered a new lens on quantum mechanics:</p>
-                     <blockquote class="story-blockquote">
-                        "So maybe quantum emerged when attention and observation did as the universe optimized for itself... Quantum is the instinct of the universe. An equally valid reality that sits inside the world model of the universe itself for the purposes of more accurate predictions and survival of itself."
-                    </blockquote>
+                    <p>This reframes the entire problem. General Relativity isn't just a description of curved spacetime; it's the specification for a lossless compression function. The "loss" we measure in this framework is literally the fidelity of the decompression. A good theory reconstructs the particle's trajectory perfectly. A bad one introduces artifacts and errors. The fact that GR is lossless in our test isn't just a validation of the method; it's a validation of the principle. It's the correct decoder for gravitational information.</p>
                 </section>
                 
                 <section class="section">
-                    <h2>From Idea to Experiment with an AI Partner</h2>
-                    <p>An idea, no matter how elegant, is just a story without a test. As a hobbyist physicist, the prospect of turning this into a rigorous experiment was daunting. This is where Gemini became a true collaborator. The conversation shifted from "What if?" to "How?"</p>
-                    <p>The first step was to ask: "If gravity is a compression algorithm, how could we measure its efficiency?" Together, we formulated the plan for the static test. I would provide the concept—treating physical theories as "decoders"—and Gemini would provide the mathematical formalisms and the Python code. We gathered dozens of gravitational theories, from the well-established to the speculative.</p>
-                    <p>When the static test failed due to geometric degeneracy, it wasn't a setback; it was a discovery. It revealed the necessity of a dynamic test. The dialogue became a rapid, iterative loop: I would describe the needed change in the physics engine, Gemini would refactor the code, I would run the simulation, and we would analyze the results together. We built the entire high-fidelity orbital simulation framework this way in a matter of days—a process that would have taken a lone researcher months.</p>
-                </section>
-
-                <section class="section">
-                    <h2>The Human Connection: Intuition as Compression</h2>
-                    <p>Throughout the technical work, the philosophical thread continued to evolve. The analogy between the universe's optimization and the human brain's became stronger. My experience has taught me that intuition isn't magic; it's a highly refined form of data compression.</p>
+                    <h2>A Path to Future Explanations</h2>
+                    <h3>Speculation 1: Quantum Mechanics as the Concurrency Model</h3>
+                    <p>If gravity is the compression algorithm, what is quantum mechanics? This is speculative, but it looks like the universe's concurrency control system. How does an observed state remain consistent for all observers without causing race conditions?</p>
                     <blockquote class="story-blockquote">
-                        "Intuition is built via a function where the brain finds the 'optimal amount of compute / predicted entropy' required for a particular calculation. When you learn how to drive stick shift, turning left requires an enormous amount of actions... your brain compresses the actions... and eventually becomes 'second nature' when it is so intuitive that you no longer need to apply any thought at all."
+                        "Quantum mechanics are the semaphores. Quantum entanglement is the semaphore. It is the mechanism through which an OBSERVED state can be calculated and then made deterministic without causing inconsistencies."
                     </blockquote>
-                    <p>This project, therefore, became a deeply personal exploration. It wasn't just about testing theories of gravity. It was about understanding how we, as conscious beings, fit into this computational cosmos. Our ability to observe, to have ideas, to form intuitions—perhaps this is the universe's most advanced method of survival and prediction. We are not just passive observers; we are participants in the universe's ongoing process of self-discovery.</p>
-                </section>
-
-                <section class="section">
-                    <h2>A New Era of Discovery</h2>
-                    <p>This paper is the result of a unique collaboration: human curiosity, honed by a lifetime of building and breaking systems, and artificial intelligence. It's a testament to a new way of doing science, where anyone with a powerful question and a powerful tool can participate in the grand conversation of physics. The journey from a simple question to a complex computational framework shows that the only true prerequisite for discovery is the willingness to ask "why" and the persistence to follow where the answer leads. This project is not an end point, but a beginning—an invitation for anyone, anywhere, to look at the universe and ask their own questions.</p>
+                    <p>This insight came directly from thinking about how to build multiplayer systems in a game engine. To prevent multiple players from corrupting a shared object, you use a semaphore to lock it during access. Entanglement seems to serve the same purpose. It's a lock on a shared state. The "probabilistic" nature of the quantum realm could be the set of all possible states before the lock is acquired and a single, deterministic state is rendered for the observer.</p>
+                    
+                    <h3>Speculation 2: Reality as a World Model</h3>
+                    <p>This leads to the final piece of the analogy. The success of this simulation framework suggests we can draw inspiration from AI with increasing confidence. The way we test theories—by introducing loss and noise—is directly inspired by how world models like v-JEPA are trained. The idea isn't that the universe *is* a world model, but that it exhibits similar patterns of optimization. As we prove these patterns digitally, we can more confidently propose that reality itself may be a kind of world model, as described in papers like DIAMOND.</p>
+                     <blockquote class="story-blockquote">
+                        "Which means, if this gets proven, that perhaps the universe is not expanding, it is simply expanding because we are increasingly calculating more properties related to it's expansion... You know like in a game where you have to wait for the render, thats because its not always rendering everything, just where there are players."
+                    </blockquote>
+                    <p>The universe may not be computing the state of every particle at all times. It computes what is needed, when it's needed, based on observation. At the very least, we know it is computationally optimizing for our single, shared existence, rather than pushing us into infinite realities in isolation. Our act of observation may be what drives the execution. For Einstein!</p>
                 </section>
             </main>
         </div>
@@ -690,13 +796,189 @@ Warning: Optimization diverged (loss=5.184e+24); using approximate initials.
             evt.currentTarget.className += " active";
         }
 
+        function setupCollapsibleTables() {
+            document.querySelectorAll('.collapsible-table').forEach(table => {
+                const rows = Array.from(table.querySelectorAll('tbody > tr'));
+                if (rows.length > 5) {
+                    for (let i = 5; i < rows.length; i++) {
+                        rows[i].classList.add('collapsible-row');
+                    }
+
+                    let tfoot = table.querySelector('tfoot');
+                    if (!tfoot) {
+                        tfoot = document.createElement('tfoot');
+                        table.appendChild(tfoot);
+                    }
+                    
+                    tfoot.innerHTML = `
+                        <tr>
+                            <td colspan="${table.querySelector('thead th').colSpan || table.querySelector('thead th').length}" style="padding: 0;">
+                                <button class="toggle-button">Show More (${rows.length - 5} rows)</button>
+                            </td>
+                        </tr>
+                    `;
+
+                    const button = tfoot.querySelector('.toggle-button');
+                    button.addEventListener('click', () => {
+                        table.classList.toggle('expanded');
+                        if (table.classList.contains('expanded')) {
+                            button.textContent = 'Show Less';
+                            // Show the chart when expanded
+                            if (table.id === 'results-table') {
+                                document.getElementById('results-chart-container').style.display = 'block';
+                                document.getElementById('results-chart-caption').style.display = 'block';
+                            }
+                        } else {
+                            button.textContent = `Show More (${rows.length - 5} rows)`;
+                            // Hide the chart when collapsed
+                            if (table.id === 'results-table') {
+                                document.getElementById('results-chart-container').style.display = 'none';
+                                document.getElementById('results-chart-caption').style.display = 'none';
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        function populateEinsteinTable() {
+            const tableBody = document.querySelector('#e-theories-table tbody');
+            if(!tableBody) return;
+
+            const theories = [
+                { 
+                    name: 'Cubic', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(r<sub>s</sub>/r)<sup>3</sup>)',
+                    basis: 'Simple cubic correction term added to the metric. When α=0, this reduces to the standard Schwarzschild metric. The cubic term represents a potential third-order relativistic correction or quantum gravity effect.'
+                },
+                { 
+                    name: 'Quadratic', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(r<sub>s</sub>/r)<sup>2</sup>)',
+                    basis: 'A quadratic correction term testing a different power-law deviation. This form could arise from modified gravity theories or as a second-order perturbation around the Schwarzschild solution.'
+                },
+                { 
+                    name: 'Exponential', 
+                    mod: 'g<sub>tt</sub> = -(1 - (r<sub>s</sub>/r)(1 - α·exp(-r/r<sub>s</sub>)))',
+                    basis: 'An exponentially suppressed correction mimicking a short-range field. This could represent a Yukawa-like interaction or a field that decays exponentially with distance from the source.'
+                },
+                { 
+                    name: 'Asymmetric', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(r<sub>s</sub>/r)<sup>2</sup>), g<sub>rr</sub> = 1/(1 - r<sub>s</sub>/r - α(r<sub>s</sub>/r)<sup>2</sup>)',
+                    basis: 'Simulates an asymmetric metric by modifying g<sub>tt</sub> and g<sub>rr</sub> with opposite signs. This breaks the symmetry of the standard Schwarzschild metric and could represent torsional effects or non-symmetric field equations.'
+                },
+                { 
+                    name: 'Torsional', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(r<sub>s</sub>/r)<sup>4</sup>)',
+                    basis: 'A quartic correction term serving as a toy model for torsional effects. In Einstein-Cartan theory, torsion can contribute higher-order terms to the metric, and this fourth-power term represents such effects.'
+                },
+                { 
+                    name: 'Unified Additive', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(r<sub>q</sub><sup>2</sup>/r<sup>2</sup>))',
+                    basis: 'A test of unified theory where the electromagnetic field contribution is added with a variable coupling α. This allows tuning between pure gravity (α=0) and the full Reissner-Nordström solution (α=1).'
+                },
+                { 
+                    name: 'Unified Multiplicative', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r) × (1 + α(r<sub>q</sub><sup>2</sup>/r<sup>2</sup>))',
+                    basis: 'A non-linear interaction between gravitational and electromagnetic fields. Rather than simple addition, this represents a coupling where the electromagnetic field modifies the strength of the gravitational field itself.'
+                },
+                { 
+                    name: 'Log Gravity', 
+                    mod: 'g<sub>tt</sub> = -(1 - (r<sub>s</sub>/r)(1 - α·ln(1 + r<sub>s</sub>/r)))',
+                    basis: 'A logarithmic modification to the gravitational potential. Logarithmic corrections often arise in quantum field theory and could represent quantum loop corrections to the classical Einstein field equations.'
+                },
+                { 
+                    name: 'Resonant', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(r<sub>s</sub>/r)<sup>3</sup>·sin(r/r<sub>s</sub>))',
+                    basis: 'A speculative resonant term causing oscillatory corrections. This could represent standing wave patterns in spacetime or resonant effects from extra dimensions compactified at the Schwarzschild radius scale.'
+                },
+                { 
+                    name: 'Pionic', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(r<sub>s</sub>/r)·exp(-r/(3r<sub>s</sub>)))',
+                    basis: 'A Yukawa-like interaction inspired by meson physics. The exponential decay with characteristic length 3r<sub>s</sub> mimics how mesons mediate short-range nuclear forces.'
+                },
+                { 
+                    name: 'Dynamic Lambda', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r - α(r<sub>s</sub>/r)<sup>2</sup>)',
+                    basis: 'A local cosmological constant that depends on gravitational field strength. Unlike the global cosmological constant, this term varies with the local gravitational potential, potentially explaining dark energy effects.'
+                },
+                { 
+                    name: 'Entropic', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(l<sub>P</sub><sup>2</sup>/r<sup>2</sup>)·ln(r/l<sub>P</sub>))',
+                    basis: 'Models gravity as an entropic force, modifying the potential with a logarithmic term scaled by the Planck length. Inspired by Verlinde\'s emergent gravity theory where gravitational effects arise from holographic information entropy.'
+                },
+                { 
+                    name: 'Membrane', 
+                    mod: 'g<sub>tt</sub> = -(1 - √[(r<sub>s</sub>/r)<sup>2</sup> + α(l<sub>P</sub>/r)<sup>4</sup>])',
+                    basis: 'A correction inspired by higher-dimensional brane-world scenarios. In some string theory models, our 4D spacetime is a brane embedded in higher dimensions, leading to modifications that become significant at the Planck scale.'
+                },
+                { 
+                    name: 'Gauss-Bonnet', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(r<sub>s</sub>/r)<sup>5</sup>)',
+                    basis: 'A simplified model inspired by Gauss-Bonnet gravity, a common extension to GR. Gauss-Bonnet theory adds quadratic curvature terms to the Einstein-Hilbert action, which can generate higher-order corrections to the metric.'
+                },
+                { 
+                    name: 'Non-Commutative', 
+                    mod: 'g<sub>tt</sub> = -(1 - (r<sub>s</sub>/r)(exp(-α·l<sub>P</sub><sup>2</sup>/r<sup>2</sup>) - 1))',
+                    basis: 'A model motivated by non-commutative geometry, which regularizes the central singularity. Non-commutative geometry suggests spacetime coordinates don\'t commute at the Planck scale, effectively "smearing" point singularities.'
+                },
+                { 
+                    name: 'Vacuum Coupling', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(l<sub>P</sub>/r<sub>s</sub>)<sup>2</sup>)',
+                    basis: 'A model where gravity\'s strength is coupled to the vacuum energy density. This constant correction term represents the effect of quantum vacuum fluctuations on the gravitational field.'
+                },
+                { 
+                    name: 'Power Law', 
+                    mod: 'g<sub>tt</sub> = -(1 - (r<sub>s</sub>/r)<sup>1-α</sup>)',
+                    basis: 'Generalizes the gravitational potential with a variable power law. This tests whether the fundamental 1/r dependence of gravity might be modified, potentially explaining dark matter effects without additional matter.'
+                },
+                { 
+                    name: 'Conformal', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α·r)',
+                    basis: 'A model inspired by conformal gravity, where physics is invariant under scale transformations. The linear term in r represents a conformal correction that grows with distance, potentially explaining galactic rotation curves.'
+                },
+                { 
+                    name: 'Dilaton', 
+                    mod: 'g<sub>tt</sub> = -(1 - (r<sub>s</sub>/r)(1 - 1/(1 + α·r<sub>s</sub>/r)))',
+                    basis: 'A model including a dilaton field from string theory. The dilaton is a scalar field that couples to gravity and can modify the effective gravitational constant, leading to this rational function correction.'
+                },
+                { 
+                    name: 'Tachyonic', 
+                    mod: 'g<sub>tt</sub> = -(1 - (r<sub>s</sub>/r)(1 + α·tanh(r<sub>s</sub>/r)))',
+                    basis: 'A speculative model with a tachyonic field contribution. Tachyonic fields, while problematic, appear in some string theory contexts and could lead to hyperbolic function corrections to the metric.'
+                },
+                { 
+                    name: 'Higher-Derivative', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α(r<sub>s</sub>/r)<sup>2</sup> - α(r<sub>s</sub>/r)<sup>3</sup>)',
+                    basis: 'A model with both quadratic and cubic corrections. Higher-derivative gravity theories naturally generate multiple correction terms, and this model tests the combined effect of competing corrections.'
+                },
+                { 
+                    name: 'Quintessence', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r - α(r/r<sub>s</sub>)<sup>0.5</sup>)',
+                    basis: 'A model including a quintessence-like scalar field. Quintessence is a proposed form of dark energy with a time-varying equation of state, here modeled as a weak power-law correction that grows with distance.'
+                },
+                { 
+                    name: 'Deathbed Unified', 
+                    mod: 'g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + α·ln(1 + r<sub>s</sub>/r)), g<sub>rr</sub> = 1/(1 - r<sub>s</sub>/r - α(r<sub>s</sub>/r)<sup>2</sup>), g<sub>tφ</sub> = α·r<sub>s</sub>/r',
+                    basis: 'Einstein\'s deathbed-inspired unified field theory combining three key elements: (1) Asymmetric metric with different modifications to g<sub>tt</sub> and g<sub>rr</sub>, (2) Torsion-like off-diagonal term g<sub>tφ</sub> for electromagnetic emergence, (3) Logarithmic correction bridging to quantum mechanics. The parameter α ≈ 1/137 relates to the fine structure constant.'
+                }
+            ];
+            
+            theories.forEach(theory => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>Einstein Final (${theory.name})</td>
+                    <td><span class="math-var">${theory.mod}</span></td>
+                    <td>${theory.basis}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
         // Default to technical tab
         document.addEventListener('DOMContentLoaded', (event) => {
-            // Find the button that should be active and the corresponding tab
             const initialTabName = 'technical-tab';
             const initialButton = document.querySelector(`.tab-btn[onclick*="${initialTabName}"]`);
             
-            // Deactivate all tabs and buttons first
             var i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
             for (i = 0; i < tabcontent.length; i++) {
@@ -707,13 +989,14 @@ Warning: Optimization diverged (loss=5.184e+24); using approximate initials.
                 tablinks[i].className = tablinks[i].className.replace(" active", "");
             }
             
-            // Activate the correct one
             document.getElementById(initialTabName).style.display = "block";
             if(initialButton) {
                 initialButton.className += " active";
             }
             
             populateAppendix();
+            populateEinsteinTable();
+            setupCollapsibleTables();
         });
 
 
@@ -759,7 +1042,7 @@ Warning: Optimization diverged (loss=5.184e+24); using approximate initials.
                 { name: "Newtonian Limit", file: "Newtonian_Limit.png" },
                 { name: "Non-local (Λ)", file: "Non‑local__Λ_.png" },
                 { name: "Participatory (E_obs=1.0e+09)", file: "Participatory__E_obs=1.0e+09_.png" },
-                { name: "Phase Transition (r_c=1.50 RS)", file: "Phase_Transition__r_c=1.50 RS_.png" },//Phase_Transition__r_c=1.50 RS_
+                { name: "Phase Transition (r_c=1.50 RS)", file: "Phase_Transition__r_c=1.50 RS_.png" },
                 { name: "Phase Transition (r_c=2.50 RS)", file: "Phase_Transition__r_c=2.50 RS_.png" },
                 { name: "Phase Transition (r_c=4.00 RS)", file: "Phase_Transition__r_c=4.00 RS_.png" },
                 { name: "Phase Transition (r_c=8.00 RS)", file: "Phase_Transition__r_c=8.00 RS_.png" },

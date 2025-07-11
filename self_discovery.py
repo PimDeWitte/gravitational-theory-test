@@ -97,6 +97,7 @@ def parse_cli() -> argparse.Namespace:
     # <reason>Added --manual-theories-file flag to allow loading manual equations/theories from disk, enabling user-defined inputs as per update.</reason>
     p.add_argument("--skip-predefined", action="store_true", help="Skip evaluation of predefined theories to boot directly into self-discovery loop.")
     p.add_argument("--test", action="store_true", help="Run in test mode with reduced steps for quick benchmarking.")
+    p.add_argument("--validate-promising", action="store_true", help="Validate promising candidates with longer trajectories.")
     return p.parse_args()
 # <reason>chain: Defined parse_cli with arguments; added manual file arg for new feature.</reason>
 
@@ -974,7 +975,7 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     """
     Evaluates a theory by running the simulation and saving results.
     """
-    base_dir = f"runs/{run_timestamp}/{category}"
+    base_dir = f"{base_folder}/{run_timestamp}/{category}"
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     safe_name = model.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
     theory_dir = f"{base_dir}/{timestamp}_{safe_name}"
@@ -1111,12 +1112,26 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
             log_file.write(log_entry)
         print(f"Breakthrough! Moved { theory_dir} to {promising_theory_dir} and logged.")
 
+    if args.validate_promising:
+        is_potential_breakthrough = not math.isnan(res["loss_RN"]) and res["loss_RN"] < 0.7 * GR_loss_vs_RN and "Schwarzschild" not in res["name"] and "Reissner" not in res["name"]
+        if is_potential_breakthrough:
+            breakthrough_dir = f"{base_dir}/potential_breakthrough"
+            os.makedirs(breakthrough_dir, exist_ok=True)
+            breakthrough_theory_dir = f"{breakthrough_dir}/{timestamp}_{safe_name}"
+            shutil.move(theory_dir, breakthrough_theory_dir)
+            log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {breakthrough_theory_dir}\n"
+            with open("potential_breakthrough.log", "a") as log_file:
+                log_file.write(log_entry)
+            print(f"Potential breakthrough! Moved {theory_dir} to {breakthrough_theory_dir} and logged.")
+
     return res
 # <reason>chain: Evaluate theory updated to use model-specific initial conditions.</reason>
 
 def main() -> None:
     os.makedirs('cache', exist_ok=True)
     run_timestamp = time.strftime("%Y%m%d_%H%M%S")
+    base_folder = "runs" if not args.validate_promising else "validation_runs"
+    os.makedirs(base_folder, exist_ok=True)
     """
     Main driver for the simulation.
     <reason>This function orchestrates the entire process: setting up models, defining initial conditions, running the simulations, calculating losses, and reporting the results.</reason>
@@ -1169,8 +1184,11 @@ def main() -> None:
     elif args.final:
         N_STEPS = 5_000_000
         print("Mode: FINAL (high precision, long duration)")
+    elif args.validate_promising:
+        N_STEPS = 1_000_000
+        print("Mode: VALIDATE PROMISING (higher precision validation on selected theories)")
     else:
-        N_STEPS = 100_000  # Exploratory steps: 100,000 chosen to capture ~10 orbits with ~100 points per orbit (based on period_est), ensuring reliable FFT spectra for loss while keeping runs efficient (~1-2 min/theory on GPU). Higher (e.g., 500k) increases accuracy marginally but slows iteration; lower risks aliasing in frequency analysis.
+        N_STEPS = 100_000
         print("Mode: EXPLORATORY (balanced accuracy/efficiency)")
     STEP_PRINT = max(1, N_STEPS // 50)
 
@@ -1193,68 +1211,85 @@ def main() -> None:
 
     # Evaluate predefined theories
     results = []
-    if not args.skip_predefined:
+    if not args.validate_promising:
         # Evaluate predefined theories
         for category, theories in [("classical_predefined", classical_predefined), ("quantum_predefined", quantum_predefined), ("unified_predefined", unified_predefined)]:
             for model in theories:
                 res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
                 results.append(res)
                 history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": res["summary"]})
-    # <reason>chain: Evaluated predefined; uses updated evaluate_theory with per-model init.</reason>
-
-    # -- Iterative Generation Loop if enabled --
-    breakthrough_found = False
-    iteration = 1
-    if args.self_discover:
-        while True:
-            print(f"\n--- Iteration {iteration}: Generating new theories ---")
-            new_theories = generate_new_theories(history, args.initial_prompt)
-            if not new_theories:
-                print("No valid new models generated. Continuing...")
-                iteration += 1
-                continue
-
-            print(f"Testing {len(new_theories)} new models: {[m[0].name for m in new_theories]}")
-
-            for idx, (model, summary, gen_content, category, prompt) in enumerate(new_theories, 1):
-                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
-                results.append(res)
-                history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": summary})
-
-            # -- Reporting --
-            BOLD, GREEN_BG, RESET = "\033[1m", "\033[42m", "\033[0m"
-
-            results.sort(key=lambda d: (math.isnan(d["loss_GR"]), d["loss_GR"]))
-            print("\n\n" + "="*80)
-            print("--- RANKING vs. GENERAL RELATIVITY (GR) ---")
-            print("Rank | Model                                | Loss_GR (FFT MSE)")
-            print("-" * 60)
-            for rank, res in enumerate(results, 1):
-                print(f"{rank:4d} | {res['name']:<36} | {res['loss_GR']:10.3e}")
-            print("="*80)
-
-            results.sort(key=lambda d: (math.isnan(d["loss_RN"]), d["loss_RN"]))
-            print("\n--- RANKING vs. REISSNER-NORDSTRÖM (R-N) ---")
-            print(f"(GR baseline loss vs R-N is: {GR_loss_vs_RN:.3e})")
-            print("Rank | Model                                | Loss_RN (FFT MSE)")
-            print("-" * 60)
-            for rank, res in enumerate(results, 1):
-                loss_val = res["loss_RN"]
-                name = res['name']
-                is_breakthrough = not math.isnan(loss_val) and loss_val < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in name and "Reissner" not in name
-                if is_breakthrough:
-                    print(f"{GREEN_BG}{BOLD}{rank:4d} | {name:<36} | {loss_val:10.3e} [BREAKTHROUGH]{RESET}")
-                    breakthrough_found = True
+    else:
+        promising_theories = []
+        import re
+        with open("promising_candidates.log", "r") as f:
+            for line in f:
+                parts = line.strip().split(" | ")
+                if len(parts) < 7:
+                    continue
+                theory_str = parts[2].split(": ")[1]
+                dir_path = parts[6].split(": ")[1]
+                code_path = os.path.join(dir_path, "code.py")
+                if not os.path.exists(code_path):
+                    print(f"Code file not found: {code_path}")
+                    continue
+                with open(code_path, "r") as cf:
+                    code = cf.read()
+                local_dict = {}
+                exec(code, local_dict)
+                classes = [obj for obj in local_dict.values() if inspect.isclass(obj) and issubclass(obj, GravitationalTheory) and obj != GravitationalTheory]
+                if not classes:
+                    print(f"No theory class found in {code_path}")
+                    continue
+                cls = classes[0]
+                sig = inspect.signature(cls.__init__)
+                init_params = [p.name for p in sig.parameters.values() if p.name != 'self' and p.default is inspect.Parameter.empty]
+                if len(init_params) == 1:
+                    match = re.search(r'\((.+?)=([+-]?\d*\.?\d+)\)', theory_str)
+                    if match:
+                        _, value_str = match.groups()
+                        value = float(value_str)
+                        model = cls(**{init_params[0]: value})
+                        category = getattr(cls, "category", "validated")
+                        promising_theories.append((model, "", "", category, ""))
+                    else:
+                        print(f"Can't parse param from {theory_str}")
+                        continue
+                elif len(init_params) == 0:
+                    model = cls()
+                    category = getattr(cls, "category", "validated")
+                    promising_theories.append((model, "", "", category, ""))
                 else:
-                    print(f"{rank:4d} | {name:<36} | {loss_val:10.3e}")
-            print("="*80)
+                    print(f"Unsupported number of params for {theory_str}")
+                    continue
+        for model, summary, gen_content, category, prompt in promising_theories:
+            res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
+            results.append(res)
+            history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": summary})
 
-            if breakthrough_found:
-                print("\nBreakthrough theory found! Continuing to find potentially better ones.")
-                # Continue infinitely, do not break
+        results.sort(key=lambda d: (math.isnan(d["loss_GR"]), d["loss_GR"]))
+        print("\n\n" + "="*80)
+        print("--- RANKING vs. GENERAL RELATIVITY (GR) ---")
+        print("Rank | Model                                | Loss_GR (FFT MSE)")
+        print("-" * 60)
+        for rank, res in enumerate(results, 1):
+            print(f"{rank:4d} | {res['name']:<36} | {res['loss_GR']:10.3e}")
+        print("="*80)
 
-            iteration += 1
-    # <reason>chain: Main loop; uses updated cached_run and evaluate_theory; tightened breakthrough to <0.9*GR_loss_vs_RN for robustness buffer.</reason>
+        results.sort(key=lambda d: (math.isnan(d["loss_RN"]), d["loss_RN"]))
+        print("\n--- RANKING vs. REISSNER-NORDSTRÖM (R-N) ---")
+        print(f"(GR baseline loss vs R-N is: {GR_loss_vs_RN:.3e})")
+        print("Rank | Model                                | Loss_RN (FFT MSE)")
+        print("-" * 60)
+        for rank, res in enumerate(results, 1):
+            loss_val = res["loss_RN"]
+            name = res['name']
+            is_breakthrough = not math.isnan(loss_val) and loss_val < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in name and "Reissner" not in name
+            if is_breakthrough:
+                print(f"{GREEN_BG}{BOLD}{rank:4d} | {name:<36} | {loss_val:10.3e} [BREAKTHROUGH]{RESET}")
+                breakthrough_found = True
+            else:
+                print(f"{rank:4d} | {name:<36} | {loss_val:10.3e}")
+        print("="*80)
 
     print("\nDone.")
 # <reason>chain: Main function updated with per-model initial conditions to fix RN generation, increased r0, manual theories loading, and breakthrough tightening.</reason>

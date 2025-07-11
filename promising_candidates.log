@@ -5,3 +5,7 @@
 20250710_194348 | Run: 20250710_193244 | Theory: Variable G (δ=-0.30) | Loss_GR: 2.856e+00 | Loss_RN: 1.321e-01 | Summary:  | Dir: runs/20250710_193244/classical_predefined/promising/20250710_194219_Variable_G_δ_-0_30
 20250710_194520 | Run: 20250710_193244 | Theory: Variable G (δ=-0.20) | Loss_GR: 1.176e+00 | Loss_RN: 3.147e-03 | Summary:  | Dir: runs/20250710_193244/classical_predefined/promising/20250710_194348_Variable_G_δ_-0_20
 20250710_194648 | Run: 20250710_193244 | Theory: Variable G (δ=-0.10) | Loss_GR: 1.966e-01 | Loss_RN: 8.308e-02 | Summary:  | Dir: runs/20250710_193244/classical_predefined/promising/20250710_194520_Variable_G_δ_-0_10
+20250710_203421 | Run: 20250710_193244 | Theory: Log Corrected (β=+0.06) | Loss_GR: 3.269e-02 | Loss_RN: 1.809e-01 | Summary:  | Dir: runs/20250710_193244/quantum_predefined/promising/20250710_203249_Log_Corrected_β_+0_06
+20250710_203554 | Run: 20250710_193244 | Theory: Log Corrected (β=+0.17) | Loss_GR: 6.250e-01 | Loss_RN: 1.212e-02 | Summary:  | Dir: runs/20250710_193244/quantum_predefined/promising/20250710_203421_Log_Corrected_β_+0_17
+20250710_204852 | Run: 20250710_193244 | Theory: Quantum Corrected (α=+1.50) | Loss_GR: 5.696e-03 | Loss_RN: 2.308e-01 | Summary:  | Dir: runs/20250710_193244/quantum_predefined/promising/20250710_204726_Quantum_Corrected_α_+1_50
+20250710_205017 | Run: 20250710_193244 | Theory: Quantum Corrected (α=+2.00) | Loss_GR: 1.029e-02 | Loss_RN: 2.183e-01 | Summary:  | Dir: runs/20250710_193244/quantum_predefined/promising/20250710_204852_Quantum_Corrected_α_+2_00
