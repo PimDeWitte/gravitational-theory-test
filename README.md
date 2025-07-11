@@ -236,7 +236,7 @@ python self_discovery.py --final --manual-theories-file linear_signal_loss.py
 @article{dewitte2025compression,
   title={The Compression Hypothesis: Gravity as Information Compression},
   author={de Witte, Pim},
-  journal={arXiv preprint},
+  //journal={arXiv preprint}, this one was LLM generated, no journal.. yet?
   year={2025}
 }
 ```
