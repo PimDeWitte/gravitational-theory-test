@@ -257,14 +257,7 @@
         </div>
     </nav>
 
-    <!-- Image Lightbox Modal -->
-    <div class="lightbox-overlay" id="lightbox">
-        <div class="lightbox-content relative max-w-7xl max-h-[90vh]">
-            <button class="absolute -top-10 right-0 text-white text-3xl font-light hover:text-gray-300" onclick="closeLightbox()">&times;</button>
-            <img class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" id="lightbox-img" src="" alt="">
-            <div class="absolute -bottom-10 left-0 right-0 text-white text-center text-sm" id="lightbox-caption"></div>
-        </div>
-    </div>
+    <!-- Lightbox removed - images now open in new tabs -->
 
     <!-- Main Content -->
     <div class="lg:ml-64 pt-16 lg:pt-0">
@@ -887,13 +880,94 @@
                                 };
                             }
                             
-                            // Pause/play on click
-                            canvas.addEventListener('click', () => {
-                                isPaused = !isPaused;
-                                if (!isPaused) animate();
-                            });
-                            
-                            function drawScene() {
+                                        // Pause/play on click
+            canvas.addEventListener('click', () => {
+                isPaused = !isPaused;
+                if (!isPaused) animate();
+            });
+            
+            function drawNeutralMass(x, y) {
+                // Draw central mass
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 12);
+                gradient.addColorStop(0, '#37474f');
+                gradient.addColorStop(1, '#90a4ae');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 12, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw orbit ellipse
+                ctx.strokeStyle = '#1976d2';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 2]);
+                ctx.beginPath();
+                ctx.ellipse(x, y, 25, 15, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Draw test particle
+                const angle = animationPhase * 0.03;
+                const particleX = x + 25 * Math.cos(angle);
+                const particleY = y + 15 * Math.sin(angle);
+                ctx.fillStyle = '#1976d2';
+                ctx.beginPath();
+                ctx.arc(particleX, particleY, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            function drawChargedMass(x, y) {
+                // Draw central charged mass
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 12);
+                gradient.addColorStop(0, '#ff6f00');
+                gradient.addColorStop(1, '#ffa726');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 12, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw charge field lines
+                ctx.strokeStyle = '#ff9800';
+                ctx.lineWidth = 0.5;
+                ctx.globalAlpha = 0.5;
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x + 12 * Math.cos(angle), y + 12 * Math.sin(angle));
+                    ctx.lineTo(x + 30 * Math.cos(angle), y + 30 * Math.sin(angle));
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+                
+                // Draw plus sign for charge
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x - 5, y);
+                ctx.lineTo(x + 5, y);
+                ctx.moveTo(x, y - 5);
+                ctx.lineTo(x, y + 5);
+                ctx.stroke();
+                
+                // Draw orbit ellipse
+                ctx.strokeStyle = '#f57c00';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 2]);
+                ctx.beginPath();
+                ctx.ellipse(x, y, 25, 15, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Draw test particle (affected by both gravity and EM)
+                const angle = animationPhase * 0.03;
+                const particleX = x + 25 * Math.cos(angle);
+                const particleY = y + 15 * Math.sin(angle);
+                ctx.fillStyle = '#f57c00';
+                ctx.beginPath();
+                ctx.arc(particleX, particleY, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            function drawScene() {
                                 // Clear canvas
                                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                                 ctx.fillStyle = '#ffffff';
@@ -952,17 +1026,16 @@
                                     ctx.fill();
                                     ctx.stroke();
                                     
-                                    // Apple icon for gravity
-                                    ctx.font = '30px Arial';
-                                    ctx.fillText('🍎', 105, 210);
+                                    // Draw neutral mass with orbit
+                                    drawNeutralMass(120, 210);
                                     
                                     ctx.fillStyle = '#1976d2';
-                                    ctx.font = 'bold 16px Aeonik, -apple-system, sans-serif';
-                                    ctx.fillText('Test 1: Gravity', 120, 235);
+                                    ctx.font = 'bold 14px Aeonik, -apple-system, sans-serif';
+                                    ctx.fillText('Schwarzschild', 120, 240);
                                     ctx.fillStyle = '#202124';
-                                    ctx.font = '13px Aeonik, -apple-system, sans-serif';
-                                    ctx.fillText('How well does it', 120, 255);
-                                    ctx.fillText('predict falling?', 120, 270);
+                                    ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                    ctx.fillText('Orbits around a', 120, 255);
+                                    ctx.fillText('neutral mass', 120, 268);
                                     
                                     ctx.globalAlpha = 1;
                                 }
@@ -991,17 +1064,16 @@
                                     ctx.fill();
                                     ctx.stroke();
                                     
-                                    // Lightning icon for electricity
-                                    ctx.font = '30px Arial';
-                                    ctx.fillText('⚡', 285, 210);
+                                    // Draw charged mass with orbit
+                                    drawChargedMass(300, 210);
                                     
                                     ctx.fillStyle = '#f57c00';
-                                    ctx.font = 'bold 16px Aeonik, -apple-system, sans-serif';
-                                    ctx.fillText('Test 2: Both', 300, 235);
+                                    ctx.font = 'bold 14px Aeonik, -apple-system, sans-serif';
+                                    ctx.fillText('Reissner-Nordström', 300, 240);
                                     ctx.fillStyle = '#202124';
-                                    ctx.font = '13px Aeonik, -apple-system, sans-serif';
-                                    ctx.fillText('Gravity AND', 300, 255);
-                                    ctx.fillText('electricity?', 300, 270);
+                                    ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                    ctx.fillText('Orbits around a', 300, 255);
+                                    ctx.fillText('charged mass', 300, 268);
                                     
                                     ctx.globalAlpha = 1;
                                 }
@@ -1067,7 +1139,7 @@
         
                                     ctx.fillStyle = '#616161';
                                     ctx.font = '14px Aeonik, -apple-system, sans-serif';
-                                    ctx.fillText('Similar scores over time= unified theory', 210, 445);
+                                    ctx.fillText('Similar losses = unified field behavior', 210, 445);
                                     
                                     ctx.globalAlpha = 1;
                                 }
@@ -1192,383 +1264,10 @@
                         This tiered approach enables testing of hundreds of candidate theories per hour in TEST mode while reserving computational resources for thorough validation of promising candidates.
                     </p>
 
-                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">2.6 AI-Assisted Theory Discovery: Completing Einstein's Final Quest</h3>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                        <div class="space-y-6">
-                            <p class="text-base lg:text-lg leading-relaxed">
-                                A unique aspect of our methodology is the use of large language models to systematically explore the theoretical landscape that Einstein was investigating at the time of his death. Einstein's final notes, found at his bedside in 1955, contain cryptic references to non-symmetric metrics, torsion fields, and unified field structures—mathematical concepts he believed held the key to unifying gravity and electromagnetism.
-                            </p>
-                            <p class="text-base lg:text-lg leading-relaxed">
-                                <strong>Historical Context:</strong> Einstein spent his last three decades searching for a unified field theory, exploring increasingly sophisticated mathematical structures. His deathbed calculations suggest he was converging on specific ideas involving:
-                            </p>
-                            <ul class="list-disc list-inside space-y-2 text-base lg:text-lg">
-                                <li>Non-symmetric metric tensors (where <span class="math-var">g<sub>μν</sub> ≠ g<sub>νμ</sub></span>)</li>
-                                <li>Torsion components in the connection (violating the symmetry of Christoffel symbols)</li>
-                                <li>Cross-terms between temporal and spatial components (particularly <span class="math-var">g<sub>tφ</sub></span>)</li>
-                            </ul>
-                            <p class="text-base lg:text-lg leading-relaxed">
-                                <strong>AI as Mathematical Explorer:</strong> Rather than attempting to "channel" Einstein mystically, we use LLMs as systematic mathematical explorers. The AI system:
-                            </p>
-                            <ol class="list-decimal list-inside space-y-2 text-base lg:text-lg">
-                                <li><strong>Interprets Historical Hints:</strong> Analyzes Einstein's mathematical notes and translates conceptual descriptions into concrete metric tensor formulations</li>
-                                <li><strong>Generates Systematic Variations:</strong> Creates mathematical variations on Einstein's themes, exploring parameter spaces he might have investigated given modern computational tools</li>
-                                <li><strong>Maintains Physical Constraints:</strong> Ensures generated theories respect fundamental principles (causality, covariance, energy conditions)</li>
-                                <li><strong>Learns from Performance:</strong> Uses feedback from simulation results to guide exploration toward more promising theoretical directions</li>
-                            </ol>
-                        </div>
                         
-                        <div class="lg:sticky lg:top-8">
-                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6">
-                                <canvas id="methodologyDiscoveryCanvas" class="w-full" width="420" height="350"></canvas>
-                                <p class="text-sm text-center text-physics-gray mt-4">Interactive visualization of the AI discovery loop. Click to pause/resume.</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <script>
-                        (function() {
-                            const canvas = document.getElementById('methodologyDiscoveryCanvas');
-                            const ctx = canvas.getContext('2d');
-                            let animationId;
-                            let isPaused = false;
-                            let time = 0;
-                            
-                            // State for animation
-                            let currentPhaseIndex = 0;
-                            let phaseProgress = 0;
-                            let theoriesGenerated = 0;
-                            let breakthroughsFound = 0;
-                            let pauseBetweenPhases = 0;
-                            
-                            // Phases in order
-                            const phaseOrder = ['prompt', 'api', 'simulation', 'evaluation'];
-                            
-                            // Colors
-                            const colors = {
-                                prompt: '#2196f3',
-                                api: '#ff9800',
-                                simulation: '#4caf50',
-                                evaluation: '#9c27b0',
-                                breakthrough: '#f44336'
-                            };
-                            
-                            // Phase durations (frames)
-                            const phaseDurations = {
-                                prompt: 60,      // 1 second at 60fps
-                                api: 80,         // 1.33 seconds
-                                simulation: 100, // 1.67 seconds
-                                evaluation: 60   // 1 second
-                            };
-                            
-                            canvas.addEventListener('click', () => {
-                                isPaused = !isPaused;
-                                if (!isPaused) animate();
-                            });
-                            
-                            function drawPhase(x, y, radius, color, label, progress, isActive) {
-                                // Draw outer glow for active phase
-                                if (isActive) {
-                                    const glowRadius = radius + 10 * Math.sin(time * 0.05);
-                                    const gradient = ctx.createRadialGradient(x, y, radius, x, y, glowRadius);
-                                    gradient.addColorStop(0, color + '40');
-                                    gradient.addColorStop(1, color + '00');
-                                    ctx.fillStyle = gradient;
-                                    ctx.beginPath();
-                                    ctx.arc(x, y, glowRadius, 0, 2 * Math.PI);
-                                    ctx.fill();
-                                }
-                                
-                                // Draw circle background
-                                ctx.beginPath();
-                                ctx.arc(x, y, radius, 0, 2 * Math.PI);
-                                ctx.fillStyle = isActive ? color + '30' : color + '10';
-                                ctx.fill();
-                                ctx.strokeStyle = isActive ? color : color + '60';
-                                ctx.lineWidth = isActive ? 3 : 1;
-                                ctx.stroke();
-                                
-                                // Draw progress arc
-                                if (progress > 0 && isActive) {
-                                    ctx.beginPath();
-                                    ctx.arc(x, y, radius - 3, -Math.PI/2, -Math.PI/2 + (2 * Math.PI * progress));
-                                    ctx.strokeStyle = color;
-                                    ctx.lineWidth = 6;
-                                    ctx.lineCap = 'round';
-                                    ctx.stroke();
-                                }
-                                
-                                // Draw icon/number
-                                ctx.fillStyle = isActive ? color : '#5f6368';
-                                ctx.font = isActive ? 'bold 16px Aeonik, sans-serif' : '14px Aeonik, sans-serif';
-                                ctx.textAlign = 'center';
-                                ctx.textBaseline = 'middle';
-                                const phaseNum = phaseOrder.indexOf(label.toLowerCase().split(' ')[0]) + 1 || '';
-                                ctx.fillText(phaseNum || '?', x, y);
-                                
-                                // Draw label
-                                ctx.fillStyle = isActive ? '#202124' : '#5f6368';
-                                ctx.font = isActive ? 'bold 13px Aeonik, sans-serif' : '12px Aeonik, sans-serif';
-                                ctx.textAlign = 'center';
-                                ctx.textBaseline = 'top';
-                                ctx.fillText(label, x, y + radius + 8);
-                            }
-                            
-                            function drawArrow(x1, y1, x2, y2, progress, isActive) {
-                                if (progress <= 0) return;
-                                
-                                const dx = x2 - x1;
-                                const dy = y2 - y1;
-                                
-                                // Smooth easing function
-                                const easedProgress = 1 - Math.pow(1 - progress, 3);
-                                const currentLength = easedProgress;
-                                
-                                // Draw arrow path
-                                ctx.save();
-                                
-                                if (isActive) {
-                                    // Animated dashed line for active arrow
-                                    ctx.setLineDash([8, 4]);
-                                    ctx.lineDashOffset = -time * 0.2;
-                                    ctx.strokeStyle = '#1a0dab';
-                                    ctx.lineWidth = 2.5;
-                                } else {
-                                    // Static line for completed arrows
-                                    ctx.strokeStyle = '#dadce0';
-                                    ctx.lineWidth = 1.5;
-                                }
-                                
-                                ctx.beginPath();
-                                ctx.moveTo(x1, y1);
-                                const endX = x1 + dx * currentLength;
-                                const endY = y1 + dy * currentLength;
-                                ctx.lineTo(endX, endY);
-                                ctx.stroke();
-                                
-                                // Draw arrowhead
-                                if (currentLength > 0.7) {
-                                    const arrowSize = isActive ? 10 : 8;
-                                    const angle = Math.atan2(dy, dx);
-                                    
-                                    ctx.translate(endX, endY);
-                                    ctx.rotate(angle);
-                                    
-                                    ctx.fillStyle = isActive ? '#1a0dab' : '#dadce0';
-                                    ctx.beginPath();
-                                    ctx.moveTo(0, 0);
-                                    ctx.lineTo(-arrowSize, -arrowSize/2);
-                                    ctx.lineTo(-arrowSize, arrowSize/2);
-                                    ctx.closePath();
-                                    ctx.fill();
-                                }
-                                
-                                ctx.restore();
-                            }
-                            
-                            function drawStats() {
-                                // Stats box
-                                ctx.fillStyle = '#f8f9fa';
-                                ctx.strokeStyle = '#dadce0';
-                                ctx.lineWidth = 1;
-                                ctx.beginPath();
-                                ctx.roundRect(15, 10, 140, 50, 5);
-                                ctx.fill();
-                                ctx.stroke();
-                                
-                                ctx.fillStyle = '#202124';
-                                ctx.font = '14px Aeonik, sans-serif';
-                                ctx.textAlign = 'left';
-                                ctx.fillText(`Theories: ${theoriesGenerated}`, 25, 30);
-                                ctx.fillStyle = breakthroughsFound > 0 ? '#4caf50' : '#202124';
-                                ctx.fillText(`Breakthroughs: ${breakthroughsFound}`, 25, 48);
-                            }
-                            
-                            function drawProcessInfo() {
-                                const currentPhase = phaseOrder[currentPhaseIndex];
-                                let infoText = '';
-                                
-                                switch(currentPhase) {
-                                    case 'prompt':
-                                        infoText = 'Building context from history...';
-                                        break;
-                                    case 'api':
-                                        infoText = 'AI generating new theory...';
-                                        break;
-                                    case 'simulation':
-                                        infoText = 'Running 100K step simulation...';
-                                        break;
-                                    case 'evaluation':
-                                        infoText = 'Calculating loss metrics...';
-                                        break;
-                                }
-                                
-                                ctx.fillStyle = '#5f6368';
-                                ctx.font = 'italic 12px Aeonik, sans-serif';
-                                ctx.textAlign = 'center';
-                                ctx.fillText(infoText, canvas.width / 2, canvas.height - 20);
-                            }
-                            
-                            function updatePhase() {
-                                const currentPhase = phaseOrder[currentPhaseIndex];
-                                const duration = phaseDurations[currentPhase];
-                                
-                                // Handle pause between phases
-                                if (pauseBetweenPhases > 0) {
-                                    pauseBetweenPhases--;
-                                    return;
-                                }
-                                
-                                // Update progress
-                                phaseProgress += 1 / duration;
-                                
-                                if (phaseProgress >= 1) {
-                                    phaseProgress = 0;
-                                    pauseBetweenPhases = 20; // Short pause between phases
-                                    
-                                    // Handle phase completion
-                                    if (currentPhase === 'api') {
-                                        theoriesGenerated++;
-                                    } else if (currentPhase === 'evaluation') {
-                                        // Random chance of breakthrough
-                                        if (Math.random() < 0.15) {
-                                            breakthroughsFound++;
-                                        }
-                                    }
-                                    
-                                    // Move to next phase
-                                    currentPhaseIndex = (currentPhaseIndex + 1) % phaseOrder.length;
-                                }
-                            }
-                            
-                            function animate() {
-                                if (isPaused) return;
-                                
-                                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                
-                                // Draw background
-                                ctx.fillStyle = '#ffffff';
-                                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                                
-                                // Define positions
-                                const centerX = canvas.width / 2;
-                                const centerY = canvas.height / 2 + 20;
-                                const radius = 35;
-                                const distance = 90;
-                                
-                                const phases = [
-                                    { id: 'prompt', x: centerX - distance, y: centerY - distance/2, label: 'Build Prompt' },
-                                    { id: 'api', x: centerX + distance, y: centerY - distance/2, label: 'AI Generation' },
-                                    { id: 'simulation', x: centerX + distance, y: centerY + distance/2, label: 'Simulation' },
-                                    { id: 'evaluation', x: centerX - distance, y: centerY + distance/2, label: 'Evaluation' }
-                                ];
-                                
-                                // Draw connections
-                                for (let i = 0; i < phases.length; i++) {
-                                    const current = phases[i];
-                                    const next = phases[(i + 1) % phases.length];
-                                    
-                                    // Calculate arrow endpoints
-                                    const angle = Math.atan2(next.y - current.y, next.x - current.x);
-                                    const startX = current.x + radius * Math.cos(angle);
-                                    const startY = current.y + radius * Math.sin(angle);
-                                    const endX = next.x - radius * Math.cos(angle);
-                                    const endY = next.y - radius * Math.sin(angle);
-                                    
-                                    // Determine arrow state
-                                    let arrowProgress = 0;
-                                    let isActiveArrow = false;
-                                    
-                                    if (i < currentPhaseIndex) {
-                                        // Completed phases
-                                        arrowProgress = 1;
-                                    } else if (i === currentPhaseIndex) {
-                                        // Current phase
-                                        arrowProgress = phaseProgress;
-                                        isActiveArrow = true;
-                                    }
-                                    
-                                    drawArrow(startX, startY, endX, endY, arrowProgress, isActiveArrow);
-                                }
-                                
-                                // Draw phases
-                                phases.forEach((phase, index) => {
-                                    const isActive = phaseOrder[currentPhaseIndex] === phase.id;
-                                    const progress = isActive ? phaseProgress : 0;
-                                    drawPhase(phase.x, phase.y, radius, colors[phase.id], phase.label, progress, isActive);
-                                });
-                                
-                                // Draw stats
-                                drawStats();
-                                
-                                // Draw title
-                                ctx.fillStyle = '#1a0dab';
-                                ctx.font = 'bold 18px Aeonik, sans-serif';
-                                ctx.textAlign = 'center';
-                                ctx.fillText('Discovery Loop', centerX, 20);
-                                
-                                // Draw process info
-                                drawProcessInfo();
-                                
-                                // Update animation
-                                updatePhase();
-                                time++;
-                                
-                                animationId = requestAnimationFrame(animate);
-                            }
-                            
-                            // Add roundRect polyfill if needed
-                            if (!ctx.roundRect) {
-                                ctx.roundRect = function(x, y, width, height, radius) {
-                                    ctx.beginPath();
-                                    ctx.moveTo(x + radius, y);
-                                    ctx.lineTo(x + width - radius, y);
-                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-                                    ctx.lineTo(x + width, y + height - radius);
-                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-                                    ctx.lineTo(x + radius, y + height);
-                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-                                    ctx.lineTo(x, y + radius);
-                                    ctx.quadraticCurveTo(x, y, x + radius, y);
-                                    ctx.closePath();
-                                };
-                            }
-                            
-                            // Start animation
-                            animate();
-                        })();
-                    </script>
-                    
-                    <div class="mt-8">
-                        <p class="text-base lg:text-lg leading-relaxed mb-4">
-                            <strong>The Discovery Loop:</strong> Our automated system operates through iterative refinement:
-                        </p>
-                        <ol class="list-decimal list-inside space-y-2 text-base lg:text-lg">
-                            <li><strong>Historical Seeding:</strong> Initial theories based on Einstein's known attempts (Unified Field Theory, Generalized Theory of Gravitation)</li>
-                            <li><strong>Performance Analysis:</strong> Each theory's loss against both gravitational and electromagnetic baselines</li>
-                            <li><strong>Guided Generation:</strong> LLM generates new theories informed by which mathematical structures show promise</li>
-                            <li><strong>Validation Pipeline:</strong> Syntactic validation → Physical plausibility → Geodesic integration → Loss computation</li>
-                            <li><strong>Knowledge Accumulation:</strong> Successful patterns fed back to guide future explorations</li>
-                        </ol>
-                        <p class="text-base lg:text-lg leading-relaxed mt-4">
-                            This approach has generated over 300 candidate theories, including several that show intriguing performance characteristics Einstein could not have tested without modern computers. The system particularly excels at exploring the non-linear interaction effects between different theoretical components—precisely the kind of mathematical complexity that stymied pre-computer physics.
-                        </p>
-                        <p class="text-base lg:text-lg leading-relaxed mt-4">
-                            Importantly, this is not about "completing Einstein's work" in a romantic sense, but about systematically exploring the mathematical space he identified as promising. The LLM serves as a tireless assistant, generating and testing variations at a scale impossible for human physicists alone.
-                        </p>
-                    </div>
-
-                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">2.8 Caching and Reproducibility</h3>
-                    <p class="text-base lg:text-lg leading-relaxed mb-4">
-                        All computational results are cached using a deterministic hashing scheme based on theory parameters, step count, precision, and initial conditions. This ensures:
-                    </p>
-                    <ul class="list-disc list-inside space-y-2 text-base lg:text-lg">
-                        <li>Complete reproducibility of results across different hardware and software environments</li>
-                        <li>Efficient reuse of computed trajectories for comparative analysis</li>
-                        <li>Archival of all generated theories and their performance metrics</li>
-                    </ul>
-                    <p class="text-base lg:text-lg leading-relaxed mt-4">
-                        The entire framework, including all tested theories and their results, is available as open-source software to enable independent verification and extension of our findings.
-                    </p>
+               
+                  
                 </section>
 
                 <section class="section scroll-mt-20" id="promising-candidates">
