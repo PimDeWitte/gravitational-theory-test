@@ -1,8 +1,8 @@
-# The Compression Hypothesis
+# Draft: The Compression Hypothesis
 
 **A computational framework for testing gravitational theories by treating them as information compression algorithms.**
 
-## 💡 The Big Idea
+## 
 
 What if gravity isn't just a force, but the universe's way of compressing information?
 
@@ -225,15 +225,6 @@ python self_discovery.py --self-discover --initial-prompt "explore torsion-based
 # Run specific experiment
 python self_discovery.py --final --manual-theories-file linear_signal_loss.py
 ```
-
-## 🤔 What This Means
-
-If gravity really is compression:
-1. **General Relativity is "lossless"** - it perfectly preserves information
-2. **Quantum corrections are like compression artifacts** - small controlled losses
-3. **Unification might require strategic information loss** - the Linear Signal Loss discovery
-4. **The universe optimizes for computational efficiency** - black holes as ultimate compression
-
 ## 📄 Citation
 
 ```bibtex
