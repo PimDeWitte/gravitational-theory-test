@@ -1,4 +1,4 @@
-# Feedback Draft: The Compression Hypothesis: Testing Gravity as Information
+# Feedback Draft: The Compression Hypothesis
 
 A computational framework for testing gravitational theories by treating them as information compression algorithms.
 
@@ -38,7 +38,7 @@ class MyTheory(GravitationalTheory):
 
 Then test it:
 ```bash
-python test_gravity_theory.py --theory MyTheory --num_steps 1000
+python self_discovery.py --test --manual_theories_file other_generated_theories.py
 ```
 
 ## 📁 Project Structure
@@ -48,7 +48,7 @@ gravity_compression/
 ├── setup_gpu.sh              # Environment setup script
 ├── run_validation_tests.sh   # Validation test runner
 ├── final_linear_validation_loss.sh  # Linear signal loss analysis
-├── test_gravity_theory.py    # Main simulation engine
+├── self_discovery.py    # Main simulation engine
 ├── predefined_theories.py    # 69+ gravitational theories
 ├── linear_signal_loss.py     # Signal degradation model
 ├── cache/                    # Cached trajectory data
