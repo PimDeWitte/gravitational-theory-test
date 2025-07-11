@@ -1,3 +1,4 @@
 #!/bin/bash
-# This should just run immediately from the cache and give you some of your first run results. Easiest place to start
-./.venv_gpu/bin/python self_discovery.py --test 
+# This script executes the PyTorch-based GPU simulation.
+export XAI_API_KEY=xai-3oDgWj3Cp1cTAWs3n7wWmLRx6s8CbNh0k7pJaNeZ68mHH37PSf2bbrasjh0Cyk9W4g0sZQYmWXoPVvEm
+XAI_API_KEY=$XAI_API_KEY ./.venv_gpu/bin/python self_discovery.py --test --manual-theories-file other_generated_theories.py 
