@@ -233,7 +233,7 @@
                 <a href="#methodology" class="block py-2 px-4 rounded hover:bg-gray-100">2. Methodology</a>
                 <a href="#promising-candidates" class="block py-2 px-4 rounded hover:bg-gray-100">3. Promising Candidates</a>
                 <a href="#gravity-robust" class="block py-2 px-4 rounded hover:bg-gray-100">4. Gravity as Robust Compression</a>
-                <a href="#fourier-loss" class="block py-2 px-4 rounded hover:bg-gray-100">5. Fourier-Based Loss</a>
+                <a href="#fourier-loss" class="block py-2 px-4 rounded hover:bg-gray-100">5. Scaling Steps</a>
                 <a href="#ai-discovery" class="block py-2 px-4 rounded hover:bg-gray-100">6. AI-Assisted Discovery</a>
                 <a href="#appendix-e" class="block py-2 px-4 rounded hover:bg-gray-100">7. Contributing</a>
             </nav>
@@ -250,7 +250,7 @@
                 <a href="#methodology" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">2. Methodology</a>
                 <a href="#promising-candidates" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">3. Promising Candidates</a>
                 <a href="#gravity-robust" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">4. Gravity as Robust Compression</a>
-                <a href="#fourier-loss" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">5. Fourier-Based Loss</a>
+                <a href="#fourier-loss" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">5. Scaling Steps</a>
                 <a href="#ai-discovery" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">6. AI-Assisted Discovery</a>
                 <a href="#appendix-e" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">7. Contributing</a>
             </nav>
@@ -2147,7 +2147,7 @@ When we degrade the compression quality (γ), both channels degrade proportional
 
                 <section class="section scroll-mt-20" id="fourier-loss">
                     <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
-                        5. Fourier-Based Loss Metric
+                        5. Scaling Steps
                     </h2>
                     
                     <p class="text-base lg:text-lg leading-relaxed mb-6">
@@ -2157,6 +2157,116 @@ When we degrade the compression quality (γ), both channels degrade proportional
                     <p class="text-base lg:text-lg leading-relaxed">
                         For the history of experimentation before implementing the Fourier-based loss metric and using PyTorch, please refer to <a href="../../papers/002/002_not_reviewed.html" class="text-physics-blue hover:underline font-medium">the previous paper documenting the progress</a>.
                     </p>
+                    <div class="mt-8">
+                       
+                    
+                        <hr class="border-gray-300 my-12" />
+    
+                        <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
+                            <h4 class="text-lg font-semibold text-green-700 mb-3">8.1 Linear Signal Loss (γ=+1.00)</h4>
+                            <p class="mb-2"><strong>Final Loss vs Schwarzschild (GR):</strong> 0.133 | <strong>Final Loss vs Reissner-Nordström (RN):</strong> 0.133 | <strong>Loss Ratio (GR/RN):</strong> 1.000</p>
+                            <div class="formula-display mb-4">
+                                g_{tt} = -(1 - \gamma (r_s / r)) (1 - r_s / r)
+                            </div>
+                            <p class="text-sm lg:text-base mb-4">
+                                Perfect symmetry in losses indicates complete unification at maximal signal degradation. The orbit maintains remarkable stability over 5M steps, with Fourier analysis showing identical frequency shifts in both baselines (maximum deviation <0.005% in primary orbital frequency). This suggests gravity and EM are dual manifestations of the same compression process.
+                            </p>
+                            <div class="flex gap-2 justify-center mb-4">
+                                <img src="../../runs/20250711_012926/classical_predefined/promising/20250711_070238_Linear_Signal_Loss_γ_+1_00/plot.png" 
+                                     alt="Trajectory for Linear Signal Loss (γ=+1.00)" 
+                                     class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
+                                <img src="../../runs/20250711_012926/classical_predefined/promising/20250711_070238_Linear_Signal_Loss_γ_+1_00/metric_plot.png" 
+                                     alt="Metric for Linear Signal Loss (γ=+1.00)" 
+                                     class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
+                            </div>
+                        </div>
+    
+                        <!-- Result 2: Linear Signal Loss (γ=+0.75) -->
+                        <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
+                            <h4 class="text-lg font-semibold text-green-700 mb-3">8.2 Linear Signal Loss (γ=+0.75)</h4>
+                            <p class="mb-2"><strong>Final Loss vs Schwarzschild (GR):</strong> 0.153 | <strong>Final Loss vs Reissner-Nordström (RN):</strong> 0.161 | <strong>Loss Ratio (GR/RN):</strong> 0.950</p>
+                            <div class="formula-display mb-4">
+                                g_{tt} = -(1 - \gamma (r_s / r)) (1 - r_s / r)
+                            </div>
+                            <p class="text-sm lg:text-base mb-4">
+                                Near-perfect balance (ratio 0.95) at 75% degradation. Trajectory shows minimal divergence over 5M steps, with Fourier spectra revealing matched precession rates in both baselines (deviation <0.01%). This configuration demonstrates robust unification while preserving physical stability.
+                            </p>
+                            <div class="flex gap-2 justify-center mb-4">
+                                <img src="../../runs/20250711_012926/classical_predefined/promising/20250711_070232_Linear_Signal_Loss_γ_+0_75/plot.png" 
+                                     alt="Trajectory for Linear Signal Loss (γ=+0.75)" 
+                                     class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
+                                <img src="../../runs/20250711_012926/classical_predefined/promising/20250711_070232_Linear_Signal_Loss_γ_+0_75/metric_plot.png" 
+                                     alt="Metric for Linear Signal Loss (γ=+0.75)" 
+                                     class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
+                            </div>
+                        </div>
+    
+                        <!-- Result 3: Linear Signal Loss (γ=+0.50) -->
+                        <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
+                            <h4 class="text-lg font-semibold text-green-700 mb-3">8.3 Linear Signal Loss (γ=+0.50)</h4>
+                            <p class="mb-2"><strong>Final Loss vs Schwarzschild (GR):</strong> 0.179 | <strong>Final Loss vs Reissner-Nordström (RN):</strong> 0.192 | <strong>Loss Ratio (GR/RN):</strong> 0.932</p>
+                            <div class="formula-display mb-4">
+                                g_{tt} = -(1 - \gamma (r_s / r)) (1 - r_s / r)
+                            </div>
+                            <p class="text-sm lg:text-base mb-4">
+                                Strong balance at 50% degradation, with losses remaining proportional. Simulation shows stable orbits with gradual divergence; Fourier analysis indicates preserved harmonic structure in both baselines (secondary frequency match >99%).
+                            </p>
+                            <div class="flex gap-2 justify-center mb-4">
+                                <img src="../../runs/20250711_012926/classical_predefined/20250711_070236_Linear_Signal_Loss_γ_+0_50/plot.png" 
+                                     alt="Trajectory for Linear Signal Loss (γ=+0.50)" 
+                                     class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
+                                <img src="../../runs/20250711_012926/classical_predefined/20250711_070236_Linear_Signal_Loss_γ_+0_50/metric_plot.png" 
+                                     alt="Metric for Linear Signal Loss (γ=+0.50)" 
+                                     class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
+                            </div>
+                        </div>
+    
+                        <!-- Result 4: Linear Signal Loss (γ=+0.25) -->
+                        <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
+                            <h4 class="text-lg font-semibold text-green-700 mb-3">8.4 Linear Signal Loss (γ=+0.25)</h4>
+                            <p class="mb-2"><strong>Final Loss vs Schwarzschild (GR):</strong> 0.201 | <strong>Final Loss vs Reissner-Nordström (RN):</strong> 0.218 | <strong>Loss Ratio (GR/RN):</strong> 0.922</p>
+                            <div class="formula-display mb-4">
+                                g_{tt} = -(1 - \gamma (r_s / r)) (1 - r_s / r)
+                            </div>
+                            <p class="text-sm lg:text-base mb-4">
+                                Maintained proportionality at lower degradation, approaching GR behavior while showing unified characteristics. 5M-step integration reveals minimal instability, with Fourier spectra closely matching baselines (primary frequency deviation <0.02%).
+                            </p>
+                            <div class="flex gap-2 justify-center mb-4">
+                                <img src="../../runs/20250711_012926/classical_predefined/20250711_070238_Linear_Signal_Loss_γ_+0_25/plot.png" 
+                                     alt="Trajectory for Linear Signal Loss (γ=+0.25)" 
+                                     class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
+                                <img src="../../runs/20250711_012926/classical_predefined/20250711_070238_Linear_Signal_Loss_γ_+0_25/metric_plot.png" 
+                                     alt="Metric for Linear Signal Loss (γ=+0.25)" 
+                                     class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
+                            </div>
+                        </div>
+    
+                        <!-- Result 5: Linear Signal Loss (γ=+0.00) -->
+                        <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
+                            <h4 class="text-lg font-semibold text-green-700 mb-3">8.5 Linear Signal Loss (γ=+0.00)</h4>
+                            <p class="mb-2"><strong>Final Loss vs Schwarzschild (GR):</strong> 0.000 | <strong>Final Loss vs Reissner-Nordström (RN):</strong> 0.250 | <strong>Loss Ratio (GR/RN):</strong> 0.000</p>
+                            <div class="formula-display mb-4">
+                                g_{tt} = -(1 - \gamma (r_s / r)) (1 - r_s / r)
+                            </div>
+                            <p class="text-sm lg:text-base mb-4">
+                                Zero degradation recovers exact GR (loss=0 vs Schwarzschild), validating the model. Higher RN loss shows baseline separation, but serves as the unification anchor point. Perfect stability over 5M steps with identical Fourier spectra to GR.
+                            </p>
+                            <div class="flex gap-2 justify-center mb-4">
+                                <img src="../../runs/20250711_012926/classical_predefined/20250711_070237_Linear_Signal_Loss_γ_+0_00/plot.png" 
+                                     alt="Trajectory for Linear Signal Loss (γ=+0.00)" 
+                                     class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
+                                <img src="../../runs/20250711_012926/classical_predefined/20250711_070237_Linear_Signal_Loss_γ_+0_00/metric_plot.png" 
+                                     alt="Metric for Linear Signal Loss (γ=+0.00)" 
+                                     class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
+                            </div>
+                        </div>
+    
+                        <div class="mt-8 p-6 bg-gray-50 rounded-xl">
+                            <h3 class="text-xl font-semibold text-physics-blue mb-4">Synthesis of Results</h3>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                Across all γ values, the Linear Signal Loss family demonstrates systematic unification: as degradation increases, losses against both baselines rise proportionally. This family represents a continuum from pure GR (γ=0) to fully symmetric unification (γ=1), providing a tunable framework for quantum gravity investigations. All configurations maintain numerical stability over 5M steps, with Fourier analyses confirming preserved orbital harmonics.
+                            </p>
+                        </div>
                 </section>
 
                 <section class="section scroll-mt-20" id="ai-discovery">
@@ -2524,119 +2634,7 @@ When we degrade the compression quality (γ), both channels degrade proportional
                         })();
                     </script>
                     
-                    <div class="mt-8">
-                       
                     
-                    <hr class="border-gray-300 my-12" />
-                    
-                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mb-6">8. High Step Measurement</h3>
-
-
-                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
-                        <h4 class="text-lg font-semibold text-green-700 mb-3">8.1 Linear Signal Loss (γ=+1.00)</h4>
-                        <p class="mb-2"><strong>Final Loss vs Schwarzschild (GR):</strong> 0.133 | <strong>Final Loss vs Reissner-Nordström (RN):</strong> 0.133 | <strong>Loss Ratio (GR/RN):</strong> 1.000</p>
-                        <div class="formula-display mb-4">
-                            g_{tt} = -(1 - \gamma (r_s / r)) (1 - r_s / r)
-                        </div>
-                        <p class="text-sm lg:text-base mb-4">
-                            Perfect symmetry in losses indicates complete unification at maximal signal degradation. The orbit maintains remarkable stability over 5M steps, with Fourier analysis showing identical frequency shifts in both baselines (maximum deviation <0.005% in primary orbital frequency). This suggests gravity and EM are dual manifestations of the same compression process.
-                        </p>
-                        <div class="flex gap-2 justify-center mb-4">
-                            <img src="../../runs/20250711_012926/classical_predefined/promising/20250711_070238_Linear_Signal_Loss_γ_+1_00/plot.png" 
-                                 alt="Trajectory for Linear Signal Loss (γ=+1.00)" 
-                                 class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
-                            <img src="../../runs/20250711_012926/classical_predefined/promising/20250711_070238_Linear_Signal_Loss_γ_+1_00/metric_plot.png" 
-                                 alt="Metric for Linear Signal Loss (γ=+1.00)" 
-                                 class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
-                        </div>
-                    </div>
-
-                    <!-- Result 2: Linear Signal Loss (γ=+0.75) -->
-                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
-                        <h4 class="text-lg font-semibold text-green-700 mb-3">8.2 Linear Signal Loss (γ=+0.75)</h4>
-                        <p class="mb-2"><strong>Final Loss vs Schwarzschild (GR):</strong> 0.153 | <strong>Final Loss vs Reissner-Nordström (RN):</strong> 0.161 | <strong>Loss Ratio (GR/RN):</strong> 0.950</p>
-                        <div class="formula-display mb-4">
-                            g_{tt} = -(1 - \gamma (r_s / r)) (1 - r_s / r)
-                        </div>
-                        <p class="text-sm lg:text-base mb-4">
-                            Near-perfect balance (ratio 0.95) at 75% degradation. Trajectory shows minimal divergence over 5M steps, with Fourier spectra revealing matched precession rates in both baselines (deviation <0.01%). This configuration demonstrates robust unification while preserving physical stability.
-                        </p>
-                        <div class="flex gap-2 justify-center mb-4">
-                            <img src="../../runs/20250711_012926/classical_predefined/promising/20250711_070232_Linear_Signal_Loss_γ_+0_75/plot.png" 
-                                 alt="Trajectory for Linear Signal Loss (γ=+0.75)" 
-                                 class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
-                            <img src="../../runs/20250711_012926/classical_predefined/promising/20250711_070232_Linear_Signal_Loss_γ_+0_75/metric_plot.png" 
-                                 alt="Metric for Linear Signal Loss (γ=+0.75)" 
-                                 class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
-                        </div>
-                    </div>
-
-                    <!-- Result 3: Linear Signal Loss (γ=+0.50) -->
-                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
-                        <h4 class="text-lg font-semibold text-green-700 mb-3">8.3 Linear Signal Loss (γ=+0.50)</h4>
-                        <p class="mb-2"><strong>Final Loss vs Schwarzschild (GR):</strong> 0.179 | <strong>Final Loss vs Reissner-Nordström (RN):</strong> 0.192 | <strong>Loss Ratio (GR/RN):</strong> 0.932</p>
-                        <div class="formula-display mb-4">
-                            g_{tt} = -(1 - \gamma (r_s / r)) (1 - r_s / r)
-                        </div>
-                        <p class="text-sm lg:text-base mb-4">
-                            Strong balance at 50% degradation, with losses remaining proportional. Simulation shows stable orbits with gradual divergence; Fourier analysis indicates preserved harmonic structure in both baselines (secondary frequency match >99%).
-                        </p>
-                        <div class="flex gap-2 justify-center mb-4">
-                            <img src="../../runs/20250711_012926/classical_predefined/20250711_070236_Linear_Signal_Loss_γ_+0_50/plot.png" 
-                                 alt="Trajectory for Linear Signal Loss (γ=+0.50)" 
-                                 class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
-                            <img src="../../runs/20250711_012926/classical_predefined/20250711_070236_Linear_Signal_Loss_γ_+0_50/metric_plot.png" 
-                                 alt="Metric for Linear Signal Loss (γ=+0.50)" 
-                                 class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
-                        </div>
-                    </div>
-
-                    <!-- Result 4: Linear Signal Loss (γ=+0.25) -->
-                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
-                        <h4 class="text-lg font-semibold text-green-700 mb-3">8.4 Linear Signal Loss (γ=+0.25)</h4>
-                        <p class="mb-2"><strong>Final Loss vs Schwarzschild (GR):</strong> 0.201 | <strong>Final Loss vs Reissner-Nordström (RN):</strong> 0.218 | <strong>Loss Ratio (GR/RN):</strong> 0.922</p>
-                        <div class="formula-display mb-4">
-                            g_{tt} = -(1 - \gamma (r_s / r)) (1 - r_s / r)
-                        </div>
-                        <p class="text-sm lg:text-base mb-4">
-                            Maintained proportionality at lower degradation, approaching GR behavior while showing unified characteristics. 5M-step integration reveals minimal instability, with Fourier spectra closely matching baselines (primary frequency deviation <0.02%).
-                        </p>
-                        <div class="flex gap-2 justify-center mb-4">
-                            <img src="../../runs/20250711_012926/classical_predefined/20250711_070238_Linear_Signal_Loss_γ_+0_25/plot.png" 
-                                 alt="Trajectory for Linear Signal Loss (γ=+0.25)" 
-                                 class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
-                            <img src="../../runs/20250711_012926/classical_predefined/20250711_070238_Linear_Signal_Loss_γ_+0_25/metric_plot.png" 
-                                 alt="Metric for Linear Signal Loss (γ=+0.25)" 
-                                 class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
-                        </div>
-                    </div>
-
-                    <!-- Result 5: Linear Signal Loss (γ=+0.00) -->
-                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
-                        <h4 class="text-lg font-semibold text-green-700 mb-3">8.5 Linear Signal Loss (γ=+0.00)</h4>
-                        <p class="mb-2"><strong>Final Loss vs Schwarzschild (GR):</strong> 0.000 | <strong>Final Loss vs Reissner-Nordström (RN):</strong> 0.250 | <strong>Loss Ratio (GR/RN):</strong> 0.000</p>
-                        <div class="formula-display mb-4">
-                            g_{tt} = -(1 - \gamma (r_s / r)) (1 - r_s / r)
-                        </div>
-                        <p class="text-sm lg:text-base mb-4">
-                            Zero degradation recovers exact GR (loss=0 vs Schwarzschild), validating the model. Higher RN loss shows baseline separation, but serves as the unification anchor point. Perfect stability over 5M steps with identical Fourier spectra to GR.
-                        </p>
-                        <div class="flex gap-2 justify-center mb-4">
-                            <img src="../../runs/20250711_012926/classical_predefined/20250711_070237_Linear_Signal_Loss_γ_+0_00/plot.png" 
-                                 alt="Trajectory for Linear Signal Loss (γ=+0.00)" 
-                                 class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
-                            <img src="../../runs/20250711_012926/classical_predefined/20250711_070237_Linear_Signal_Loss_γ_+0_00/metric_plot.png" 
-                                 alt="Metric for Linear Signal Loss (γ=+0.00)" 
-                                 class="w-1/2 h-auto rounded-lg shadow-sm cursor-zoom-in hover:scale-105 transition-transform">
-                        </div>
-                    </div>
-
-                    <div class="mt-8 p-6 bg-gray-50 rounded-xl">
-                        <h3 class="text-xl font-semibold text-physics-blue mb-4">Synthesis of Results</h3>
-                        <p class="text-base lg:text-lg leading-relaxed">
-                            Across all γ values, the Linear Signal Loss family demonstrates systematic unification: as degradation increases, losses against both baselines rise proportionally. This family represents a continuum from pure GR (γ=0) to fully symmetric unification (γ=1), providing a tunable framework for quantum gravity investigations. All configurations maintain numerical stability over 5M steps, with Fourier analyses confirming preserved orbital harmonics.
-                        </p>
-                    </div>
                 </section>
 
                 <section class="section scroll-mt-20 no-print" id="appendix-e">
