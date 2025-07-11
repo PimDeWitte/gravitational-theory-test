@@ -1,6 +1,13 @@
+
+![image](https://github.com/user-attachments/assets/de1af93b-d0cd-443f-ae33-02b90199122b)
+
 # Draft: The Compression Hypothesis
 
 **A computational framework for testing gravitational theories by treating them as information compression algorithms.**
+
+Draft of the formulas and fundamentals of the theory here: https://www.pimdewitte.com/gravity-compression/papers/003/003_not_reviewed.html
+
+If you don't like it, you can plug in another physics engine, no worries! But let us know any feedback. 
 
 ## 
 
