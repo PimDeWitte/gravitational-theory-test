@@ -135,8 +135,6 @@ gravity_compression/
 
 ### The Linear Signal Loss Discovery
 
-The most profound result shows how gravity transforms into electromagnetism through signal degradation:
-
 ```
 γ = 0.00 (Pure GR)          γ = 0.75 (Critical Point)         γ = 1.00 (EM-like)
       │                              │                               │
@@ -153,18 +151,4 @@ The most profound result shows how gravity transforms into electromagnetism thro
                                      │
                               UNIFIED REGIME
                          (Equal loss to both!)
-```
-
-### Why This Matters: A New Paradigm
-
-Traditional Approach:
-```
-Einstein Field Equations → Curved Spacetime → Gravitational Effects
-```
-
-Compression Hypothesis:
-```
-Quantum Information → Compression Algorithm → Classical Spacetime
-                           │
-                           └─→ Gravity emerges from optimization
 ```
