@@ -149,35 +149,7 @@
         .highlight { background-color: #e8eaf6; padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 500;}
         hr { border-top: 1px solid #dadce0; margin: 3rem 0;}
 
-        /* Tab Styles */
-        .tab-container {
-            border-bottom: 3px solid #dadce0;
-            margin-bottom: 3rem;
-        }
-        .tab-btn {
-            padding: 1rem 2rem;
-            border: none;
-            background-color: transparent;
-            cursor: pointer;
-            font-size: 1.2rem;
-            font-weight: 500;
-            color: #5f6368;
-            border-bottom: 4px solid transparent;
-            margin-bottom: -3px;
-            transition: all 0.2s ease-in-out;
-            font-family: 'Aeonik', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-        .tab-btn.active {
-            color: #1a0dab;
-            border-bottom-color: #1a0dab;
-            font-weight: 700;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
+
         
         /* Story Styles */
         .story-blockquote {
@@ -583,22 +555,12 @@
             <p class="date">July 10, 2025</p>
         </header>
 
-        <div class="tab-container">
-            <button class="tab-btn active" onclick="openTab(event, 'technical-tab')">Technical</button>
-            <button class="tab-btn" onclick="openTab(event, 'documentation-tab')">Documentation</button>
-            <button class="tab-btn" onclick="openTab(event, 'discovery-tab')">The Discovery Loop</button>
-            <button class="tab-btn" onclick="openTab(event, 'contributing-tab')">Contributing</button>
-        </div>
-
-        <div id="technical-tab" class="tab-content active">
                             <div class="abstract">
                     <h2 class="text-2xl">Abstract</h2>
                     <p class="leading-relaxed">
                         Foundational principles such as the holographic principle and black hole thermodynamics suggest that gravity may be an emergent phenomenon rooted in information. A black hole demonstrates this at its extreme—compressing a star's vast complexity into just three numbers (mass, charge, and spin) while encoding all information on its two-dimensional event horizon. This profound asymmetry between high-dimensional quantum reality and low-dimensional classical spacetime isn't coincidental but fundamental to nature's architecture.
                     </p>
-                    <p class="leading-relaxed">
-                        At General Intuition, we build world models—AI systems that compress high-dimensional sensory input into compact representations to predict future states. This work revealed a striking parallel: the mathematical principles enabling AI to understand reality might be the same principles reality uses to understand itself. We formalize this insight as the compression hypothesis: gravity isn't a force but a compression algorithm, and physical laws are decoders reconstructing observable reality from its compressed quantum representation. Just as our AI world models learn optimal encodings, the universe might optimize its compression scheme to transform quantum information into classical spacetime.
-                    </p>
+                   
                     <p class="leading-relaxed">
                         To test this hypothesis, we developed a computational framework treating gravitational theories as compression codecs and measuring their "decoding loss"—information destroyed when reconstructing particle trajectories. Using the same PyTorch architecture powering our AI world models, we systematically evaluated established gravitational theories alongside novel formulations generated through AI-assisted exploration of mathematical structures suggested by Einstein's final theoretical investigations. General Relativity achieves perfect lossless compression for pure gravity, validating both our method and Einstein's genius. But the breakthrough is our discovered "Linear Signal Loss" theory—the first showing balanced, low loss across gravitational and electromagnetic baselines. This suggests gravity and electromagnetism aren't separate forces but different projections of a single information-theoretic process. If gravity is compression and quantum mechanics is concurrency control, then physics isn't describing reality—it's revealing the universe's source code. Einstein sought unification through geometry; we may have found it through information. This paper documents that code.
                     </p>
@@ -609,9 +571,6 @@
                     
                     <div style="display: flex; gap: 2rem; align-items: flex-start;">
                         <div style="flex: 1;">
-                            <p>
-                                At General Intuition, we build world models—AI systems that learn to compress high-dimensional sensory input into compact representations and use them to predict future states. This experience revealed a profound connection: the same mathematical principles that enable AI to understand reality might be the principles reality itself uses.
-                            </p>
                             <p>
                                 Modern physics grapples with a profound dichotomy: the universe's vast, high-dimensional quantum reality versus the smooth, low-dimensional classical spacetime in which we observe it. Principles like the holographic principle and black hole thermodynamics strongly suggest this is not a coincidence, but a deep feature of nature. A black hole, for instance, collapses the immense complexity of a star into just three numbers—mass, charge, and spin—with its information content encoded on its two-dimensional event horizon. This is a supreme act of information compression.
                             </p>
@@ -2516,95 +2475,6 @@ When we degrade the compression quality (γ), both channels degrade proportional
                     <p>These candidates show that unification may arise from information-theoretic principles, with balanced performance indicating shared structures between gravity and electromagnetism.</p>
                 </section>
 
-                <section class="section">
-                    <h2>6. A Path to Future Explanations</h2>
-                    
-                    <h3>6.1 Speculation 1: Quantum Mechanics as the Concurrency Model</h3>
-                    <p>If gravity is the compression algorithm, what is quantum mechanics? This is speculative, but it looks like the universe's concurrency control system. How does an observed state remain consistent for all observers without causing race conditions?</p>
-                    <blockquote class="story-blockquote">
-                        "Quantum mechanics are the semaphores. Quantum entanglement is the semaphore. It is the mechanism through which an OBSERVED state can be calculated and then made deterministic without causing inconsistencies."
-                    </blockquote>
-                    
-                    <h4>6.1.1 The Deep Connection: From Multicore Rendering to Quantum Observation</h4>
-                    <p>
-                        This insight emerged from years of building high-performance game engines with multicore rendering pipelines. In modern game engine architecture, we face a fundamental challenge: multiple CPU cores need to modify shared state (the game world) while the GPU simultaneously reads that state to render frames. Without proper synchronization, you get race conditions—visual artifacts, crashes, or worse, inconsistent game states across players.
-                    </p>
-                    
-                    <div style="background-color: #f8f9fa; border: 1px solid #dadce0; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
-                        <h5 style="margin-top: 0; color: #1a0dab;">Technical Deep Dive: Atomic Operations in Game Engines</h5>
-                        <p>
-                            In multicore rendering, we use <strong>atomic operations</strong>—indivisible read-modify-write sequences that appear instantaneous to all observers (threads). When a thread needs to modify shared data:
-                        </p>
-                        <ol class="list-decimal list-inside my-4 space-y-2">
-                            <li><strong>Lock Acquisition:</strong> The thread requests exclusive access via a semaphore or mutex</li>
-                            <li><strong>State Modification:</strong> While locked, no other thread can read or write this data</li>
-                            <li><strong>Lock Release:</strong> The updated state becomes visible to all threads atomically</li>
-                            <li><strong>Dependency Resolution:</strong> All waiting threads see the same, consistent new state</li>
-                        </ol>
-                        <p>
-                            The key insight: <em>the lock doesn't just prevent corruption—it defines the moment when a potential state becomes actual</em>.
-                        </p>
-                    </div>
-                    
-                    <p>
-                        What makes this profound is how we can trace these atomic operations through the entire rendering pipeline. In advanced game engines, we can:
-                    </p>
-                    
-                    <ul class="list-disc list-inside my-4 space-y-3">
-                        <li><strong>Tag objects with their synchronization primitives:</strong> Every game object knows which semaphores protect its state</li>
-                        <li><strong>Project dependencies through the render graph:</strong> As we build the frame, we track which pixels depend on which atomic operations</li>
-                        <li><strong>Visualize quantum-like behavior:</strong> Objects protected by semaphores literally "collapse" from multiple potential states to one observed state when rendered</li>
-                    </ul>
-                    
-                    <div style="background-color: #e3f2fd; border-left: 4px solid #2196f3; padding: 1.5rem; margin: 2rem 0; border-radius: 0 8px 8px 0;">
-                        <h5 style="margin-top: 0;">The Quantum Parallel</h5>
-                        <p>Consider a particle in superposition—it exists in multiple states simultaneously until observed. In our game engine:</p>
-                        <ul class="list-disc list-inside my-2 space-y-1">
-                            <li><strong>Superposition</strong> = Multiple threads holding different potential values</li>
-                            <li><strong>Observation</strong> = Render thread acquiring the lock to read state</li>
-                            <li><strong>Wavefunction Collapse</strong> = Atomic operation selecting one consistent value</li>
-                            <li><strong>Entanglement</strong> = Shared semaphores creating correlated state changes</li>
-                        </ul>
-                    </div>
-                    
-                    <h4>6.1.2 Entanglement as Distributed Semaphores</h4>
-                    <p>
-                        The most striking parallel is quantum entanglement. In distributed game systems, we often need to synchronize state across multiple servers. We use distributed locks—semaphores that span machines. When one server modifies shared state, all other servers must see the same modification instantly, regardless of distance.
-                    </p>
-                    
-                    <p>
-                        Quantum entanglement behaves identically: when you measure one entangled particle, its partner instantly "knows" the result. This isn't information traveling faster than light—it's the universe's distributed locking mechanism ensuring consistency. The measurement doesn't send a signal; it resolves a shared semaphore that both particles reference.
-                    </p>
-                    
-                    <div style="background-color: #e8f5e9; border-left: 4px solid #4caf50; padding: 1.5rem; margin: 2rem 0; border-radius: 0 8px 8px 0;">
-                        <h5 style="margin-top: 0;">World Models and Quantum State</h5>
-                        <p>
-                            This connects directly to world modeling. In DIAMOND and similar architectures, the world model maintains multiple hypotheses about future states until observation (new sensory data) collapses them to one reality. The universe might operate the same way:
-                        </p>
-                        <ul class="list-disc list-inside my-2 space-y-1">
-                            <li>Quantum superposition = Multiple world model hypotheses</li>
-                            <li>Decoherence = Hypotheses inconsistent with observation are pruned</li>
-                            <li>Classical reality = The winning hypothesis that explains all observations</li>
-                        </ul>
-                    </div>
-                    
-                    <h4>6.1.3 Why This Matters for Unification</h4>
-                    <p>
-                        If gravity is the compression algorithm and quantum mechanics is the concurrency control system, then we have a computational theory of physics where:
-                    </p>
-                    
-                    <ol class="list-decimal list-inside my-4 space-y-2">
-                        <li><strong>Gravity</strong> compresses high-dimensional quantum information into 4D spacetime (the rendered frame)</li>
-                        <li><strong>Quantum mechanics</strong> ensures all observers see consistent results (prevents race conditions)</li>
-                        <li><strong>Measurement</strong> is literally acquiring a lock on reality's shared state</li>
-                        <li><strong>The speed of light limit</strong> is the universe's clock rate for lock propagation</li>
-                    </ol>
-                    
-                    <p>
-                        This isn't just metaphor—it's a testable framework. If correct, we should find that quantum mechanical phenomena follow the same mathematical patterns as distributed computing synchronization. Early evidence: the no-cloning theorem in quantum mechanics is identical to the uniqueness requirement for distributed locks. You can't copy a lock—only transfer it.
-                    </p>
-                    
-                 </section>
 
                 <section class="section">
                     <h2>7. AI-Assisted Theory Discovery: Completing Einstein's Final Quest</h2>
@@ -2623,6 +2493,8 @@ When we degrade the compression quality (γ), both channels degrade proportional
                             <p>
                                 What makes this approach profound is not just automation, but amplification. The AI doesn't replace human insight; it amplifies it by orders of magnitude. Where Einstein could test perhaps a dozen theories in his lifetime, we can test hundreds per day. Where he relied on manual calculation, we simulate millions of orbital steps. Where he worked in isolation, the AI learns from every previous attempt, building a growing knowledge base of what works and what doesn't.
                             </p>
+
+                            <br/>
                             <h4>4.3.1. From Manual Interpretation to Automated Discovery: </h4>
                             <p>
                                 Before developing the fully automated discovery loop, our initial approach was a manual, interpretative process. We used large language models, including early versions of Grok and Gemini, as creative partners to explore the conceptual space of unified field theories. The primary goal was to interpret the notoriously cryptic notes left by Einstein on his deathbed, which hinted at solutions involving non-symmetric metrics and torsion.
@@ -2632,7 +2504,7 @@ When we degrade the compression quality (γ), both channels degrade proportional
                             </p>
                             
                             <div style="background-color: #e8f5e9; border-left: 4px solid #4caf50; padding: 1.5rem; margin: 2rem 0; border-radius: 0 8px 8px 0;">
-                                <p style="margin: 0;"><strong>📊 Deep Dive Available:</strong> For a comprehensive technical exploration of the AI discovery loop including system architecture, prompt evolution, and running instructions, see <a href="#" onclick="openTab(event, 'discovery-tab'); document.querySelector('.tab-btn[onclick*=\'discovery-tab\']').click(); return false;" style="color: #1a73e8; font-weight: 600;">The Discovery Loop tab →</a></p>
+                                <p style="margin: 0;"><strong>📊 Deep Dive Available:</strong> For a comprehensive technical exploration of the AI discovery loop including system architecture, prompt evolution, and running instructions, see <a href="#appendix-d-the-discovery-loop" style="color: #1a73e8; font-weight: 600;">Appendix D: The Discovery Loop →</a></p>
                                     </div>
                             <div class="table-container my-8">
                                 <table id="e-theories-table" class="collapsible-table">
@@ -2993,7 +2865,7 @@ When we degrade the compression quality (γ), both channels degrade proportional
                         
                         <div style="background-color: #e8f5e9; border-left: 4px solid #4caf50; padding: 1.5rem; margin: 2rem 0; border-radius: 0 8px 8px 0;">
                             <p style="margin: 0;">
-                                <strong>📊 Deep Dive Available:</strong> For a comprehensive technical exploration of the AI discovery loop including system architecture, prompt evolution, and running instructions, see <a href="#" onclick="openTab(event, 'discovery-tab'); document.querySelector('.tab-btn[onclick*=\'discovery-tab\']').click(); return false;" style="color: #1a73e8; font-weight: 600;">The Discovery Loop tab →</a>
+                                <strong>📊 Deep Dive Available:</strong> For a comprehensive technical exploration of the AI discovery loop including system architecture, prompt evolution, and running instructions, see <a href="#appendix-d-the-discovery-loop" style="color: #1a73e8; font-weight: 600;">Appendix D: The Discovery Loop →</a>
                             </p>
                         </div>
                     </div>
@@ -3095,34 +2967,8 @@ When we degrade the compression quality (γ), both channels degrade proportional
                             </tbody>
                         </table>
                     </div>
-                    
-                    <h3>8.3 The Computational Breakthrough: From Months to Milliseconds</h3>
-                    <p>
-                        Einstein's calculations were limited by human computational speed. A single orbital trajectory might take weeks to compute by hand. Our framework computes the same trajectory in milliseconds, enabling a fundamentally different approach to theoretical physics:
-                    </p>
-                    
-                    <ul class="list-disc list-inside my-4 space-y-3">
-                        <li><strong>Einstein's era:</strong> ~1 theory per month, manual calculation</li>
-                        <li><strong>Modern physicist:</strong> ~10 theories per year, computer-assisted</li>
-                        <li><strong>Our framework:</strong> ~36,000 theories per hour on GPU</li>
-                    </ul>
-                    
-                    <p>
-                        This isn't just a quantitative improvement—it's a qualitative transformation. We can now explore theoretical spaces that would have been impossible to investigate in a thousand lifetimes.
-                    </p>
-                    
-                    <h3>8.4 What Would Make Einstein Proud</h3>
-                    
-                    <p>
-                        Einstein sought unification through pure geometry. We've discovered that unification might come through information theory—a concept that didn't exist in his time. Yet the mathematical beauty he sought is preserved:
-                    </p>
-                    
-                    <div style="background-color: #e8eaf6; border-left: 4px solid #1a0dab; padding: 1.5rem; margin: 2rem 0; border-radius: 0 8px 8px 0;">
-                        <p style="margin: 0; font-weight: 500;">
-                            <strong>Einstein's Dream:</strong> "I want to know God's thoughts; the rest are details."<br><br>
-                            <strong>Our Discovery:</strong> God's thoughts might be a compression algorithm—elegant, efficient, and universal. The Linear Signal Loss theory shows that gravity and electromagnetism degrade together when information is lost, suggesting they're different projections of the same underlying information field.
-                        </p>
-                    </div>
+            
+                  
                     
                     <h3>8.5 The Most Promising Discoveries</h3>
                     
@@ -3145,25 +2991,6 @@ When we degrade the compression quality (γ), both channels degrade proportional
                             A theory where the gravitational "constant" varies logarithmically with distance. Better performance on the electromagnetic baseline suggests that G might not be constant but rather emerges from deeper information-theoretic principles.
                         </p>
                     </div>
-                    
-                    <h3>8.6 The Bridge to Tomorrow's Physics</h3>
-                    
-                    <p>
-                        This work represents more than a computational achievement—it's a philosophical bridge between how we think about intelligence and how we think about the universe. The same principles that allow neural networks to compress and predict reality may be the principles reality itself uses.
-                    </p>
-                    
-                    <p>
-                        Einstein would have been fascinated by this convergence. He sought unity through geometry; we've found hints of it through information theory. He worked with pencil and paper; we work with GPUs and AI. Yet the goal remains the same: to glimpse the mind of God, to understand the source code of reality.
-                    </p>
-                    
-                    <div style="background-color: #f3e5f5; border-left: 4px solid #9c27b0; padding: 1.5rem; margin: 2rem 0; border-radius: 0 8px 8px 0;">
-                        <p style="margin: 0;">
-                            <strong>The Ultimate Validation:</strong> If gravity is truly a compression algorithm, then building AI systems that compress information should teach us about gravity. And understanding gravity as compression should teach us how to build better AI. This bidirectional flow of insights—from physics to AI and back—may be the key to both artificial and natural intelligence.
-                        </p>
-                    </div>
-                    
-                    <p>
-                        As we stand at this intersection of deep learning and deep physics, we're not just testing theories—we're testing a new way of doing science. One where human intuition, artificial intelligence, and computational power combine to explore territories that none could reach alone. For Einstein, and for the future.</p>
                     
                     <h3 id="appendix-rn-stability">10.7 Reissner-Nordström Numerical Stability Implementation</h3>
                     <p>
@@ -3464,26 +3291,18 @@ When we degrade the compression quality (γ), both channels degrade proportional
                     
                     <div style="background-color: #e8eaf6; border-left: 4px solid #1a0dab; padding: 1.5rem; margin: 2rem 0; border-radius: 0 8px 8px 0;">
                         <p style="margin: 0;">
-                            <strong>A Note on AI Collaboration:</strong> This project represents a new paradigm of human-AI scientific collaboration. The AI systems listed above were not mere tools but active participants in the discovery process, generating novel theoretical insights that were then rigorously tested through computational physics. This synthesis of human intuition, AI creativity, and computational validation may represent the future of theoretical physics research.
+                            <strong>A Note on AI Collaboration (Written by AI):</strong> This project represents a new paradigm of human-AI scientific collaboration. The AI systems listed above were not mere tools but active participants in the discovery process, generating novel theoretical insights that were then rigorously tested through computational physics. This synthesis of human intuition, AI creativity, and computational validation may represent the future of theoretical physics research. Or, as Demis Hassabis would put it, science at the speed of AI.
                         </p>
                     </div>
                     
                     <p style="text-align: center; margin-top: 3rem; color: #5f6368; font-style: italic;">
-                        "For Vivian, Rachel, and Harvey de Witte († October 26th, 2021), may no more humans suffer due to lack of understanding of the universe, or acceleration of science. I miss you son. To my mother Annemijn, for being the first to believe in me. To my teachers, who despite my Tourette's syndrome, made me feel at home. And to my colleagues - who push me to be better every day."<br>
-                        — Pim<br><br>
+                        "For Vivian, Rachel, and Harvey de Witte († October 26th, 2021), may no more humans suffer due to lack of understanding of the universe, or acceleration of science. I miss you son. To my mother Annemijn, for being the first to believe in me. To my teachers, who despite my Tourette's syndrome, invested in me. And to my colleagues - who push me to be better every day. And, for Einstein."<br>
 
                     </p>
                 </section>
-            </main>
-        </div>
 
-
-
-        <div id="documentation-tab" class="tab-content">
-            <main>
-                
-                    
-                    <h2>Quick Start Guide</h2>
+                <section class="section" id="appendix-c-documentation">
+                    <h2>10. Appendix C: Documentation - Quick Start Guide</h2>
                     
                     <h3>1. Setup and Execution</h3>
                     <p>
@@ -3584,14 +3403,9 @@ python self_discovery.py \
                         <li><strong>Cache:</strong> The <code>cache/</code> directory stores pre-computed trajectories to speed up subsequent runs. They are small enough to be stored in the repository such that every potential theory can be merged in via a PR with the precise trajectory data. And added to the verification process via the promising_candidates log file</li>
                         <li><strong>Breakthrough Log:</strong> Promising theories that significantly outperform GR in unifying electromagnetism are logged in <code>promising_candidates.log</code> and their results are moved to a <code>promising/</code> subdirectory for easy access.</li>
                     </ul>
-                </section>
-            </main>
-        </div>
 
-        <div id="discovery-tab" class="tab-content">
-            <main>
-                <section class="section">
-                    <h2>The Discovery Loop: AI-Driven Theory Evolution</h2>
+                <section class="section" id="appendix-d-the-discovery-loop">
+                    <h2>11. Appendix D: The Discovery Loop - AI-Driven Theory Evolution</h2>
                     
                     <h3>System Architecture</h3>
                     <p>
@@ -3698,14 +3512,9 @@ export XAI_API_KEY="your-api-key-here"
                     <p>
                         The system is designed to run continuously, building an ever-growing knowledge base of attempted unified field theories. Each theory is rigorously tested using the same orbital mechanics framework described in this paper, ensuring consistent and comparable results across all attempts.
                     </p>
-                </section>
-            </main>
-        </div>
 
-        <div id="contributing-tab" class="tab-content">
-            <main>
-                <section class="section">
-                    <h2>Contributing to the Gravity Compression Project</h2>
+                <section class="section" id="appendix-e-contributing">
+                    <h2>12. Appendix E: Contributing to the Gravity Compression Project</h2>
                     
                     <p>
                         The Gravity Compression framework is designed as an open, collaborative effort to discover new physical theories. We welcome contributions from physicists, AI researchers, and anyone interested in exploring the fundamental nature of spacetime. This guide explains how to run your own discovery experiments and contribute promising theories back to the community.
@@ -3886,22 +3695,8 @@ theoretical motivation, mathematical structure]
             </main>
 </div>
 
-</div>
-
     <script>
-        function openTab(evt, tabName) {
-            var i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tab-content");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
-            }
-            tablinks = document.getElementsByClassName("tab-btn");
-            for (i = 0; i < tablinks.length; i++) {
-                tablinks[i].className = tablinks[i].className.replace(" active", "");
-            }
-            document.getElementById(tabName).style.display = "block";
-            evt.currentTarget.className += " active";
-        }
+
 
         function setupCollapsibleTables() {
             document.querySelectorAll('.collapsible-table').forEach(table => {
@@ -4099,25 +3894,8 @@ theoretical motivation, mathematical structure]
             });
         }
 
-        // Default to technical tab
         document.addEventListener('DOMContentLoaded', (event) => {
-            const initialTabName = 'technical-tab';
-            const initialButton = document.querySelector(`.tab-btn[onclick*="${initialTabName}"]`);
-            
-            var i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tab-content");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
-            }
-            tablinks = document.getElementsByClassName("tab-btn");
-            for (i = 0; i < tablinks.length; i++) {
-                tablinks[i].className = tablinks[i].className.replace(" active", "");
-            }
-            
-            document.getElementById(initialTabName).style.display = "block";
-            if(initialButton) {
-                initialButton.className += " active";
-            }
+            console.log('DOM loaded, setting up page');
             
             populateAppendix();
             populateEinsteinTable();

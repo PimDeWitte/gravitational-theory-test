@@ -49,3 +49,4 @@
 20250711_010350 | Run: 20250711_010335 | Theory: Log Corrected (β=+0.17) | Loss_GR: 6.250e-01 | Loss_RN: 1.212e-02 | Summary:  | Dir: runs/20250711_010335/quantum_predefined/promising/20250711_010349_Log_Corrected_β_+0_17
 20250711_010352 | Run: 20250711_010335 | Theory: Quantum Corrected (α=+1.50) | Loss_GR: 5.696e-03 | Loss_RN: 2.308e-01 | Summary:  | Dir: runs/20250711_010335/quantum_predefined/promising/20250711_010352_Quantum_Corrected_α_+1_50
 20250711_010352 | Run: 20250711_010335 | Theory: Quantum Corrected (α=+2.00) | Loss_GR: 1.029e-02 | Loss_RN: 2.183e-01 | Summary:  | Dir: runs/20250711_010335/quantum_predefined/promising/20250711_010352_Quantum_Corrected_α_+2_00
+20250711_050932 | Run: 20250711_012926 | Theory: Linear Signal Loss (γ=+1.00) | Loss_GR: 1.329e-01 | Loss_RN: 1.330e-01 | Summary:  | Dir: runs/20250711_012926/classical_predefined/promising/20250711_050929_Linear_Signal_Loss_γ_+1_00
