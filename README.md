@@ -13,8 +13,8 @@ A computational framework for testing gravitational theories by treating them as
 ### Step 1: Setup Environment
 ```bash
 # Clone the repository
-git clone https://github.com/qubit-codes/gravity_compression.git
-cd gravity_compression
+git clone https://github.com/pimdewitte/gravity-compression.git
+cd gravity-compression
 
 # Run the GPU setup script (creates conda environment and installs dependencies)
 ./setup_gpu.sh
@@ -155,19 +155,6 @@ class MyTheory(GravitationalTheory):
         return -(1 - Rs/r)  # Example: Schwarzschild
 ```
 
-### Adjusting Parameters
-
-```bash
-# Test with different step counts
-python test_gravity_theory.py --theory "MyTheory" --mode validation --steps 100000
-
-# Use higher precision
-python test_gravity_theory.py --theory "Einstein Final" --precision float64
-
-# Change initial conditions
-python test_gravity_theory.py --r0 15.0  # Start at 15 Schwarzschild radii
-```
-
 ## 📚 Scientific Background
 
 ### Why PyTorch?
@@ -200,7 +187,7 @@ If you use this framework in your research, please cite:
 
 ```bibtex
 @article{dewitte2025compression,
-  title={The Compression Hypothesis: A Computational Framework for Testing Gravitational Theories},
+  title={The Compression Hypothesis},
   author={de Witte, Pim},
   journal={General Intuition PBC},
   year={2025}
@@ -220,8 +207,8 @@ This project would not have been possible without the contributions of many indi
 ## 📞 Contact
 
 For questions or collaborations:
-- GitHub Issues: [github.com/qubit-codes/gravity_compression/issues](https://github.com/qubit-codes/gravity_compression/issues)
-- Email: pim@qubit.codes
+- GitHub Issues: [github.com/pimdewitte/gravity-compression/issues](https://github.com/pimdewitte/gravity-compression/issues)
+- Email: pim@generalintuition.ai
 
 ---
 
