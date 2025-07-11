@@ -1,4 +1,4 @@
-# The Compression Hypothesis: Testing Gravity as Information
+# Feedback Draft: The Compression Hypothesis: Testing Gravity as Information
 
 A computational framework for testing gravitational theories by treating them as information compression algorithms.
 
