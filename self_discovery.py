@@ -42,7 +42,7 @@ from __future__ import annotations
 # - Removed paper reference in prompt, described objective instead.
 # - Changed to prompt for 1 theory at a time.
 # - Parse generated content to extract code from markdown blocks.
-# - Instruct API to add <reason>reasoning chain</reason> comments for self-documentation.
+# - Instruct API to add <reason>reason>reasoning chain</reason> comments for self-documentation.
 # - Added <summary>description</summary> for theory summary, extract and include in history/prompt.
 # - Fixed source saving by using generated content instead of inspect.getsource.
 # - Return model, summary, content from generate_new_theories to fix NameError.
@@ -407,7 +407,7 @@ def call_api(provider: str, prompt: str) -> str:
         "max_tokens": 4096,
     }
     # <reason>chain: Data; no change.</reason>
-    resp = requests.post(url, headers=headers, json=data)
+    resp = requests.post(url, headers=headers, json=data, timeout=60)
     # <reason>chain: Post request; no change.</reason>
     if resp.status_code == 200:
         response_json = resp.json()
@@ -502,12 +502,12 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
             if not content.strip():
                 print("Debug: Empty content received.")
                 temperature = min(temperature + 0.2, 1.5)  # Increased cap to 1.5 for more creativity on failures.
-                time.sleep(2 ** attempt)
+                time.sleep(min(2 ** attempt, 60))
                 continue
         except Exception as e:
             print(f"Debug: API Call Error: {e}")
             temperature = min(temperature + 0.2, 1.5)  # Increased cap.
-            time.sleep(2 ** attempt)
+            time.sleep(min(2 ** attempt, 60))
             continue
         # <reason>chain: API call and handling; updated temperature cap to 1.5 for better generation on retries.</reason>
 
@@ -566,7 +566,7 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
                 # Append error feedback to prompt for retry
                 feedback_prompt = prompt + f"\nPrevious generation failed with error: {error_msg}. Please correct and provide a complete, valid Python class."
                 temperature = min(temperature + 0.2, 1.5)
-                time.sleep(2 ** exec_attempts)
+                time.sleep(min(2 ** exec_attempts, 60))
                 # Regenerate
                 try:
                     content = call_api(args.api_provider, feedback_prompt)
@@ -612,7 +612,7 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
         if exec_attempts >= max_exec_attempts:
             print("Max exec attempts reached. Skipping this generation.")
             temperature = min(temperature + 0.2, 1.5)
-            time.sleep(2 ** attempt)
+            time.sleep(min(2 ** attempt, 60))
             continue
         # <reason>chain: Exec code; no change.</reason>
 
@@ -626,7 +626,7 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
         if not new_classes:
             print("No new theories generated from API response.")
             temperature = min(temperature + 0.2, 1.5)
-            time.sleep(2 ** attempt)
+            time.sleep(min(2 ** attempt, 60))
             continue
         # <reason>chain: Check new; no change.</reason>
 
@@ -650,13 +650,13 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
         else:
             print("No valid models after validation.")
             temperature = min(temperature + 0.2, 1.5)
-            time.sleep(2 ** attempt)
+            time.sleep(min(2 ** attempt, 60))
     # <reason>chain: Retry loop; updated temp cap.</reason>
 
     # If all retries fail, generate a fallback theory
     print("All API retries failed. Holding with exponential backoff. Halting if persistent.")
     for hold_attempt in range(8):
-        wait_time = 2 ** (hold_attempt + 2)  # Start at 4s, then 8s, 16s, ...
+        wait_time = min(2 ** (hold_attempt + 2), 60)  # Start at 4s, then 8s, 16s, ..., capped at 60s
         print(f"Holding for {wait_time} seconds (attempt {hold_attempt+1}/8)...")
         time.sleep(wait_time)
         # Optionally, could try to re-call the API here, but per instruction, just hold.
@@ -1185,7 +1185,7 @@ def main() -> None:
         N_STEPS = 5_000_000
         print("Mode: FINAL (high precision, long duration)")
     elif args.validate_promising:
-        N_STEPS = 1_000_000
+        N_STEPS = 100_000
         print("Mode: VALIDATE PROMISING (higher precision validation on selected theories)")
     else:
         N_STEPS = 100_000

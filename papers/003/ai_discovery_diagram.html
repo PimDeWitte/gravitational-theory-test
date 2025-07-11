@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Theory Discovery Loop - Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .mermaid { margin: 2rem auto; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+        code { background: #f1f3f4; padding: 0.2rem 0.4rem; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-8">
+        <h1 class="text-4xl font-bold text-blue-700 mb-8">AI-Assisted Theory Discovery Loop</h1>
+        
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">System Architecture</h2>
+            <div class="mermaid">
+graph TB
+    %% Styling
+    classDef setupBox fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    classDef apiBox fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    classDef computeBox fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef evalBox fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    classDef outputBox fill:#ffebee,stroke:#f44336,stroke-width:2px
+    classDef decisionBox fill:#fce4ec,stroke:#e91e63,stroke-width:2px
+    
+    %% Initial Setup
+    A[Start: ./self_discovery.sh]:::setupBox
+    B[Load PyTorch Environment<br/>Device: GPU/CPU<br/>Precision: float32/64]:::setupBox
+    C[Set API Keys<br/>XAI_API_KEY<br/>OPENAI_API_KEY<br/>etc.]:::setupBox
+    
+    %% Ground Truth Generation
+    D[Generate Ground Truths<br/>1. Schwarzschild GR<br/>2. Reissner-Nordström RN]:::computeBox
+    
+    %% History Initialization
+    E[Initialize History<br/>- Baseline theories<br/>- Previous results<br/>- Loss metrics]:::setupBox
+    
+    %% Main Loop Start
+    F{Self-Discovery<br/>Loop}:::decisionBox
+    
+    %% API Generation Phase
+    G[Build Dynamic Prompt<br/>- Einstein's notes<br/>- Previous results<br/>- Loss history]:::apiBox
+    H[Call API Provider<br/>Grok-4/GPT-4/Claude<br/>Temperature: 0.8]:::apiBox
+    I[Parse Generated Code<br/>Extract Python class<br/>Remove markdown]:::apiBox
+    
+    %% Validation Phase
+    J[Execute Code<br/>Create Theory Instance<br/>Validate Metric]:::computeBox
+    K{Valid<br/>Theory?}:::decisionBox
+    
+    %% Simulation Phase
+    L[Run Orbital Simulation<br/>100,000 steps<br/>RK4 Integration]:::computeBox
+    M[Calculate FFT Loss<br/>vs Schwarzschild<br/>vs Reissner-Nordström]:::evalBox
+    
+    %% Output Phase
+    N[Save Results<br/>- Generated code<br/>- Trajectory plot<br/>- Loss metrics]:::outputBox
+    
+    %% Breakthrough Check
+    O{Loss_RN < 0.9 × GR_loss_RN?}:::decisionBox
+    P[Log Breakthrough!<br/>Move to promising/]:::outputBox
+    
+    %% History Update
+    Q[Update History<br/>Add theory name<br/>Add losses<br/>Add summary]:::setupBox
+    
+    %% Loop Control
+    R{Continue<br/>Loop?}:::decisionBox
+    
+    %% Connections
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F -->|Yes| G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    K -->|Yes| L
+    K -->|No| G
+    L --> M
+    M --> N
+    N --> O
+    O -->|Yes| P
+    O -->|No| Q
+    P --> Q
+    Q --> R
+    R -->|Yes| F
+    R -->|No| S[End]
+    F -->|No| S
+    
+    %% Annotations
+    H -.->|Retry on failure<br/>Increase temp| H
+    K -.->|Max retries<br/>Exponential backoff| K
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">The Evolving Prompt</h2>
+            <p class="mb-4">The AI receives an evolving prompt that accumulates knowledge from all previous attempts:</p>
+            
+            <pre class="bg-gray-100 p-4 rounded-lg text-sm">
+<span class="text-blue-600"># Base Instructions</span>
+You are a physics researcher tasked with discovering a unified theory of gravity and electromagnetism.
+Draw heavy inspiration from Einstein's 30-year pursuit of a unified field theory...
+
+<span class="text-green-600"># User's Initial Prompt (if provided)</span>
+"look at theories found in game engine code and compare to einstein's field equations and death bed scribbles"
+
+<span class="text-purple-600"># Growing History of Results</span>
+Previous results ( theory name: summary, loss vs GR, loss vs R-N ):
+Schwarzschild (GR): Standard GR metric, loss_GR=0.000e+00, loss_RN=2.688e-01
+Einstein Final (Cubic, α=+0.50): Modified cubic term, loss_GR=6.174e-04, loss_RN=2.560e-01
+Log Corrected (β=+0.17): Quantum logarithmic correction, loss_GR=6.250e-01, loss_RN=1.212e-02
+... [continues with all tested theories] ...
+
+<span class="text-orange-600"># Technical Requirements</span>
+Suggest 1 new, unique GravitationalTheory subclass...
+- Must inherit from GravitationalTheory
+- Implement get_metric() returning g_tt, g_rr, g_pp, g_tp
+- Use only torch operations
+- Add &lt;reason&gt; and &lt;summary&gt; tags
+- Category = 'unified'
+            </pre>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Example Generated Theory</h2>
+            <pre class="bg-gray-100 p-4 rounded-lg text-sm">
+<span class="text-gray-600"># &lt;summary&gt;Einstein-inspired unified field theory with asymmetric metric and torsion&lt;/summary&gt;</span>
+<span class="text-blue-600">class</span> <span class="text-green-600">EinsteinTorsionUnified</span>(GravitationalTheory):
+    category = <span class="text-red-600">'unified'</span>
+    cacheable = <span class="text-purple-600">True</span>
+    
+    <span class="text-blue-600">def</span> <span class="text-green-600">__init__</span>(self, alpha=0.0073):  <span class="text-gray-600"># ~1/137 fine structure constant</span>
+        <span class="text-blue-600">super</span>().__init__(<span class="text-red-600">f"Einstein Torsion Unified (α={alpha:.4f})"</span>)
+        self.alpha = alpha
+    
+    <span class="text-blue-600">def</span> <span class="text-green-600">get_metric</span>(self, r, M_param, C_param, G_param):
+        rs = 2 * G_param * M_param / C_param**2
+        
+        <span class="text-gray-600"># &lt;reason&gt;Base Schwarzschild metric&lt;/reason&gt;</span>
+        m = 1 - rs / r
+        
+        <span class="text-gray-600"># &lt;reason&gt;Asymmetric correction inspired by Einstein's final notes&lt;/reason&gt;</span>
+        g_tt = -m * (1 + self.alpha * torch.log(1 + rs/r))
+        g_rr = 1 / (m - self.alpha * (rs/r)**2)
+        
+        <span class="text-gray-600"># &lt;reason&gt;Off-diagonal torsion term for electromagnetic emergence&lt;/reason&gt;</span>
+        g_tp = self.alpha * rs / r
+        
+        <span class="text-blue-600">return</span> g_tt, g_rr, r**2, g_tp
+            </pre>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Running the Discovery Loop</h2>
+            <div class="bg-blue-50 p-6 rounded-lg">
+                <h3 class="text-xl font-semibold mb-3">Quick Start</h3>
+                <pre class="bg-white p-4 rounded text-sm">
+<span class="text-gray-600"># 1. Clone the repository</span>
+git clone https://github.com/yourusername/gravity_compression.git
+cd gravity_compression
+
+<span class="text-gray-600"># 2. Set up environment (installs PyTorch and dependencies)</span>
+./setup_gpu.sh
+
+<span class="text-gray-600"># 3. Edit self_discovery.sh to add your API key</span>
+export XAI_API_KEY="your-api-key-here"
+
+<span class="text-gray-600"># 4. Run the discovery loop</span>
+./self_discovery.sh
+                </pre>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Output Structure</h2>
+            <pre class="bg-gray-100 p-4 rounded-lg text-sm">
+runs/
+└── 20250710_193244/                    <span class="text-gray-600"># Timestamp of run</span>
+    ├── classical_predefined/            <span class="text-gray-600"># Predefined baseline theories</span>
+    ├── unified_predefined/              <span class="text-gray-600"># Manual unified attempts</span>
+    ├── generated/                       <span class="text-gray-600"># AI-generated theories</span>
+    │   └── 20250710_193614_TheoryName/
+    │       ├── code.py                  <span class="text-gray-600"># Generated Python code</span>
+    │       ├── plot.png                 <span class="text-gray-600"># Orbital trajectory plot</span>
+    │       ├── metric_plot.png          <span class="text-gray-600"># Metric components plot</span>
+    │       ├── results.json             <span class="text-gray-600"># Loss metrics</span>
+    │       ├── traj_pred.npy            <span class="text-gray-600"># Predicted trajectory</span>
+    │       ├── traj_GR.npy              <span class="text-gray-600"># GR baseline trajectory</span>
+    │       └── traj_RN.npy              <span class="text-gray-600"># R-N baseline trajectory</span>
+    └── promising/                       <span class="text-gray-600"># Breakthrough theories!</span>
+
+promising_candidates.log                 <span class="text-gray-600"># Global log of breakthroughs</span>
+            </pre>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Technical Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-3">Simulation Parameters</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><strong>Steps:</strong> 100,000 (default) / 5M (final)</li>
+                        <li><strong>Integration:</strong> 4th-order Runge-Kutta</li>
+                        <li><strong>Initial radius:</strong> 10 Schwarzschild radii</li>
+                        <li><strong>Precision:</strong> float32 (fast) / float64 (validation)</li>
+                        <li><strong>Device:</strong> Apple MPS / CUDA / CPU</li>
+                    </ul>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-3">Loss Calculation</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><strong>Method:</strong> FFT-based spectral comparison</li>
+                        <li><strong>Signal:</strong> Radial component r(τ)</li>
+                        <li><strong>Normalization:</strong> MSE / baseline power</li>
+                        <li><strong>Baselines:</strong> Schwarzschild (GR) & Reissner-Nordström</li>
+                        <li><strong>Breakthrough:</strong> Loss_RN < 0.9 × GR_loss_RN</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 p-6 bg-yellow-50 rounded-lg">
+            <h3 class="text-lg font-semibold mb-2">Important Notes</h3>
+            <ul class="list-disc list-inside space-y-1 text-sm">
+                <li>The loop runs indefinitely until manually stopped</li>
+                <li>Each theory takes ~0.1s on GPU, ~1.3s on CPU</li>
+                <li>Results are cached to avoid recomputation</li>
+                <li>API costs: ~$0.01-0.02 per theory generated</li>
+                <li>Breakthrough theories are automatically highlighted and saved</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+</body>
+</html> 
