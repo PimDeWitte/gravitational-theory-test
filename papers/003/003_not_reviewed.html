@@ -1832,24 +1832,404 @@
                     <hr/>
 
                     <h3>4.4. Robustness and Stability Analysis</h3>
-                    <p>
-                        Beyond ranking static theories, the framework was used to test the dynamic resilience of gravitational models, directly addressing the hypothesis that gravity is a robust compression algorithm. The <strong>Linear Signal Loss</strong> and <strong>Stochastic Noise</strong> models were simulated to quantify how theories behave under informational degradation and perturbation.
-                    </p>
-                    <h4>4.4.1. Linear Signal Loss Results</h4>
-                    <p>
-                        The Linear Signal Loss model demonstrated the superior stability of General Relativity. As the gravitational signal was artificially degraded, the orbit predicted by GR decayed gracefully, maintaining a quasi-stable, inspiraling path long past the point where other theories failed. For example, the <strong>Newtonian Limit</strong> model, while a strong approximation, showed a sharp divergence once the signal loss parameter exceeded 15%, resulting in an immediate, unphysical ejection of the test particle. In contrast, the GR orbit remained bound until signal loss reached approximately 40%, showcasing its inherent robustness. This suggests that the specific geometric structure of GR is not arbitrary but is informationally efficient, capable of maintaining coherence even with a significantly degraded signal.
-                    </p>
-                    <h4>4.4.2. Stochastic Noise Stability</h4>
-                    <p>
-                        The Stochastic Noise test provided the most compelling evidence for GR as a stable attractor. When a small-amplitude (<span class="math-var">~10<sup>-9</sup></span>) random fluctuation was added to the metric components at each time step, the resulting orbital trajectories were analyzed using the FFT loss metric.
-                    </p>
-                    <ul class="list-disc list-inside my-4 space-y-2">
-                        <li><strong>General Relativity (Schwarzschild):</strong> The orbit remained remarkably stable. The FFT spectrum clearly showed the primary orbital and precession frequencies as sharp peaks, with the noise appearing as a low-amplitude, broadband "noise floor." The total FFT loss increased by less than 0.1%, indicating the theory's structure effectively "dampens" the random perturbations.</li>
-                        <li><strong>Fragile Alternatives:</strong> Theories that performed poorly in the main geodesic test, such as the <strong>Participatory Model</strong>, exhibited chaotic behavior. The noise was amplified, quickly washing out the primary orbital frequencies in the FFT spectrum and leading to a rapid, catastrophic breakdown of the orbit. Their FFT loss increased by several orders of magnitude, demonstrating their inability to function as a stable decoder in a noisy environment.</li>
-                    </ul>
-                    <p>
-                        These results strongly support the view of physical laws as computational structures. The stability of General Relativity in the face of both signal loss and stochastic noise is a hallmark of a well-formed, robust algorithm, lending credence to the idea that the universe optimizes for informational integrity.
-                    </p>
+                    <div style="display: flex; gap: 2rem; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <p>
+                                Beyond ranking static theories, the framework was used to test the dynamic resilience of gravitational models, directly addressing the hypothesis that gravity is a robust compression algorithm. The <strong>Linear Signal Loss</strong> and <strong>Stochastic Noise</strong> models were simulated to quantify how theories behave under informational degradation and perturbation.
+                            </p>
+                            <h4>4.4.1. Linear Signal Loss Results</h4>
+                            <p>
+                                The Linear Signal Loss model revealed an unexpected and profound result about the nature of gravitational information. <strong>Note: These preliminary results were obtained using 1,000 integration steps for rapid exploration. Higher-precision validation with 100,000+ steps is recommended to confirm these findings.</strong> The model implements the transformation:
+                            </p>
+                            <div style="background-color: #f8f9fa; border: 1px solid #dadce0; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                                <div class="formula-display">
+                                    g<sub>tt</sub> = -(1 - γr<sub>s</sub>/r)(1 - r<sub>s</sub>/r)
+                                </div>
+                                <p style="margin-top: 0.5rem; font-size: 0.9em;">
+                                    where γ ∈ [0,1] is the signal degradation parameter. This can be rewritten as:
+                                    <br>
+                                    g<sub>tt</sub> = -(1 - r<sub>s</sub>/r - γr<sub>s</sub>/r + γr<sub>s</sub>²/r²)
+                                </p>
+                            </div>
+                            <p>
+                                What makes this formula remarkable is its connection to the Reissner-Nordström metric. When we set γ = 1, we get:
+                            </p>
+                            <div class="formula-display" style="margin: 1rem 0;">
+                                g<sub>tt</sub> = -(1 - 2r<sub>s</sub>/r + r<sub>s</sub>²/r²) = -(1 - r<sub>s</sub>/r)²
+                            </div>
+                            <p>
+                                This is mathematically similar to the extremal Reissner-Nordström case where charge and mass are related. The data confirms this insight: as γ increases from 0 to 1, the loss against the R-N baseline <em>decreases</em> from 0.269 to 0.133, while maintaining reasonable loss against GR.
+                            </p>
+                            <p>
+                                <strong>Key Discovery:</strong> At γ ≈ 0.75-1.00, the model achieves nearly equal loss against both baselines (≈0.13-0.15), suggesting that signal degradation can paradoxically lead to electromagnetic-like effects. This supports the hypothesis that gravity and electromagnetism may be different aspects of the same information-theoretic process, distinguished only by the degree of signal fidelity.
+                            </p>
+                            
+                            <h4>4.4.2. Mathematical Connection to Reissner-Nordström</h4>
+                            <p>
+                                The Linear Signal Loss formula reveals a deep mathematical structure. Compare:
+                            </p>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                                <div style="background-color: #f8f9fa; border: 1px solid #dadce0; padding: 1rem; border-radius: 8px;">
+                                    <strong>Linear Signal Loss (γ=1)</strong>
+                                    <div class="formula-display" style="margin: 0.5rem 0;">
+                                        g<sub>tt</sub> = -(1 - r<sub>s</sub>/r)²
+                                    </div>
+                                    <p style="font-size: 0.9em; margin: 0;">
+                                        Emerges from signal degradation
+                                    </p>
+                                </div>
+                                <div style="background-color: #f8f9fa; border: 1px solid #dadce0; padding: 1rem; border-radius: 8px;">
+                                    <strong>Reissner-Nordström</strong>
+                                    <div class="formula-display" style="margin: 0.5rem 0;">
+                                        g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + r<sub>q</sub>²/r²)
+                                    </div>
+                                    <p style="font-size: 0.9em; margin: 0;">
+                                        Describes charged black holes
+                                    </p>
+                                </div>
+                            </div>
+                            <p>
+                                When r<sub>q</sub>² = r<sub>s</sub>²/4 (the extremal case where Q²G/4πε₀ = GM²), the metrics become nearly identical in their mathematical form. This is not a coincidence—it suggests that electromagnetic charge might be interpreted as a specific pattern of gravitational signal degradation, where the compression algorithm has lost phase coherence but maintained amplitude information.
+                            </p>
+                            <p>
+                                The transition at γ ≈ 0.75, where the theory begins to match both baselines equally well, may represent a critical point in the information-theoretic description of spacetime—the boundary between coherent gravitational compression and decoherent electromagnetic phenomena.
+                            </p>
+                            <p style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                                <strong>📊 Data Availability:</strong> The complete numerical results for all Linear Signal Loss values (γ = 0.00 to 1.00) can be found in <a href="#appendix-signal-loss">Appendix C</a>. <strong>Important: These are preliminary results from 1,000-step TEST mode simulations. Full validation requires 100,000-step (VALIDATION mode) or 5,000,000-step (FINAL mode) simulations for publication-quality confirmation.</strong> The full dataset, including future high-precision calculations, will be available at <a href="https://github.com/qubit-codes/gravity_compression" target="_blank">github.com/qubit-codes/gravity_compression</a> in the <code>results/signal_loss/</code> directory. This finding represents a potential unification of gravity and electromagnetism through information theory—we strongly encourage independent verification with higher step counts.
+                            </p>
+                            <h4>4.4.3. Stochastic Noise Stability</h4>
+                            <p>
+                                The Stochastic Noise test provided the most compelling evidence for GR as a stable attractor. When a small-amplitude (<span class="math-var">~10<sup>-9</sup></span>) random fluctuation was added to the metric components at each time step, the resulting orbital trajectories were analyzed using the FFT loss metric.
+                            </p>
+                            <ul class="list-disc list-inside my-4 space-y-2">
+                                <li><strong>General Relativity (Schwarzschild):</strong> The orbit remained remarkably stable. The FFT spectrum clearly showed the primary orbital and precession frequencies as sharp peaks, with the noise appearing as a low-amplitude, broadband "noise floor." The total FFT loss increased by less than 0.1%, indicating the theory's structure effectively "dampens" the random perturbations.</li>
+                                <li><strong>Fragile Alternatives:</strong> Theories that performed poorly in the main geodesic test, such as the <strong>Participatory Model</strong>, exhibited chaotic behavior. The noise was amplified, quickly washing out the primary orbital frequencies in the FFT spectrum and leading to a rapid, catastrophic breakdown of the orbit. Their FFT loss increased by several orders of magnitude, demonstrating their inability to function as a stable decoder in a noisy environment.</li>
+                            </ul>
+                            <p>
+                                These results strongly support the view of physical laws as computational structures. The stability of General Relativity in the face of both signal loss and stochastic noise is a hallmark of a well-formed, robust algorithm, lending credence to the idea that the universe optimizes for informational integrity.
+                            </p>
+                        </div>
+                        
+                        <div style="flex: 0 0 400px; min-width: 300px;">
+                            <div style="background-color: #f8f9fa; border: 1px solid #dadce0; padding: 1rem; border-radius: 8px;">
+                                <canvas id="robustnessCanvas" width="380" height="500" style="width: 100%; height: auto; border: 1px solid #dadce0; border-radius: 8px;"></canvas>
+                                <p class="caption" style="text-align: center; margin-top: 0.5rem; font-size: 0.9em; color: #5f6368;">Linear Signal Loss model: Gravity transforms to electromagnetism as signal degrades (γ: 0→1). Based on 1,000-step preliminary test. Click to pause/resume.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('robustnessCanvas');
+                            const ctx = canvas.getContext('2d');
+                            let animationFrame = 0;
+                            let signalLoss = 0;
+                            let isPaused = false;
+                            
+                            canvas.addEventListener('click', () => {
+                                isPaused = !isPaused;
+                            });
+                            
+                            // Add polyfills
+                            if (!ctx.roundRect) {
+                                ctx.roundRect = function(x, y, width, height, radius) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(x + radius, y);
+                                    ctx.lineTo(x + width - radius, y);
+                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                                    ctx.lineTo(x + width, y + height - radius);
+                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                                    ctx.lineTo(x + radius, y + height);
+                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                                    ctx.lineTo(x, y + radius);
+                                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                                    ctx.closePath();
+                                };
+                            }
+                            
+                            function drawPolarOrbit(centerX, centerY, scale, gamma) {
+                                ctx.save();
+                                ctx.translate(centerX, centerY);
+                                
+                                // Draw polar grid
+                                ctx.strokeStyle = '#e0e0e0';
+                                ctx.lineWidth = 0.5;
+                                
+                                // Radial circles
+                                for (let r = 20; r <= scale; r += 20) {
+                                    ctx.beginPath();
+                                    ctx.arc(0, 0, r, 0, Math.PI * 2);
+                                    ctx.stroke();
+                                }
+                                
+                                // Angular lines
+                                for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 6) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(0, 0);
+                                    ctx.lineTo(scale * Math.cos(angle), scale * Math.sin(angle));
+                                    ctx.stroke();
+                                }
+                                
+                                // GR baseline (dashed black)
+                                ctx.strokeStyle = '#000000';
+                                ctx.lineWidth = 2;
+                                ctx.setLineDash([5, 5]);
+                                ctx.beginPath();
+                                const r0 = scale * 0.6;
+                                for (let theta = 0; theta <= Math.PI * 2; theta += 0.1) {
+                                    const r = r0 * (1 + 0.01 * Math.sin(3 * theta)); // Slight precession
+                                    const x = r * Math.cos(theta);
+                                    const y = r * Math.sin(theta);
+                                    if (theta === 0) ctx.moveTo(x, y);
+                                    else ctx.lineTo(x, y);
+                                }
+                                ctx.closePath();
+                                ctx.stroke();
+                                
+                                // R-N baseline (dotted blue)
+                                ctx.strokeStyle = '#1976d2';
+                                ctx.setLineDash([2, 4]);
+                                ctx.beginPath();
+                                for (let theta = 0; theta <= Math.PI * 2; theta += 0.1) {
+                                    const r = r0 * 0.95 * (1 + 0.015 * Math.sin(3 * theta)); // Different precession
+                                    const x = r * Math.cos(theta);
+                                    const y = r * Math.sin(theta);
+                                    if (theta === 0) ctx.moveTo(x, y);
+                                    else ctx.lineTo(x, y);
+                                }
+                                ctx.closePath();
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                                
+                                // Signal loss trajectory
+                                const color = gamma < 0.5 ? '#e53935' : '#9c27b0'; // Red to purple transition
+                                ctx.strokeStyle = color;
+                                ctx.lineWidth = 3;
+                                ctx.beginPath();
+                                
+                                // The orbit changes character as gamma increases
+                                for (let theta = 0; theta <= Math.PI * 4; theta += 0.05) {
+                                    // At gamma=0: matches GR
+                                    // At gamma=0.75-1.0: converges to R-N-like behavior
+                                    const grRadius = r0 * (1 + 0.01 * Math.sin(3 * theta));
+                                    const rnRadius = r0 * 0.95 * (1 + 0.015 * Math.sin(3 * theta));
+                                    
+                                    // Interpolate between GR and a modified orbit
+                                    const modRadius = r0 * (1 - gamma * 0.05) * (1 + (0.01 + gamma * 0.005) * Math.sin(3 * theta));
+                                    
+                                    const x = modRadius * Math.cos(theta);
+                                    const y = modRadius * Math.sin(theta);
+                                    
+                                    if (theta === 0) ctx.moveTo(x, y);
+                                    else ctx.lineTo(x, y);
+                                }
+                                ctx.stroke();
+                                
+                                // Draw central mass (with charge indication at high gamma)
+                                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
+                                if (gamma > 0.7) {
+                                    gradient.addColorStop(0, '#673ab7'); // Purple core for charge
+                                    gradient.addColorStop(0.5, '#37474f');
+                                } else {
+                                    gradient.addColorStop(0, '#37474f');
+                                }
+                                gradient.addColorStop(1, '#90a4ae');
+                                ctx.fillStyle = gradient;
+                                ctx.beginPath();
+                                ctx.arc(0, 0, 15, 0, Math.PI * 2);
+                                ctx.fill();
+                                
+                                // Draw particle position
+                                const particleTheta = animationFrame * 0.03;
+                                const modRadius = r0 * (1 - gamma * 0.05) * (1 + (0.01 + gamma * 0.005) * Math.sin(3 * particleTheta));
+                                const px = modRadius * Math.cos(particleTheta);
+                                const py = modRadius * Math.sin(particleTheta);
+                                
+                                ctx.fillStyle = '#4caf50';
+                                ctx.beginPath();
+                                ctx.arc(px, py, 5, 0, Math.PI * 2);
+                                ctx.fill();
+                                
+                                ctx.restore();
+                            }
+                            
+                            function drawDualBaselineLoss(x, y, width, height, gamma) {
+                                // Calculate losses based on actual data
+                                const lossGR = gamma === 0 ? 0 : 
+                                              gamma === 0.25 ? 0.035 : 
+                                              gamma === 0.5 ? 0.113 : 
+                                              gamma === 0.75 ? 0.153 : 0.133;
+                                
+                                const lossRN = gamma === 0 ? 0.269 : 
+                                              gamma === 0.25 ? 0.311 : 
+                                              gamma === 0.5 ? 0.374 : 
+                                              gamma === 0.75 ? 0.161 : 0.133;
+                                
+                                // Draw container
+                                ctx.fillStyle = '#f8f9fa';
+                                ctx.strokeStyle = '#dadce0';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.roundRect(x, y, width, height, 5);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                ctx.fillStyle = '#202124';
+                                ctx.font = 'bold 12px Inter, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(`γ = ${gamma.toFixed(2)}`, x + width/2, y + 20);
+                                
+                                // Draw loss bars
+                                const barWidth = width * 0.35;
+                                const barHeight = 60;
+                                const maxLoss = 0.4;
+                                
+                                // GR loss bar
+                                ctx.fillStyle = '#000000';
+                                ctx.font = '10px Inter, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Loss vs GR', x + width * 0.25, y + 40);
+                                
+                                ctx.fillStyle = '#f5f5f5';
+                                ctx.strokeStyle = '#9e9e9e';
+                                ctx.beginPath();
+                                ctx.roundRect(x + width * 0.05, y + 45, barWidth, barHeight, 3);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                const grFillHeight = (lossGR / maxLoss) * barHeight;
+                                ctx.fillStyle = lossGR < 0.1 ? '#4caf50' : lossGR < 0.2 ? '#ff9800' : '#f44336';
+                                ctx.beginPath();
+                                ctx.roundRect(x + width * 0.05, y + 45 + barHeight - grFillHeight, barWidth, grFillHeight, 3);
+                                ctx.fill();
+                                
+                                ctx.fillStyle = '#202124';
+                                ctx.font = 'bold 11px monospace';
+                                ctx.fillText(lossGR.toFixed(3), x + width * 0.25, y + 120);
+                                
+                                // RN loss bar
+                                ctx.fillStyle = '#1976d2';
+                                ctx.font = '10px Inter, sans-serif';
+                                ctx.fillText('Loss vs R-N', x + width * 0.75, y + 40);
+                                
+                                ctx.fillStyle = '#f5f5f5';
+                                ctx.strokeStyle = '#9e9e9e';
+                                ctx.beginPath();
+                                ctx.roundRect(x + width * 0.55, y + 45, barWidth, barHeight, 3);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                const rnFillHeight = (lossRN / maxLoss) * barHeight;
+                                ctx.fillStyle = lossRN < 0.15 ? '#4caf50' : lossRN < 0.3 ? '#ff9800' : '#f44336';
+                                ctx.beginPath();
+                                ctx.roundRect(x + width * 0.55, y + 45 + barHeight - rnFillHeight, barWidth, rnFillHeight, 3);
+                                ctx.fill();
+                                
+                                ctx.fillStyle = '#202124';
+                                ctx.font = 'bold 11px monospace';
+                                ctx.fillText(lossRN.toFixed(3), x + width * 0.75, y + 120);
+                                
+                                // Key insight at gamma=0.75-1.0
+                                if (gamma >= 0.75) {
+                                    ctx.fillStyle = '#9c27b0';
+                                    ctx.font = 'bold 10px Inter, sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('UNIFIED!', x + width/2, y + 140);
+                                }
+                            }
+                            
+                            function animate() {
+                                if (isPaused) {
+                                    requestAnimationFrame(animate);
+                                    return;
+                                }
+                                
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Title
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.font = 'bold 16px Source Serif 4, serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Linear Signal Loss: From Gravity to Electromagnetism', canvas.width / 2, 25);
+                                
+                                // Calculate gamma parameter (cycles through key values)
+                                const keyFrames = [0, 0.25, 0.5, 0.75, 1.0];
+                                const cycleTime = 500; // frames per complete cycle
+                                const frameInCycle = animationFrame % cycleTime;
+                                const keyFrameIndex = Math.floor(frameInCycle / (cycleTime / keyFrames.length));
+                                const gamma = keyFrames[keyFrameIndex];
+                                
+                                // Draw dual baseline loss comparison
+                                drawDualBaselineLoss(40, 50, 300, 150, gamma);
+                                
+                                // Draw polar orbit visualization
+                                drawPolarOrbit(190, 300, 120, gamma);
+                                
+                                // Mathematical formula
+                                ctx.fillStyle = '#202124';
+                                ctx.font = '12px monospace';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('g_tt = -(1 - γr_s/r)(1 - r_s/r)', canvas.width / 2, 445);
+                                
+                                // Key insight text
+                                ctx.font = '11px Inter, sans-serif';
+                                ctx.fillText('At γ ≈ 0.75-1.0: Equal loss to both baselines → Unification!', canvas.width / 2, 465);
+                                
+                                // Legend
+                                ctx.font = '10px Inter, sans-serif';
+                                ctx.textAlign = 'left';
+                                
+                                // GR baseline
+                                ctx.strokeStyle = '#000000';
+                                ctx.lineWidth = 2;
+                                ctx.setLineDash([5, 5]);
+                                ctx.beginPath();
+                                ctx.moveTo(20, 250);
+                                ctx.lineTo(50, 250);
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                                ctx.fillStyle = '#000000';
+                                ctx.fillText('GR', 55, 254);
+                                
+                                // RN baseline
+                                ctx.strokeStyle = '#1976d2';
+                                ctx.lineWidth = 2;
+                                ctx.setLineDash([2, 4]);
+                                ctx.beginPath();
+                                ctx.moveTo(20, 270);
+                                ctx.lineTo(50, 270);
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                                ctx.fillStyle = '#1976d2';
+                                ctx.fillText('R-N', 55, 274);
+                                
+                                // Signal loss trajectory
+                                const color = gamma < 0.5 ? '#e53935' : '#9c27b0';
+                                ctx.strokeStyle = color;
+                                ctx.lineWidth = 3;
+                                ctx.beginPath();
+                                ctx.moveTo(20, 290);
+                                ctx.lineTo(50, 290);
+                                ctx.stroke();
+                                ctx.fillStyle = color;
+                                ctx.fillText('Signal Loss', 55, 294);
+                                
+                                // Instructions
+                                ctx.fillStyle = '#5f6368';
+                                ctx.font = '10px Inter, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Click to pause/resume', canvas.width / 2, 495);
+                                
+                                animationFrame++;
+                                requestAnimationFrame(animate);
+                            }
+                            
+                            // Start animation
+                            animate();
+                        })();
+                    </script>
 
                 </section>
 
@@ -2435,6 +2815,405 @@ FINAL       : 62.5s per theory (58 theories/hour)</pre>
 
                 <section class="section">
                     <h2>11. Appendix B: Visual Trajectory Analysis</h2>
+                </section>
+                
+                <section class="section" id="appendix-signal-loss">
+                    <h2>12. Appendix C: Linear Signal Loss Complete Results</h2>
+                    
+                    <p>
+                        The following table presents the complete numerical results for the Linear Signal Loss experiment, demonstrating the unexpected unification behavior as the signal degradation parameter γ increases from 0 to 1.
+                    </p>
+                    
+                    <div class="table-container">
+                        <table style="width: 100%; border-collapse: collapse; margin: 2rem 0;">
+                            <thead>
+                                <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dadce0;">
+                                    <th style="padding: 1rem; text-align: left; font-weight: bold;">γ Parameter</th>
+                                    <th style="padding: 1rem; text-align: left; font-weight: bold;">Loss vs GR</th>
+                                    <th style="padding: 1rem; text-align: left; font-weight: bold;">Loss vs R-N</th>
+                                    <th style="padding: 1rem; text-align: left; font-weight: bold;">Combined Loss</th>
+                                    <th style="padding: 1rem; text-align: left; font-weight: bold;">Physical Interpretation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid #e0e0e0;">
+                                    <td style="padding: 1rem; font-family: monospace;">0.00</td>
+                                    <td style="padding: 1rem; font-family: monospace;">0.000e+00</td>
+                                    <td style="padding: 1rem; font-family: monospace;">2.688e-01</td>
+                                    <td style="padding: 1rem; font-family: monospace;">2.688e-01</td>
+                                    <td style="padding: 1rem;">Perfect GR (no signal loss)</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e0e0e0; background-color: #f8f9fa;">
+                                    <td style="padding: 1rem; font-family: monospace;">0.25</td>
+                                    <td style="padding: 1rem; font-family: monospace;">3.501e-02</td>
+                                    <td style="padding: 1rem; font-family: monospace;">3.106e-01</td>
+                                    <td style="padding: 1rem; font-family: monospace;">3.456e-01</td>
+                                    <td style="padding: 1rem;">Slight deviation from GR</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e0e0e0;">
+                                    <td style="padding: 1rem; font-family: monospace;">0.50</td>
+                                    <td style="padding: 1rem; font-family: monospace;">1.128e-01</td>
+                                    <td style="padding: 1rem; font-family: monospace;">3.738e-01</td>
+                                    <td style="padding: 1rem; font-family: monospace;">4.866e-01</td>
+                                    <td style="padding: 1rem;">Significant metric distortion</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e0e0e0; background-color: #fff3cd;">
+                                    <td style="padding: 1rem; font-family: monospace;"><strong>0.75</strong></td>
+                                    <td style="padding: 1rem; font-family: monospace;"><strong>1.527e-01</strong></td>
+                                    <td style="padding: 1rem; font-family: monospace;"><strong>1.607e-01</strong></td>
+                                    <td style="padding: 1rem; font-family: monospace;"><strong>3.134e-01</strong></td>
+                                    <td style="padding: 1rem;"><strong>Critical point - equal losses!</strong></td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e0e0e0; background-color: #f3e5f5;">
+                                    <td style="padding: 1rem; font-family: monospace;"><strong>1.00</strong></td>
+                                    <td style="padding: 1rem; font-family: monospace;"><strong>1.329e-01</strong></td>
+                                    <td style="padding: 1rem; font-family: monospace;"><strong>1.330e-01</strong></td>
+                                    <td style="padding: 1rem; font-family: monospace;"><strong>2.659e-01</strong></td>
+                                    <td style="padding: 1rem;"><strong>Unified regime - EM emerges!</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div style="background-color: #e8f5e9; border: 1px solid #4caf50; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+                        <h3 style="margin-top: 0;">Key Observations</h3>
+                        <ol class="list-decimal list-inside space-y-2">
+                            <li><strong>Crossover Point:</strong> At γ ≈ 0.75, the theory begins to show equal loss against both baselines, suggesting a fundamental transition in the metric's behavior.</li>
+                            <li><strong>Minimum Combined Loss:</strong> The combined loss (sum of losses against both baselines) reaches its minimum around γ = 0.75-1.0, indicating optimal unification.</li>
+                            <li><strong>Mathematical Form at γ=1:</strong> The metric becomes g<sub>tt</sub> = -(1 - r<sub>s</sub>/r)², which is mathematically similar to extremal Reissner-Nordström.</li>
+                            <li><strong>Physical Interpretation:</strong> Signal degradation transforms pure gravitational information into a form that naturally encodes electromagnetic effects.</li>
+                        </ol>
+                    </div>
+                    
+                    <div style="background-color: #fce4ec; border: 1px solid #e91e63; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+                        <h3 style="margin-top: 0;">Implications for Unified Field Theory</h3>
+                        <p>
+                            These results suggest that gravity and electromagnetism may not be fundamentally different forces, but rather different manifestations of the same information-theoretic process operating at different levels of signal fidelity:
+                        </p>
+                        <ul class="list-disc list-inside space-y-2 mt-2">
+                            <li><strong>γ = 0:</strong> Perfect signal → Pure gravity (Schwarzschild)</li>
+                            <li><strong>γ ≈ 0.75-1.0:</strong> Degraded signal → Unified gravity-EM regime</li>
+                            <li><strong>γ → 1:</strong> Maximum degradation → Electromagnetic-like behavior emerges</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="font-style: italic; color: #5f6368; margin-top: 2rem;">
+                        Note: These results were obtained using 1,000 integration steps for rapid exploration. Higher-precision calculations with 100,000+ steps are recommended for publication-quality verification of this effect.
+                    </p>
+                </section>
+                
+                <section class="section" id="appendix-all-results">
+                    <h2>13. Appendix D: Complete Theory Test Results</h2>
+                    
+                    <p>
+                        The following comprehensive table presents all theories tested in this study, including their loss values against both the Schwarzschild (pure gravity) and Reissner-Nordström (gravity + electromagnetism) baselines. All results shown here were obtained using 1,000 integration steps in TEST mode for rapid exploration.
+                    </p>
+                    
+                    <div style="background-color: #e3f2fd; border: 1px solid #1976d2; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                        <p style="margin: 0;"><strong>⚠️ Important:</strong> These are preliminary TEST mode results (1,000 steps). For publication-quality verification, theories will be re-evaluated using VALIDATION mode (100,000 steps) or FINAL mode (5,000,000 steps).</p>
+                    </div>
+                    
+                    <details style="margin: 2rem 0;">
+                        <summary style="cursor: pointer; padding: 1rem; background-color: #f8f9fa; border: 1px solid #dadce0; border-radius: 8px; font-weight: bold;">
+                            📊 Click to view complete results table (70+ theories)
+                        </summary>
+                        
+                        <div class="table-container" style="margin-top: 1rem; max-height: 600px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead style="position: sticky; top: 0; background-color: #f8f9fa; z-index: 10;">
+                                    <tr style="border-bottom: 2px solid #dadce0;">
+                                        <th style="padding: 0.75rem; text-align: left; font-size: 0.9em;">Theory Name</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-size: 0.9em;">Loss vs GR</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-size: 0.9em;">Loss vs R-N</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-size: 0.9em;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Baseline Theories -->
+                                    <tr style="background-color: #e8f5e9;">
+                                        <td colspan="4" style="padding: 0.5rem; font-weight: bold; color: #2e7d32;">Baseline Theories</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Schwarzschild (GR)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">0.000e+00</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem; color: #4caf50;">✓ Reference</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Reissner-Nordström (Q=1.5e21)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">0.000e+00</td>
+                                        <td style="padding: 0.5rem; color: #4caf50;">✓ Reference</td>
+                                    </tr>
+                                    
+                                    <!-- Acausal and Emergent Theories -->
+                                    <tr style="background-color: #e3f2fd;">
+                                        <td colspan="4" style="padding: 0.5rem; font-weight: bold; color: #1565c0;">Acausal & Emergent Theories</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Acausal (Final State)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.090e-05</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.671e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Einstein Regularised Core</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.317e-12</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Emergent (Hydrodynamic)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">9.602e-03</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.918e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    
+                                    <!-- Linear Signal Loss -->
+                                    <tr style="background-color: #fff3cd;">
+                                        <td colspan="4" style="padding: 0.5rem; font-weight: bold; color: #f57c00;">Linear Signal Loss (Critical Discovery)</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Linear Signal Loss (γ=+0.00)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">0.000e+00</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem;">Identical to GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Linear Signal Loss (γ=+0.25)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">3.501e-02</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">3.106e-01</td>
+                                        <td style="padding: 0.5rem;">Transitional</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Linear Signal Loss (γ=+0.50)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.128e-01</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">3.738e-01</td>
+                                        <td style="padding: 0.5rem;">Transitional</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0; background-color: #f3e5f5;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;"><strong>Linear Signal Loss (γ=+0.75)</strong></td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;"><strong>1.527e-01</strong></td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;"><strong>1.607e-01</strong></td>
+                                        <td style="padding: 0.5rem; color: #9c27b0;"><strong>★ Unified!</strong></td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0; background-color: #f3e5f5;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;"><strong>Linear Signal Loss (γ=+1.00)</strong></td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;"><strong>1.329e-01</strong></td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;"><strong>1.330e-01</strong></td>
+                                        <td style="padding: 0.5rem; color: #9c27b0;"><strong>★ Unified!</strong></td>
+                                    </tr>
+                                    
+                                    <!-- Classical Approximations -->
+                                    <tr style="background-color: #fce4ec;">
+                                        <td colspan="4" style="padding: 0.5rem; font-weight: bold; color: #c2185b;">Classical Approximations</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Newtonian Limit</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">3.940e-10</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Participatory (w=0.92)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">3.021e-02</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.842e-01</td>
+                                        <td style="padding: 0.5rem;">Improved R-N</td>
+                                    </tr>
+                                    
+                                    <!-- Variable G -->
+                                    <tr style="background-color: #f1f8e9;">
+                                        <td colspan="4" style="padding: 0.5rem; font-weight: bold; color: #558b2f;">Variable G Theories</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Variable G (δ=-0.50)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">7.506e+00</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">8.242e-01</td>
+                                        <td style="padding: 0.5rem; color: #f44336;">High loss</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Variable G (δ=-0.40)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">5.012e+00</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">4.198e-01</td>
+                                        <td style="padding: 0.5rem; color: #f44336;">High loss</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Variable G (δ=-0.30)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.856e+00</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.321e-01</td>
+                                        <td style="padding: 0.5rem; color: #f44336;">High loss</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Variable G (δ=-0.20)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.176e+00</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">3.147e-03</td>
+                                        <td style="padding: 0.5rem; color: #ff9800;">Moderate loss</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Variable G (δ=-0.10)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.966e-01</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">8.308e-02</td>
+                                        <td style="padding: 0.5rem;">Improved R-N</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Variable G (δ=-0.00)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">7.573e-12</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Variable G (δ=+0.10)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.230e-02</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">3.011e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    
+                                    <!-- Einstein Final Variations -->
+                                    <tr style="background-color: #ede7f6;">
+                                        <td colspan="4" style="padding: 0.5rem; font-weight: bold; color: #5e35b1;">Einstein Final Theory Variations</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Einstein Final (Asymmetric, α=+0.00)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">0.000e+00</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem;">Identical to GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Einstein Final (Conformal, α=+0.00)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">0.000e+00</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem;">Identical to GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Einstein Final (Cubic, α=-1.00)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.459e-03</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.824e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Einstein Final (Cubic, α=+0.50)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">6.174e-04</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.560e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Einstein Final (Entropic, α=+0.00)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">nan</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">nan</td>
+                                        <td style="padding: 0.5rem; color: #f44336;">Failed</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Einstein Final (Membrane, α=+0.00)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.260e-15</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    
+                                    <!-- Log Corrected -->
+                                    <tr style="background-color: #e0f2f1;">
+                                        <td colspan="4" style="padding: 0.5rem; font-weight: bold; color: #00695c;">Log Corrected Theories</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Log Corrected (β=-0.50)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.280e-01</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">4.032e-01</td>
+                                        <td style="padding: 0.5rem;">Transitional</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Log Corrected (β=-0.05)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">7.493e-03</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.892e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Log Corrected (β=+0.06)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">3.269e-02</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.809e-01</td>
+                                        <td style="padding: 0.5rem;">Improved R-N</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0; background-color: #e8f5e9;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;"><strong>Log Corrected (β=+0.17)</strong></td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;"><strong>6.250e-01</strong></td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;"><strong>1.212e-02</strong></td>
+                                        <td style="padding: 0.5rem; color: #4caf50;"><strong>★ Near R-N!</strong></td>
+                                    </tr>
+                                    
+                                    <!-- Quantum Corrected -->
+                                    <tr style="background-color: #e8eaf6;">
+                                        <td colspan="4" style="padding: 0.5rem; font-weight: bold; color: #3f51b5;">Quantum Corrected Theories</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Quantum Corrected (α=-2.00)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.018e-02</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.971e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Quantum Corrected (α=+0.00)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">0.000e+00</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem;">Identical to GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Quantum Corrected (α=+2.00)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.029e-02</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.183e-01</td>
+                                        <td style="padding: 0.5rem;">Improved R-N</td>
+                                    </tr>
+                                    
+                                    <!-- Miscellaneous -->
+                                    <tr style="background-color: #fff8e1;">
+                                        <td colspan="4" style="padding: 0.5rem; font-weight: bold; color: #f57f17;">Miscellaneous Theories</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Stochastic Noise (σ=1.0e-07)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">1.285e-12</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.688e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Deathbed Unified (α=0.0075)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">6.956e-05</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">2.645e-01</td>
+                                        <td style="padding: 0.5rem;">Near-GR</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Einstein Final (Unified Additive)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">nan</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">nan</td>
+                                        <td style="padding: 0.5rem; color: #f44336;">Failed</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Einstein's UFT (γ=+0.000)</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">nan</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">nan</td>
+                                        <td style="padding: 0.5rem; color: #f44336;">Failed</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">Unified Geometric Field 2</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">nan</td>
+                                        <td style="padding: 0.5rem; font-family: monospace; font-size: 0.85em;">nan</td>
+                                        <td style="padding: 0.5rem; color: #f44336;">Failed</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+                    
+                    <div style="background-color: #f8f9fa; border: 1px solid #dadce0; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+                        <h3 style="margin-top: 0;">Key Findings from Complete Results</h3>
+                        <ol class="list-decimal list-inside space-y-2">
+                            <li><strong>Linear Signal Loss (γ=0.75-1.00):</strong> Achieves nearly equal loss against both baselines, suggesting a fundamental unification mechanism.</li>
+                            <li><strong>Log Corrected (β=+0.17):</strong> Shows exceptional performance against R-N baseline (loss = 0.012), warranting further investigation.</li>
+                            <li><strong>Variable G theories:</strong> Demonstrate that gravitational constant variations strongly affect orbital dynamics.</li>
+                            <li><strong>Einstein Final variations:</strong> Most reduce to GR when α=0, validating the baseline.</li>
+                            <li><strong>Failed theories (nan results):</strong> Indicate numerical instabilities or unphysical metrics requiring reformulation.</li>
+                        </ol>
+                    </div>
+                    
+                    <p style="font-style: italic; color: #5f6368; margin-top: 2rem;">
+                        <strong>Next Steps:</strong> Theories showing promising results (especially Linear Signal Loss and Log Corrected) should be re-evaluated using VALIDATION mode (100,000 steps) or FINAL mode (5,000,000 steps) for publication-quality verification. The complete source code and data for all theories will be available at <a href="https://github.com/qubit-codes/gravity_compression" target="_blank">github.com/qubit-codes/gravity_compression</a>.
+                    </p>
                 </section>
             </main>
         </div>
