@@ -647,3 +647,54 @@ class EinsteinDeathbedUnified(GravitationalTheory):
         g_tp = torsion_em * r  # Torsion-induced EM without Q
         return g_tt, g_rr, g_pp, g_tp
     # <reason>Torsion g_tp emerges EM (notes' S_μν^λ); log_mod bridges to quantum latent space.</reason>
+
+class SignalLossWrapper(GravitationalTheory):
+    """
+    Wrapper to add linear signal loss degradation to any base theory.
+    <reason>Enables efficient introduction of signal loss to multiple Einstein final theories for analysis, as per user request.</reason>
+    """
+    category = "wrapped"
+    sweep = None
+    cacheable = True
+
+    def __init__(self, base_theory: GravitationalTheory, gamma: float):
+        super().__init__(f"{base_theory.name} with Signal Loss (γ={gamma:+.2f})")
+        self.base_theory = base_theory
+        self.gamma = torch.as_tensor(gamma, device=device, dtype=DTYPE)
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        g_tt, g_rr, g_pp, g_tp = self.base_theory.get_metric(r, M_param, C_param, G_param)
+        rs = 2 * G_param * M_param / C_param**2
+        degradation = self.gamma * (rs / r)
+        # Assume m = -g_tt (time-like component)
+        base_m = -g_tt
+        degraded_m = (1 - degradation) * base_m
+        degraded_g_tt = -degraded_m
+        # Adjust g_rr consistently, assuming isotropic form
+        degraded_g_rr = 1 / (degraded_m + EPSILON)
+        return degraded_g_tt, degraded_g_rr, g_pp, g_tp
+
+class QuantumLinearSignalLoss(GravitationalTheory):
+    """
+    Combines logarithmic quantum correction with linear signal loss.
+    <reason>Extends LinearSignalLoss with quantum log term to test combined effects, based on promising LogCorrected performance.</reason>
+    """
+    category = "quantum"
+    sweep = dict(beta=np.linspace(-0.5, 0.5, 5), gamma=np.linspace(0.0, 1.0, 5))
+    cacheable = True
+
+    def __init__(self, beta: float, gamma: float):
+        super().__init__(f"Quantum Linear Signal Loss (β={beta:+.2f}, γ={gamma:+.2f})")
+        self.beta = torch.as_tensor(beta, device=device, dtype=DTYPE)
+        self.gamma = torch.as_tensor(gamma, device=device, dtype=DTYPE)
+
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        sr = torch.maximum(r, rs * 1.001)
+        log_corr = self.beta * (rs / sr) * torch.log(sr / rs)
+        base_m = 1 - rs / r + log_corr
+        degradation = self.gamma * (rs / r)
+        degraded_m = (1 - degradation) * base_m
+        g_tt = -degraded_m
+        g_rr = 1 / (degraded_m + EPSILON)
+        return g_tt, g_rr, r**2, torch.zeros_like(r)

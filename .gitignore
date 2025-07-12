@@ -1,0 +1,111 @@
+# Exclude all NPY files in runs directory
+runs/**/*.npy
+*.npy
+
+```
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyTorch specific
+runs/
+runs/**/*.npy
+*.npy
+*.npz
+*.pth
+*.pt
+*.onnx
+*.pkl
+checkpoint/
+checkpoints/
+*.ckpt
+lightning_logs/
+wandb/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Tensorboard logs
+events.out.tfevents.*
+logs/
+tb_logs/
+
+# Data files
+data/
+datasets/
+*.csv
+.json
+*.h5
+*.hdf5
+*.mat
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Documentation
+docs/_build/
+docs/build/
+
+# Coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Profiling data
+*.prof
+profile_default/
+ipython_config.py
+
+# Misc
+.gitattributes
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+```

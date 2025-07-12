@@ -236,6 +236,16 @@ python self_discovery.py --final --manual-theories-file linear_signal_loss.py
 }
 ```
 
+## ⚠️ Important Disclaimers
+
+This project is an exploratory framework for testing gravitational theories through a computational lens. However, please note the following:
+
+- **Potential Circularity**: The simulation setup, including initial conditions and geodesic integration, may introduce circular dependencies on baseline theories like General Relativity. For instance, initial velocity calculations or metric assumptions could bias results towards known models. Users should interpret results cautiously and consider independent validation methods.
+
+- **Need for Rigorous Validation**: While the FFT-based loss metric provides a novel way to compare theories, it is not a substitute for physical experiments or astronomical observations. A more comprehensive test suite, including diverse orbital scenarios, stability analyses, and comparisons with real data (e.g., from LIGO or pulsar timing), is recommended for future development to ensure robustness and reliability.
+
+These aspects highlight areas for improvement and underscore that this is a proof-of-concept tool, not a definitive test of physical theories.
+
 ## 🚧 Future Work
 
 - Test more sophisticated "lossy compression" theories

@@ -96,6 +96,7 @@ def parse_cli() -> argparse.Namespace:
     p.add_argument("--manual-theories-file", type=str, default=None, help="Path to a Python file containing manual theory class definitions to load.")
     # <reason>Added --manual-theories-file flag to allow loading manual equations/theories from disk, enabling user-defined inputs as per update.</reason>
     p.add_argument("--test", action="store_true", help="Run in test mode with reduced steps for quick benchmarking.")
+    p.add_argument("--validate-observations", action="store_true", help="Run validation against real astronomical observations.")
     return p.parse_args()
 # <reason>chain: Defined parse_cli with arguments; added manual file arg for new feature.</reason>
 
@@ -172,38 +173,7 @@ C_T = torch.as_tensor(c, device=device, dtype=DTYPE)
 # 2.  THEORY DEFINITIONS
 # ---------------------------------------------------------------------------
 
-Tensor = torch.Tensor  # Type alias for brevity
-# <reason>chain: Type alias unchanged for brevity.</reason>
-
-
-class GravitationalTheory:
-    """
-    Abstract base class for all gravitational theories.
-    <reason>This class defines a common interface (`get_metric`) that all theories must implement. This polymorphic design allows the integrator to treat any theory identically, simplifying the simulation logic and making the framework easily extensible.</reason>
-    """
-    # New: Add category and sweep as class variables for auto-categorization and parameter sweep
-    category = "classical"  # Default; subclasses can override to "quantum" or other
-    sweep = None            # Default; subclasses can override with dict of param: values
-
-    # New: Cache-related attributes
-    cacheable = False       # Default to not cacheable; subclasses override to True if suitable for caching
-    def get_cache_tag(self, N_STEPS, precision_tag, r0_tag):
-        """
-        Returns a unique tag for caching this theory's trajectory.
-        Subclasses should override to include parameters, e.g., return f"{self.name}_alpha{self.alpha}"
-        """
-        base = self.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
-        return f"{base}_{N_STEPS}_{precision_tag}_r{r0_tag}"
-
-    def __init__(self, name: str) -> None:
-        self.name = name
-    # <reason>chain: Init name; no change.</reason>
-
-    def get_metric(self, r, M_param, C_param, G_param):
-        """Calculates the metric components (g_tt, g_rr, g_φφ, g_tφ) for a given radius."""
-        raise NotImplementedError
-    # <reason>chain: Abstract method; no change.</reason>
-
+from base_theory import GravitationalTheory, Tensor
 def _get_theory_classes():
     """
     Dynamically loads predefined_theories.py as a module in a way that ensures
@@ -1268,6 +1238,15 @@ def main() -> None:
 
     print("\nDone.")
 # <reason>chain: Main function updated with per-model initial conditions to fix RN generation, increased r0, manual theories loading, and breakthrough tightening.</reason>
+
+    if args.validate_observations:
+        from validate_observations import validate_against_observations
+        from linear_signal_loss import LinearSignalLoss_gamma_1_00, QuantumLinearSignalLoss
+        print("\n--- Running Observational Validation ---")
+        models_to_validate = [LinearSignalLoss_gamma_1_00(), QuantumLinearSignalLoss()]
+        for model in models_to_validate:
+            res = validate_against_observations(model, r0, N_STEPS, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
+            print(f"{res['model']}: Simulated Advance = {res['sim_advance']:.6f} deg/yr, Obs Loss = {res['loss']:.6f}")
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
