@@ -27,7 +27,7 @@ class CassiniValidation(ObservationalValidation):
             predicted_gamma = theory.get_ppn_gamma()
         else:
             # For all theories, calculate from metric components in weak field
-            r_test = self.tensor(1e10)  # Far from source, in meters
+            r_test = self.tensor(1e12, dtype=torch.float64)  # Larger distance to avoid precision loss
             M_sun = self.tensor(1.989e30)  # kg
             
             if verbose:
@@ -37,20 +37,20 @@ class CassiniValidation(ObservationalValidation):
             g_tt, g_rr, g_pp, g_tp = theory.get_metric(r_test, M_sun, self.c.item(), self.G.item())
             
             # Compute Newtonian potential (dimensionless)
-            Phi = - (self.G.item() * M_sun / (r_test * self.c.item()**2))
+            Phi = - (self.G * M_sun / (r_test * self.c**2)).to(torch.float64)
             
             # For standard PPN, g_tt ≈ -(1 + 2 Phi), g_rr ≈ 1 + 2 gamma |Phi|
             # So gamma ≈ (g_rr - 1) / (2 |Phi|)
             if abs(Phi) > 0:
-                predicted_gamma = ((g_rr - 1) / (2 * abs(Phi))).cpu().item()
+                predicted_gamma = ((g_rr.double() - 1) / (2 * torch.abs(Phi))).cpu().item()
             else:
                 predicted_gamma = 1.0
             
-            if verbose:
-                print(f"      Phi = {Phi:.6e}")
-                print(f"      g_tt = {g_tt.cpu().item():.6e}")
-                print(f"      g_rr = {g_rr.cpu().item():.6e}")
-                print(f"      γ = (g_rr - 1) / (2 |Phi|) = {predicted_gamma:.6f}")
+            # Always print for debugging
+            print(f"      Phi = {Phi:.6e}")
+            print(f"      g_tt = {g_tt.cpu().item():.6e}")
+            print(f"      g_rr = {g_rr.cpu().item():.6e}")
+            print(f"      γ = (g_rr - 1) / (2 |Phi|) = {predicted_gamma:.6f}")
         
         error = abs(predicted_gamma - observed_gamma)
         passed = error < 2.3e-5  # Within observed uncertainty
@@ -67,5 +67,5 @@ class CassiniValidation(ObservationalValidation):
             'predicted': predicted_gamma,
             'error': error,
             'units': 'dimensionless',
-            'passed': passed
+            'passed': bool(passed)  # Convert numpy bool to Python bool
         } 

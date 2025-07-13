@@ -415,6 +415,10 @@ def build_prompt(history: list[dict], initial_prompt: str = "") -> str:
     """
     Builds a dynamic prompt for the API based on previous results and optional initial prompt.
     The prompt grows with history, allowing the system to learn iteratively.
+    
+    In RL terms:
+    - State: Encoded as history of previous theories and their rewards (losses)
+    - Policy: The prompt template + history guides the LLM's action selection
     """
     prompt = """
 You are a physics researcher tasked with discovering a unified theory of gravity and electromagnetism.
@@ -502,6 +506,10 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
     Calls the selected API to generate new theory classes based on history.
     Executes the returned code to define the classes dynamically.
     Returns list of (model instance, summary, content)
+    
+    RL Interpretation:
+    - Action: Generate new theory code via API (LLM policy)
+    - Can incorporate human-submitted theories via --manual-theories-file for hybrid RL
     """
     prompt = build_prompt(history, initial_prompt)
     # <reason>chain: Built prompt; no change.</reason>
@@ -713,6 +721,8 @@ class GeodesicIntegrator:
             self._ode = torch.compile(self._ode_impl, fullgraph=True, mode="reduce-overhead", dynamic=True)
         else:
             self._ode = self._ode_impl
+        self.max_r_factor = 10.0  # Abort if r > initial_r * factor
+        self.initial_r = y0_full[1]
     # <reason>chain: Init integrator; uses model's metric for E and Lz, which is correct.</reason>
 
     def _ode_impl(self, y_state: Tensor) -> Tensor:
@@ -746,6 +756,9 @@ class GeodesicIntegrator:
 
     def rk4_step(self, y: Tensor, dτ: float) -> Tensor:
         """Performs a single Runge-Kutta 4th order integration step."""
+        if not torch.all(torch.isfinite(y)) or y[1] > self.initial_r * self.max_r_factor:
+            print(f"Abort: Divergence detected (r={y[1]:.3e} > {self.initial_r * self.max_r_factor:.3e})")
+            return None  # Signal abort
         k1 = self._ode(y).detach()
         k2 = self._ode((y + 0.5 * dτ * k1)).detach()
         k3 = self._ode((y + 0.5 * dτ * k2)).detach()
@@ -775,6 +788,9 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
         first_nan_step = -1
         for i in range(N_STEPS):
             y = integ.rk4_step(y, DTau)
+            if y is None:  # Early abort
+                hist = hist[:i+1]
+                break
             y = y.to(device)  # Explicitly ensure on device
             if args.verbose:
                 print(f"Step {i+1}: y device = {y.device}, isfinite = {torch.all(torch.isfinite(y))}")
@@ -814,6 +830,9 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
     first_nan_step = -1
     for i in range(N_STEPS):
         y = integ.rk4_step(y, DTau)
+        if y is None:  # Early abort
+            hist = hist[:i+1]
+            break
         y = y.to(device)  # Explicitly ensure on device
         if args.verbose:
             print(f"Step {i+1}: y device = {y.device}, isfinite = {torch.all(torch.isfinite(y))}")
@@ -1117,10 +1136,11 @@ def downsample(arr, max_points=5000):
 def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "", GR_tag: str = None, RN_tag: str = None, GR_loss_vs_RN: float = None, run_timestamp: str = "", theory_base_dir: str = None, is_generated: bool = False, baseline_trajectories: dict = None, loss_type: str = 'fft') -> dict:
     """
     Evaluates a theory by running the simulation and saving results.
-    If theory_base_dir is provided, saves to that theory's runs/ directory.
-    Otherwise uses the old runs/{timestamp}/{category} structure.
+    
+    RL Interpretation:
+    - Environment Step: Simulate trajectory
+    - Reward: Negative loss vs baselines + breakthrough bonuses
     """
-    # <reason>chain: Added loss_type parameter to evaluate_theory, passed from args, to use in loss calculations for modularity.&lt;/reason&gt;
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     safe_name = model.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
     
@@ -1619,6 +1639,13 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
 # <reason>chain: Evaluate theory updated to use model-specific initial conditions.</reason>
 
 def main() -> None:
+    """
+    Main driver implementing the RL loop for theory discovery.
+    
+    If --self-discover enabled:
+    - Infinite loop of generation (action), evaluation (reward), history update (state/policy improvement)
+    - Theories from AIs or humans (--manual-theories-file)
+    """
     os.makedirs('cache', exist_ok=True)
     run_timestamp = time.strftime("%Y%m%d_%H%M%S")
     """
@@ -1964,12 +1991,27 @@ def main() -> None:
         validation_results = run_all_validations(
             theories=all_theories,
             device=device,
-            dtype=DTYPE
+            dtype=DTYPE,
+            verbose=args.verbose,
+            test=args.test  # Pass test flag to reduce validation steps
         )
         
         # Save validation results
         import json
         with open(f"validation_results_{run_timestamp}.json", "w") as f:
+            def convert_ndarrays(obj):
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                elif isinstance(obj, dict):
+                    return {k: convert_ndarrays(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_ndarrays(item) for item in obj]
+                else:
+                    return obj
+
+            # Around line 2002, before json.dump
+            validation_results = convert_ndarrays(validation_results)
+
             json.dump(validation_results, f, indent=2)
 
     print("\nDone.")

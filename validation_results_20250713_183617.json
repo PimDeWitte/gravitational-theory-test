@@ -1,0 +1,10 @@
+{
+  "Linear Signal Loss (\u03b3=+0.00)": {
+    "PSR B1913+16 Periastron Advance": {
+      "test_name": "PSR B1913+16 Periastron Advance",
+      "observed": 4.226595,
+      "predicted": 65797.71001948768,
+      "error": 65793.48342448768,
+      "units": "degrees/year",
+      "passed": false,
+      "trajectory": 

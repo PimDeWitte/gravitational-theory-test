@@ -166,6 +166,76 @@ class ObservationalValidation(BaseValidation):
                 - trajectory: Optional trajectory data
         """
         raise NotImplementedError("Subclasses must implement validate()")
+    
+    def generate_viz(self, theory: GravitationalTheory, hist: torch.Tensor, output_dir: str, gr_hist: Optional[torch.Tensor] = None):
+        """
+        Generate interactive 3D visualization of trajectory using Three.js.
+        Saves an HTML file with embedded JS for rendering orbits.
+        """
+        import json
+        import os
+        
+        # Downsample for performance
+        downsample = 1 if len(hist) < 10000 else len(hist) // 5000  # Max ~5000 points
+        traj_sim = hist[::downsample, [1,2]].cpu().tolist()  # r, phi to [x,y] in JS
+        traj_gr = gr_hist[::downsample, [1,2]].cpu().tolist() if gr_hist is not None else []
+        
+        data_path = os.path.join(output_dir, f'traj_{theory.name.replace(" ", "_").replace("(", "").replace(")", "")}.json')
+        with open(data_path, 'w') as f:
+            json.dump({'sim': traj_sim, 'gr': traj_gr, 'theory': theory.name}, f)
+        
+        viz_path = os.path.join(output_dir, f'viz_{theory.name.replace(" ", "_").replace("(", "").replace(")", "")}.html')
+        html = f'''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Orbit Viz: {theory.name}</title>
+    <style> body {{ margin: 0; }} </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <script>
+        fetch('{os.path.basename(data_path)}').then(res => res.json()).then(data => {{
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            
+            // Function to create orbit line
+            function createOrbit(points, color) {{
+                const geometry = new THREE.BufferGeometry().setFromPoints(points.map(p => new THREE.Vector3(p[0] * Math.cos(p[1]), p[0] * Math.sin(p[1]), 0)));
+                const material = new THREE.LineBasicMaterial({{color}});
+                return new THREE.Line(geometry, material);
+            }}
+            
+            scene.add(createOrbit(data.sim, 0xff0000));  // Red for sim
+            if (data.gr.length) scene.add(createOrbit(data.gr, 0x00ff00));  // Green for GR
+            
+            // Auto-scale camera
+            const allPoints = data.sim.concat(data.gr);
+            const maxR = Math.max(...allPoints.map(p => p[0])) * 1.2;
+            camera.position.z = maxR;
+            
+            function animate() {{
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }}
+            animate();
+        }});
+    </script>
+</body>
+</html>
+'''
+        with open(viz_path, 'w') as f:
+            f.write(html)
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        relative_path = os.path.relpath(os.path.abspath(viz_path), project_root)
+        print(f'      Interactive visualization available at: http://localhost:8000/{relative_path}')
+        return viz_path
 
 
 # Example usage (for standalone testing)

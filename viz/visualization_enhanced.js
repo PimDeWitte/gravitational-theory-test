@@ -18,10 +18,12 @@ class GravityVisualizerEnhanced {
         this.particleNames = [];
         this.selectedParticle = null;
         this.showMetricPanel = false;
+        this.stepInterval = 100;  // New setting
+        this.frameCounter = 0;  // Track frames for step interval
         
         // Constants
         this.RS = 2 * this.params.G * this.params.M / (this.params.C * this.params.C);
-        this.PARTICLE_SIZE = 0.08; // Larger for clicking
+        this.PARTICLE_SIZE = 0.15; // Larger for easier clicking
         
         this.init();
     }
@@ -42,7 +44,7 @@ class GravityVisualizerEnhanced {
         this.setupMetricPanel();
         this.createObjects();
         this.initParticles();
-        this.animate();
+        this.startAnimation();
     }
     
     generateDefaultNames() {
@@ -99,6 +101,7 @@ class GravityVisualizerEnhanced {
         
         // Raycaster for mouse interactions
         this.raycaster = new THREE.Raycaster();
+        this.raycaster.params.Points.threshold = 0.1; // Increase threshold for easier clicking
         this.mouse = new THREE.Vector2();
         
         // Event listeners
@@ -217,18 +220,47 @@ class GravityVisualizerEnhanced {
         this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
         
-        // Update the picking ray
+        // Update the picking ray with larger threshold for easier selection
         this.raycaster.setFromCamera(this.mouse, this.camera);
         
         // Check for intersections with particles
-        const particleMeshes = this.particles.map(p => p.mesh);
+        const particleMeshes = this.particles.map(p => p.mesh).filter(m => m.visible);
         const intersects = this.raycaster.intersectObjects(particleMeshes);
         
         if (intersects.length > 0) {
+            // Sort by distance and pick the closest
+            intersects.sort((a, b) => a.distance - b.distance);
             const clickedMesh = intersects[0].object;
             const particle = this.particles.find(p => p.mesh === clickedMesh);
-            if (particle) {
+            if (particle && particle.active) {
                 this.selectParticle(particle);
+            }
+        } else {
+            // If no direct hit, check for nearby particles
+            const threshold = 0.5; // Distance threshold in world units
+            let closestParticle = null;
+            let closestDistance = Infinity;
+            
+            this.particles.forEach(particle => {
+                if (!particle.active || !particle.mesh.visible) return;
+                
+                // Project particle position to screen
+                const vector = particle.mesh.position.clone();
+                vector.project(this.camera);
+                
+                // Calculate screen distance
+                const dx = vector.x - this.mouse.x;
+                const dy = vector.y - this.mouse.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < threshold && distance < closestDistance) {
+                    closestDistance = distance;
+                    closestParticle = particle;
+                }
+            });
+            
+            if (closestParticle) {
+                this.selectParticle(closestParticle);
             }
         }
     }
@@ -238,6 +270,30 @@ class GravityVisualizerEnhanced {
         const rect = this.renderer.domElement.getBoundingClientRect();
         this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        // Check for hover over particles
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const particleMeshes = this.particles.map(p => p.mesh).filter(m => m.visible);
+        const intersects = this.raycaster.intersectObjects(particleMeshes);
+        
+        // Reset all particle scales except selected
+        this.particles.forEach(particle => {
+            if (particle !== this.selectedParticle && particle.mesh) {
+                particle.mesh.scale.setScalar(1);
+            }
+        });
+        
+        // Highlight hovered particle
+        if (intersects.length > 0) {
+            const hoveredMesh = intersects[0].object;
+            const particle = this.particles.find(p => p.mesh === hoveredMesh);
+            if (particle && particle.active && particle !== this.selectedParticle) {
+                particle.mesh.scale.setScalar(1.2);
+                this.renderer.domElement.style.cursor = 'pointer';
+            }
+        } else {
+            this.renderer.domElement.style.cursor = 'default';
+        }
     }
     
     selectParticle(particle) {
@@ -282,6 +338,9 @@ class GravityVisualizerEnhanced {
         const simFolder = gui.addFolder('Simulation');
         simFolder.add(this, 'isRunning').name('Running');
         simFolder.add(this, 'simulationSpeed', 0.1, 5).name('Speed');
+        simFolder.add(this, 'stepInterval', 1, 500, 1).name('Step Interval').onChange(() => {
+            this.frameCounter = 0; // Reset counter when interval changes
+        });
         simFolder.add(this, 'quantumNoise', 0, 0.1).name('Quantum Noise');
         simFolder.add(this, 'reset').name('Reset');
         simFolder.add(this, 'addSteps').name('Add 10k Steps');
@@ -429,9 +488,11 @@ class GravityVisualizerEnhanced {
         const trailMaterial = new THREE.LineBasicMaterial({ 
             color: nameData.color,
             transparent: true,
-            opacity: 0.5
+            opacity: 0.7,
+            linewidth: 2
         });
         const trail = new THREE.Line(trailGeometry, trailMaterial);
+        trail.visible = this.showTrails;
         this.scene.add(trail);
         
         // Create label for particle
@@ -734,35 +795,89 @@ class GravityVisualizerEnhanced {
         this.maxSteps += 10000;
     }
     
+    loadTrajectory(simData, grData = null) {
+        // Clear existing
+        while (this.scene.children.length > 0) { this.scene.remove(this.scene.children[0]); }
+        
+        // Add sim trajectory as line
+        const simPoints = simData.map(p => new THREE.Vector3(p[0] * Math.cos(p[1]), p[0] * Math.sin(p[1]), 0));
+        const simGeom = new THREE.BufferGeometry().setFromPoints(simPoints);
+        const simMat = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
+        const simLine = new THREE.Line(simGeom, simMat);
+        this.scene.add(simLine);
+        
+        // Add particle at end (larger)
+        const particleGeom = new THREE.SphereGeometry(0.1, 32, 32);  // Larger size
+        const particleMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        this.particle = new THREE.Mesh(particleGeom, particleMat);
+        this.scene.add(this.particle);
+        
+        // GR if present
+        if (grData) {
+            const grPoints = grData.map(p => new THREE.Vector3(p[0] * Math.cos(p[1]), p[0] * Math.sin(p[1]), 0));
+            const grGeom = new THREE.BufferGeometry().setFromPoints(grPoints);
+            const grMat = new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 2 });
+            const grLine = new THREE.Line(grGeom, grMat);
+            this.scene.add(grLine);
+        }
+        
+        this.trajectory = simData;
+        this.currentStep = 0;
+        this.autoScale();  // Fit both
+        
+        // Start trajectory animation instead of main animation
+        this.animateTrajectory();
+    }
+
+    autoScale() {
+        let maxR = 0;
+        this.trajectory.forEach(p => { maxR = Math.max(maxR, p[0]); });
+        if (this.grTrajectory) this.grTrajectory.forEach(p => { maxR = Math.max(maxR, p[0]); });
+        this.camera.position.z = maxR * 2;
+        this.camera.lookAt(new THREE.Vector3(0,0,0));
+    }
+    
+    animateTrajectory() {
+        requestAnimationFrame(this.animateTrajectory.bind(this));
+        if (this.trajectory && this.currentStep < this.trajectory.length) {
+            const pos = this.trajectory[this.currentStep];
+            this.particle.position.set(pos[0] * Math.cos(pos[1]), pos[0] * Math.sin(pos[1]), 0);
+            this.currentStep += this.stepInterval;  // Skip steps
+        }
+        this.renderer.render(this.scene, this.camera);
+    }
+    
+    startAnimation() {
+        this.animate();
+    }
+    
     animate() {
-        requestAnimationFrame(() => this.animate());
+        requestAnimationFrame(this.animate.bind(this));
         
-        this.step();
-        this.controls.update();
+        // Update controls
+        if (this.controls) {
+            this.controls.update();
+        }
         
-        // Update hover effects
-        this.raycaster.setFromCamera(this.mouse, this.camera);
-        const particleMeshes = this.particles.map(p => p.mesh);
-        const intersects = this.raycaster.intersectObjects(particleMeshes);
+        // Handle step interval - only run simulation every N frames
+        this.frameCounter++;
+        if (this.frameCounter >= this.stepInterval) {
+            this.step();
+            this.frameCounter = 0;
+        }
         
-        // Reset all particles to normal size except selected
-        this.particles.forEach(p => {
-            if (p !== this.selectedParticle) {
-                p.mesh.scale.setScalar(1);
+        // Update trail visibility
+        this.particles.forEach(particle => {
+            if (particle.trail) {
+                particle.trail.visible = this.showTrails;
             }
         });
         
-        // Highlight hovered particle
-        if (intersects.length > 0 && !this.selectedParticle) {
-            const hoveredMesh = intersects[0].object;
-            hoveredMesh.scale.setScalar(1.2);
-            this.renderer.domElement.style.cursor = 'pointer';
-        } else {
-            this.renderer.domElement.style.cursor = 'default';
-        }
-        
+        // Render the scene
         this.renderer.render(this.scene, this.camera);
-        this.labelRenderer.render(this.scene, this.camera);
+        if (this.labelRenderer) {
+            this.labelRenderer.render(this.scene, this.camera);
+        }
     }
     
     onWindowResize() {

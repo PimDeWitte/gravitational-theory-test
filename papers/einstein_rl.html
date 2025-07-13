@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravitational Theory Discovery: A Three-System RL Framework</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+        
+        h3 {
+            color: #7f8c8d;
+            margin-top: 30px;
+        }
+        
+        .diagram {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .flow-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .flow-box {
+            background: #3498db;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            max-width: 200px;
+            text-align: center;
+        }
+        
+        .flow-arrow {
+            font-size: 24px;
+            color: #3498db;
+            margin: 0 10px;
+        }
+        
+        .system-box {
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #ecf0f1;
+        }
+        
+        .code-snippet {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .metric-formula {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Times New Roman', serif;
+            font-size: 18px;
+            text-align: center;
+            margin: 15px 0;
+        }
+        
+        .highlight {
+            background: #ffffcc;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .warning {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        svg {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .mermaid {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background: #3498db;
+            color: white;
+        }
+        
+        tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+        
+        .equation {
+            display: block;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 20px;
+            font-family: 'Times New Roman', serif;
+        }
+        
+        .subsystem {
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 3px solid #3498db;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+</head>
+<body>
+    <div class="container">
+        <h1>🌌 Gravitational Theory Discovery: A Three-System RL Framework</h1>
+        
+        <p><strong>Hypothesis:</strong> This computational framework implements a meta-learning pipeline for discovering unified gravitational theories through three interconnected reinforcement learning systems, treating spacetime metrics as information compressors and theories as agents navigating orbital dynamics simulations.</p>
+        
+        <div class="diagram">
+            <div class="mermaid">
+            graph TB
+                A[System 1: LLM Generation Loop] -->|Generated Theories| B[System 2: Intra-Theory RL]
+                B -->|Optimized Parameters| C[System 3: AlphaZero Learning]
+                C -->|Validation Results| A
+                
+                subgraph "Shared Infrastructure"
+                    D[History Buffer]
+                    E[Trajectory Cache]
+                    F[Loss Functions]
+                end
+                
+                A -.->|Updates| D
+                B -.->|Uses| E
+                C -.->|Computes| F
+                D -.->|Feeds| A
+                E -.->|Speeds| B
+                F -.->|Rewards| C
+            </div>
+        </div>
+
+        <h2>🔬 Core Scientific Principle</h2>
+        
+        <div class="metric-formula">
+            <strong>Information-Theoretic Loss:</strong><br>
+            L = ||FFT(r<sub>predicted</sub>(τ)) - FFT(r<sub>baseline</sub>(τ))||² / ||FFT(r<sub>baseline</sub>(τ))||²
+        </div>
+        
+        <p>The system treats gravity as an information encoding process, where spacetime geometry compresses high-dimensional quantum information into classical trajectories. The FFT loss measures how well a theory "decodes" this information compared to established baselines.</p>
+
+        <h2>📊 System 1: LLM Formula Generation Loop</h2>
+        
+        <div class="system-box">
+            <h3>Purpose: Explore Theory Space via AI-Guided Generation</h3>
+            
+            <div class="diagram">
+                <div class="mermaid">
+                sequenceDiagram
+                    participant H as History Buffer
+                    participant P as Prompt Builder
+                    participant API as LLM API (Grok-4)
+                    participant E as Code Executor
+                    participant S as Simulator
+                    participant L as Loss Calculator
+                    
+                    loop Infinite Discovery
+                        H->>P: Previous results
+                        P->>API: Dynamic prompt with Einstein hints
+                        API->>E: Python theory class
+                        E->>S: Instantiated model
+                        S->>L: Orbital trajectory
+                        L->>H: Loss vs baselines
+                        Note over H: History grows, precision improves
+                    end
+                </div>
+            </div>
+            
+            <h4>Key Components:</h4>
+            <ul>
+                <li><strong>Dynamic Prompting:</strong> Incorporates Einstein's deathbed notes (asymmetric metrics, torsion terms)</li>
+                <li><strong>Temperature Control:</strong> Starts at 0.8, increases to 1.5 on failures (exploration vs exploitation)</li>
+                <li><strong>History Feedback:</strong> Each theory's performance (loss_GR, loss_RN) feeds into next prompt</li>
+                <li><strong>Validation:</strong> Generated code must produce finite metric values at test radius</li>
+            </ul>
+            
+            <div class="code-snippet">
+# Example generated theory structure
+class UnifiedFieldTheory_v42(GravitationalTheory):
+    def __init__(self, alpha=0.00729):  # ~1/137 fine structure
+        super().__init__(f"Unified Field α={alpha:.5f}")
+        self.alpha = alpha
+    
+    def get_metric(self, r, M_param, C_param, G_param):
+        rs = 2 * G_param * M_param / C_param**2
+        # Asymmetric metric with torsion
+        m = 1 - rs/r + self.alpha * torch.log(1 + rs/r)
+        g_tt = -m
+        g_rr = 1/(m + 1e-10)
+        g_pp = r**2
+        g_tp = self.alpha * rs**2 / r**2  # Torsion term
+        return g_tt, g_rr, g_pp, g_tp
+            </div>
+            
+            <div class="flow-container">
+                <div class="flow-box">Generate Theory</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">Simulate Orbit</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">Calculate Loss</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box">Update History</div>
+            </div>
+        </div>
+
+        <h2>🎯 System 2: Intra-Theory RL Loop</h2>
+        
+        <div class="system-box">
+            <h3>Purpose: Optimize Parameters Within Fixed Theory Structure</h3>
+            
+            <div class="diagram">
+                <div class="mermaid">
+                graph LR
+                    A[Theory Template] -->|Parameter Sweep| B[Multiple Variants]
+                    B --> C{Simulate Each}
+                    C -->|α=0.0| D1[Trajectory 1]
+                    C -->|α=0.25| D2[Trajectory 2]
+                    C -->|α=0.5| D3[Trajectory 3]
+                    C -->|α=0.75| D4[Trajectory 4]
+                    C -->|α=1.0| D5[Trajectory 5]
+                    
+                    D1 --> E[Rank by Loss]
+                    D2 --> E
+                    D3 --> E
+                    D4 --> E
+                    D5 --> E
+                    
+                    E --> F[Select Optimal α]
+                </div>
+            </div>
+            
+            <h4>RL Formulation:</h4>
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Implementation</th>
+                </tr>
+                <tr>
+                    <td>State Space</td>
+                    <td>Current parameter values (α, β, γ, etc.)</td>
+                </tr>
+                <tr>
+                    <td>Action Space</td>
+                    <td>Parameter perturbations via sweeps or manual input</td>
+                </tr>
+                <tr>
+                    <td>Reward Function</td>
+                    <td>-Loss(trajectory, baseline) with multi-baseline balancing</td>
+                </tr>
+                <tr>
+                    <td>Policy</td>
+                    <td>Implicit gradient descent via loss ranking</td>
+                </tr>
+                <tr>
+                    <td>Value Function</td>
+                    <td>Cached trajectory losses for efficient evaluation</td>
+                </tr>
+            </table>
+            
+            <div class="code-snippet">
+# Parameter sweep definition in theory class
+class LinearSignalLoss(GravitationalTheory):
+    category = "classical"
+    cacheable = True
+    sweep = dict(gamma=np.linspace(0.0, 1.0, 5))  # Auto-test 5 values
+    
+    def __init__(self, gamma=0.5):
+        super().__init__(f"Linear Signal Loss γ={gamma:.2f}")
+        self.gamma = gamma
+            </div>
+            
+            <div class="success">
+                <strong>Breakthrough Detection:</strong> When loss_vs_GR / loss_vs_RN ≈ 1.0 ± 0.2, theory shows balanced unification potential
+            </div>
+        </div>
+
+        <h2>🧠 System 3: AlphaZero-Style Learning from Observations</h2>
+        
+        <div class="system-box">
+            <h3>Purpose: Learn from Scratch to Match Real Astronomical Data</h3>
+            
+            <div class="diagram">
+                <div class="mermaid">
+                stateDiagram-v2
+                    [*] --> Initialize: Load Baseline Theories
+                    Initialize --> Generate: Create New Theory
+                    Generate --> Simulate: Run Orbital Dynamics
+                    Simulate --> Validate: Compare to Observations
+                    
+                    Validate --> Success: Match Found!
+                    Validate --> Learn: Update History
+                    Learn --> Generate: Improved Generation
+                    
+                    Success --> [*]: Theory Discovered
+                    
+                    note right of Validate
+                        Mercury Perihelion: 43"/century
+                        Cassini PPN: γ = 1 ± 2.3×10⁻⁵
+                        Pulsar Timing: <0.1% deviation
+                    end note
+                </div>
+            </div>
+            
+            <h4>Self-Play Mechanics:</h4>
+            <div class="subsystem">
+                <p><strong>1. Bootstrap Phase:</strong></p>
+                <ul>
+                    <li>Start with baseline theories (Schwarzschild, Reissner-Nordström)</li>
+                    <li>These act as "teachers" providing ground truth trajectories</li>
+                </ul>
+                
+                <p><strong>2. Exploration Phase:</strong></p>
+                <ul>
+                    <li>Generate diverse theories via System 1</li>
+                    <li>Evaluate against multiple observational datasets</li>
+                    <li>Cache successful trajectories for replay</li>
+                </ul>
+                
+                <p><strong>3. Exploitation Phase:</strong></p>
+                <ul>
+                    <li>Focus on promising theory families (low validation loss)</li>
+                    <li>Fine-tune via System 2 parameter search</li>
+                    <li>Converge when observation matches achieved</li>
+                </ul>
+            </div>
+            
+            <div class="metric-formula">
+                <strong>Validation Loss Example (Mercury):</strong><br>
+                L<sub>Mercury</sub> = |Δφ<sub>predicted</sub> - 43.0"| / 43.0"
+            </div>
+        </div>
+
+        <h2>🔄 System Interconnections</h2>
+        
+        <div class="diagram">
+            <div class="mermaid">
+            graph TB
+                subgraph "Meta-Learning Pipeline"
+                    A[System 1: Exploration<br/>Generate Diverse Theories]
+                    B[System 2: Exploitation<br/>Optimize Parameters]
+                    C[System 3: Generalization<br/>Validate Against Reality]
+                end
+                
+                subgraph "Shared Memory"
+                    D[(History Buffer)]
+                    E[(Trajectory Cache)]
+                    F[(Loss Cache)]
+                end
+                
+                subgraph "Convergence Criteria"
+                    G{Balanced Loss?}
+                    H{Observation Match?}
+                    I[Unified Theory Found!]
+                end
+                
+                A -->|New Theories| B
+                B -->|Best Parameters| C
+                C -->|Validation Results| A
+                
+                A --> D
+                B --> E
+                C --> F
+                
+                D --> G
+                E --> G
+                F --> G
+                
+                G -->|Yes| H
+                H -->|Yes| I
+                H -->|No| A
+            </div>
+        </div>
+
+        <h2>📈 Empirical Predictions</h2>
+        
+        <table>
+            <tr>
+                <th>Metric</th>
+                <th>Prediction</th>
+                <th>Measurement Method</th>
+            </tr>
+            <tr>
+                <td>Convergence Rate</td>
+                <td>~1000 iterations to breakthrough</td>
+                <td>Count loops until loss < 0.9 × baseline</td>
+            </tr>
+            <tr>
+                <td>Theory Diversity</td>
+                <td>10-50 unique metric forms per 100 iterations</td>
+                <td>Cluster by metric structure similarity</td>
+            </tr>
+            <tr>
+                <td>Parameter Efficiency</td>
+                <td>2-3 parameters optimal for unification</td>
+                <td>Complexity vs performance tradeoff</td>
+            </tr>
+            <tr>
+                <td>Cache Hit Rate</td>
+                <td>>80% after 500 iterations</td>
+                <td>Fraction of simulations using cached data</td>
+            </tr>
+        </table>
+
+        <h2>🚀 Running the System</h2>
+        
+        <div class="code-snippet">
+# Full meta-learning pipeline
+python self_discovery.py --self-discover --api-provider grok --final
+
+# Parameter optimization only (System 2)
+python self_discovery.py --theory-dirs theories/linear_signal_loss
+
+# Validation learning (System 3)
+python self_discovery.py --validate-observations --test
+
+# Manual theory injection
+python self_discovery.py --manual-theories-file my_theories.py
+        </div>
+
+        <h2>🎯 Key Insights</h2>
+        
+        <div class="warning">
+            <strong>Computational Challenge:</strong> Each theory evaluation requires ~100,000 RK4 integration steps, making efficient caching critical for scalability.
+        </div>
+        
+        <div class="success">
+            <strong>Breakthrough Indicator:</strong> When a theory shows balanced low losses against multiple baselines AND matches observational data, it suggests true unification potential.
+        </div>
+        
+        <div class="metric-formula">
+            <strong>Ultimate Goal:</strong><br>
+            Find g<sub>μν</sub> such that:<br>
+            L<sub>GR</sub> ≈ L<sub>RN</sub> ≈ L<sub>observations</sub> < ε
+        </div>
+
+        <h2>🔮 Future Directions</h2>
+        
+        <ul>
+            <li><strong>Neural Architecture Search:</strong> Replace parameter sweeps with gradient-based optimization</li>
+            <li><strong>Multi-Agent Competition:</strong> Multiple LLMs proposing competing theories</li>
+            <li><strong>Quantum Circuit Encoding:</strong> Map metrics to quantum circuits for hardware acceleration</li>
+            <li><strong>Human-in-the-Loop:</strong> Expert physicists guide promising directions via manual theories</li>
+        </ul>
+        
+        <div class="diagram">
+            <p style="text-align: center; font-style: italic; color: #7f8c8d;">
+                "The framework transforms Einstein's 30-year quest into a computational search problem,<br>
+                where AI and simulation converge to discover the geometric unity of nature."
+            </p>
+        </div>
+    </div>
+</body>
+</html>

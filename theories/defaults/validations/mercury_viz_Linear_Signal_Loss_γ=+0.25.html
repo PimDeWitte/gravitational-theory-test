@@ -1,0 +1,24 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mercury Trajectory Viz: Linear Signal Loss (γ=+0.25)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Add your visualization_enhanced.js -->
+    <script src="../../../viz/visualization_enhanced.js"></script>
+</head>
+<body>
+    <div id="viz"></div>
+    <script>
+        fetch('mercury_traj_Linear_Signal_Loss_γ=+0.25.json')
+            .then(res => res.json())
+            .then(data => {
+                const visualizer = new GravityVisualizerEnhanced('viz');  // Assume it has a loadTrajectory method
+                visualizer.loadTrajectory(data.sim, data.gr);
+                visualizer.autoScale();  // Implement in JS: compute bounds and set camera
+            })
+            .catch(err => console.error('Failed to load trajectory:', err));
+    </script>
+</body>
+</html>

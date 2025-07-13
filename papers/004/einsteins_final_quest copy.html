@@ -1,0 +1,3109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completing Einstein's Quest</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        'physics-blue': '#1a0dab',
+                        'physics-light-blue': '#4285f4',
+                        'physics-dark': '#202124',
+                        'physics-gray': '#5f6368',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom Aeonik Font */
+        @font-face {
+            font-family: 'Aeonik';
+            src: url('https://cdn.jsdelivr.net/gh/juliusgarbe/aeonik-fonts@main/Aeonik-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Aeonik';
+            src: url('https://cdn.jsdelivr.net/gh/juliusgarbe/aeonik-fonts@main/Aeonik-Medium.woff2') format('woff2');
+            font-weight: 500;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Aeonik';
+            src: url('https://cdn.jsdelivr.net/gh/juliusgarbe/aeonik-fonts@main/Aeonik-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+        }
+        
+        /* Use Aeonik for headings */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Aeonik', 'Inter', sans-serif;
+        }
+        
+        /* Smooth scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Math variables styling */
+        .math-var {
+            font-family: 'Times New Roman', 'Georgia', serif;
+            font-style: italic;
+            color: #1a0dab;
+            font-size: 1.05em;
+        }
+        
+        /* Formula display */
+        .formula-display {
+            @apply text-center text-physics-blue bg-blue-50 py-6 px-8 rounded-xl my-6 mx-auto;
+            font-family: 'Times New Roman', 'Georgia', serif;
+            font-size: 1.4rem;
+            width: fit-content;
+            min-width: 300px;
+            box-shadow: 0 2px 8px rgba(26, 13, 171, 0.08);
+            border: 1px solid #e0e7ff;
+            position: relative;
+        }
+        
+        .formula-display:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #1a0dab, #4285f4);
+            border-radius: 12px 12px 0 0;
+        }
+        
+        /* Story blockquote */
+        .story-blockquote {
+            @apply border-l-4 border-physics-light-blue pl-6 my-8 text-lg italic text-gray-700;
+            font-family: 'Aeonik', 'Inter', sans-serif;
+            line-height: 1.8;
+        }
+        
+        /* Responsive canvas */
+        @media (max-width: 768px) {
+            canvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            
+            .formula-display {
+                font-size: 1.1rem;
+                padding: 1.5rem 1rem;
+                min-width: auto;
+                width: 100%;
+            }
+        }
+        
+        /* Iframe container styling */
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 75%; /* 4:3 aspect ratio for better visualization */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            min-height: 700px;
+        }
+        
+        .iframe-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            min-height: 700px;
+        }
+        
+        @media (max-width: 768px) {
+            .iframe-container {
+                padding-bottom: 100%; /* Square on mobile */
+                min-height: 500px;
+            }
+            .iframe-container iframe {
+                min-height: 500px;
+            }
+        }
+        
+        /* Table improvements */
+        .responsive-table {
+            @apply w-full overflow-x-auto;
+        }
+        
+        .responsive-table table {
+            @apply min-w-full;
+        }
+        
+        /* Mobile-first approach for tables */
+        @media (max-width: 640px) {
+            .responsive-table table {
+                @apply text-sm;
+            }
+            
+            .responsive-table th,
+            .responsive-table td {
+                @apply px-2 py-1;
+            }
+        }
+        
+        /* Animation classes */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        /* Collapsible table styling */
+        .collapsible-table .collapsible-row {
+            display: none;
+        }
+        .collapsible-table.expanded .collapsible-row {
+            display: table-row;
+        }
+        
+        /* Lightbox removed - images open in new tabs */
+        
+        /* Print styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            body {
+                font-size: 12pt;
+            }
+            
+            h1 { font-size: 24pt; }
+            h2 { font-size: 20pt; }
+            h3 { font-size: 16pt; }
+        }
+    </style>
+</head>
+<body class="bg-white text-physics-dark antialiased">
+
+    <!-- Mobile Navigation -->
+    <nav class="lg:hidden fixed top-0 left-0 right-0 bg-white shadow-md z-40 no-print">
+        <div class="flex items-center justify-between px-4 py-3">
+            <h2 class="text-lg font-semibold text-physics-blue">Completing Einstein's Quest</h2>
+            <button id="mobile-menu-toggle" class="p-2 rounded-md hover:bg-gray-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="lg:hidden fixed inset-0 bg-white z-50 transform translate-x-full transition-transform duration-300 no-print">
+        <div class="p-4">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold">Navigation</h3>
+                <button id="mobile-menu-close" class="p-2 rounded-md hover:bg-gray-100">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <nav class="space-y-2">
+                <a href="#abstract" class="block py-2 px-4 rounded hover:bg-gray-100">Abstract</a>
+                <a href="#einstein-intro" class="block py-2 px-4 rounded hover:bg-gray-100">1. What If Einstein Had Infinite Compute?</a>
+                <a href="#framework" class="block py-2 px-4 rounded hover:bg-gray-100">2. The Computational Framework</a>
+                <a href="#ai-discovery" class="block py-2 px-4 rounded hover:bg-gray-100">3. AI-Assisted Discovery Loop</a>
+                <a href="#prediction-game" class="block py-2 px-4 rounded hover:bg-gray-100">4. The Prediction Game</a>
+                <a href="#tested-theories" class="block py-2 px-4 rounded hover:bg-gray-100">5. Theories We Tested</a>
+                <a href="#compression-hypothesis" class="block py-2 px-4 rounded hover:bg-gray-100">6. Gravity as Compression</a>
+                <a href="#promising-candidates" class="block py-2 px-4 rounded hover:bg-gray-100">7. Promising Candidates</a>
+                <a href="#interactive-viz" class="block py-2 px-4 rounded hover:bg-gray-100">8. Interactive Visualization</a>
+                <a href="#black-hole-visualization" class="block py-2 px-4 rounded hover:bg-gray-100">9. Black Hole Demo</a>
+                <a href="#appendix-e" class="block py-2 px-4 rounded hover:bg-gray-100">10. Contributing</a>
+                <a href="#experimental-validation" class="block py-2 px-4 rounded hover:bg-gray-100">11. Experimental Validation</a>
+                <a href="#conclusion" class="block py-2 px-4 rounded hover:bg-gray-100">12. Conclusion</a>
+                <a href="#critical-review" class="block py-2 px-4 rounded hover:bg-gray-100">13. Critical Review</a>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- Desktop Navigation -->
+    <nav class="hidden lg:block fixed left-0 top-0 h-full w-64 bg-gray-50 border-r border-gray-200 overflow-y-auto no-print">
+        <div class="p-6">
+            <h3 class="text-lg font-semibold text-physics-blue mb-4">Navigation</h3>
+            <nav class="space-y-1">
+                <a href="#abstract" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">Abstract</a>
+                <a href="#einstein-intro" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">1. What If Einstein Had Infinite Compute?</a>
+                <a href="#framework" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">2. The Computational Framework</a>
+                <a href="#ai-discovery" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">3. AI-Assisted Discovery Loop</a>
+                <a href="#prediction-game" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">4. The Prediction Game</a>
+                <a href="#tested-theories" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">5. Theories We Tested</a>
+                <a href="#compression-hypothesis" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">6. Gravity as Compression</a>
+                <a href="#promising-candidates" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">7. Promising Candidates</a>
+                <a href="#interactive-viz" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">8. Interactive Visualization</a>
+                <a href="#black-hole-visualization" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">9. Black Hole Demo</a>
+                <a href="#appendix-e" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">10. Contributing</a>
+                <a href="#experimental-validation" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">11. Experimental Validation</a>
+                <a href="#conclusion" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">12. Conclusion</a>
+                <a href="#critical-review" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">13. Critical Review</a>
+            </nav>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="lg:ml-64 pt-16 lg:pt-0">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+
+            <!-- Header -->
+            <header class="mb-12 lg:mb-16 fade-in">
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight mb-4 lg:mb-6 text-physics-blue leading-tight">
+                    Completing Einstein's Quest
+                </h1>
+                <p class="text-lg lg:text-xl text-physics-gray leading-relaxed max-w-4xl">
+                    A Computational Framework for Gravitational Theory Exploration:<br>
+                    Using AI and modern computation to systematically search for unified field theories
+                </p>
+                <div class="mt-6 space-y-1 text-physics-gray">
+                    <p class="font-medium">W.W.A. (Pim) de Witte, General Intuition PBC</p>
+                    <p>pim@generalintuition.ai</p>
+                    <p class="text-sm mt-2">July 10, 2025</p>
+                </div>
+            </header>
+
+            <!-- Abstract -->
+            <div id="abstract" class="bg-blue-50 border-l-4 border-physics-blue p-6 lg:p-8 rounded-r-lg mb-12 fade-in scroll-mt-20">
+                <h2 class="text-2xl lg:text-3xl font-bold text-physics-blue mb-4">Abstract</h2>
+                <div class="space-y-4 text-base lg:text-lg leading-relaxed">
+                    <p>
+                        We present a computational framework that accelerates gravitational theory research through automated testing and validation. Using PyTorch and AI, our system generates and evaluates theories by simulating particle orbits around black holes, enabling rapid exploration of theoretical possibilities.
+                    </p>
+                    <p>
+                        The framework identified "Linear Signal Loss" as an interesting candidate showing balanced performance against both gravitational and electromagnetic baselines. More importantly, it establishes infrastructure for systematic theory exploration, building a comprehensive database of gravitational theories and their predictions for future research.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Main Content Continues -->
+            <main class="space-y-12 lg:space-y-16">
+
+                <!-- Section 1: What If Einstein Had Infinite Compute? -->
+                <section class="section scroll-mt-20" id="einstein-intro">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        1. What If Einstein Had Infinite Compute?
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mb-8">
+                        <div class="space-y-6">
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                In 1955, Albert Einstein died with pages of calculations at his bedside—30 years of attempts to unify gravity and electromagnetism through pure geometry. His tools were paper, pencil, and extraordinary intuition. But what if he had access to modern computational power? What theories might he have discovered with the ability to test millions of mathematical structures in seconds?
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                This question drives our work. We've created a computational framework that bridges Einstein's mathematical insights with 21st-century AI and simulation capabilities. Our system doesn't just test theories—it generates them, learning from each attempt to explore the infinite space of possible unified field theories more intelligently.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                At his deathbed, Einstein left behind fragments: non-symmetric metrics, torsion fields, coupling constants like α ≈ 1/137. These weren't random—they were systematic attempts to geometrically encode electromagnetism. Our discovery loop transforms these historical insights into a living research program, using AI to navigate possibilities Einstein could only dream of exploring.
+                            </p>
+                        </div>
+                        
+                        <div class="lg:sticky lg:top-8">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6">
+                                <canvas id="aiDiscoveryVisualization" class="w-full" width="420" height="600"></canvas>
+                                <p class="text-sm text-center text-physics-gray mt-4">The AI Discovery Bridge: From Einstein's deathbed notes to modern computational exploration. Click to animate the discovery process.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Canvas script (same as before) -->
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('aiDiscoveryVisualization');
+                            const ctx = canvas.getContext('2d');
+                            let animationFrame = 0;
+                            let isPaused = false;
+                            let particles = [];
+                            let theoryNodes = [];
+                            let connections = [];
+                            let selectedTheory = null;
+                            let discoveryPhase = 0;
+                            
+                            // Initialize particles for flow effect
+                            for (let i = 0; i < 20; i++) {
+                                particles.push({
+                                    x: Math.random() * canvas.width,
+                                    y: Math.random() * 200,
+                                    vx: (Math.random() - 0.5) * 0.5,
+                                    vy: Math.random() * 0.3 + 0.1,
+                                    size: Math.random() * 2 + 1,
+                                    opacity: Math.random() * 0.5 + 0.3
+                                });
+                            }
+                            
+                            // Theory exploration nodes
+                            const theories = [
+                                { name: "Non-symmetric g_μν", x: 100, y: 450, discovered: false, loss: null },
+                                { name: "Torsion S^λ_μν", x: 200, y: 480, discovered: false, loss: null },
+                                { name: "Kaluza-Klein 5D", x: 300, y: 450, discovered: false, loss: null },
+                                { name: "Teleparallel", x: 150, y: 520, discovered: false, loss: null },
+                                { name: "Linear Signal Loss", x: 250, y: 550, discovered: false, loss: null, breakthrough: true }
+                            ];
+                            
+                            canvas.addEventListener('click', () => {
+                                isPaused = !isPaused;
+                                if (!isPaused) animate();
+                            });
+                            
+                            // Add roundRect polyfill
+                            if (!ctx.roundRect) {
+                                ctx.roundRect = function(x, y, width, height, radius) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(x + radius, y);
+                                    ctx.lineTo(x + width - radius, y);
+                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                                    ctx.lineTo(x + width, y + height - radius);
+                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                                    ctx.lineTo(x + radius, y + height);
+                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                                    ctx.lineTo(x, y + radius);
+                                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                                    ctx.closePath();
+                                };
+                            }
+                            
+                            function drawEinsteinNotes() {
+                                // Draw aged paper background
+                                const gradient = ctx.createLinearGradient(20, 20, 380, 180);
+                                gradient.addColorStop(0, '#fef9e7');
+                                gradient.addColorStop(1, '#f4e7d1');
+                                ctx.fillStyle = gradient;
+                                ctx.beginPath();
+                                ctx.roundRect(20, 20, 360, 160, 10);
+                                ctx.fill();
+                                ctx.strokeStyle = '#8b7355';
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
+                                
+                                // Draw handwritten equations
+                                ctx.font = 'italic 16px Georgia, serif';
+                                ctx.fillStyle = '#2c3e50';
+                                ctx.fillText('g_μν ≠ g_νμ', 50, 60);
+                                ctx.fillText('S^λ_μν = Γ^λ_μν - Γ^λ_νμ', 50, 90);
+                                ctx.fillText('α ≈ 1/137', 50, 120);
+                                ctx.fillText('∂_μ(√-g g^μν) = ?', 50, 150);
+                                
+                                // Date stamp
+                                ctx.font = '11px Aeonik, sans-serif';
+                                ctx.fillStyle = '#7f8c8d';
+                                ctx.fillText('April 1955', 280, 160);
+                                
+                                // Title
+                                ctx.font = 'bold 14px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.textAlign = 'center';
+                                ctx.fillText("Einstein's Final Notes", 200, 200);
+                                ctx.textAlign = 'left';
+                            }
+                            
+                            function drawAIProcessor() {
+                                const centerY = 280;
+                                
+                                // Draw neural network visualization
+                                ctx.strokeStyle = '#4285f4';
+                                ctx.lineWidth = 1;
+                                
+                                // Input layer
+                                for (let i = 0; i < 3; i++) {
+                                    const y = centerY - 30 + i * 30;
+                                    ctx.beginPath();
+                                    ctx.arc(100, y, 5, 0, Math.PI * 2);
+                                    ctx.fillStyle = '#e3f2fd';
+                                    ctx.fill();
+                                    ctx.stroke();
+                                }
+                                
+                                // Hidden layers
+                                for (let layer = 0; layer < 3; layer++) {
+                                    const x = 150 + layer * 50;
+                                    for (let i = 0; i < 4; i++) {
+                                        const y = centerY - 45 + i * 30;
+                                        
+                                        // Draw connections
+                                        ctx.strokeStyle = '#4285f4';
+                                        ctx.globalAlpha = 0.3;
+                                        ctx.lineWidth = 0.5;
+                                        
+                                        // Connect to previous layer
+                                        if (layer > 0) {
+                                            for (let j = 0; j < 4; j++) {
+                                                ctx.beginPath();
+                                                ctx.moveTo(x - 50, centerY - 45 + j * 30);
+                                                ctx.lineTo(x, y);
+                                                ctx.stroke();
+                                            }
+                                        } else {
+                                            // Connect to input
+                                            for (let j = 0; j < 3; j++) {
+                                                ctx.beginPath();
+                                                ctx.moveTo(100, centerY - 30 + j * 30);
+                                                ctx.lineTo(x, y);
+                                                ctx.stroke();
+                                            }
+                                        }
+                                        
+                                        ctx.globalAlpha = 1;
+                                        
+                                        // Draw node
+                                        const activation = Math.sin(animationFrame * 0.02 + layer + i) * 0.5 + 0.5;
+                                        ctx.beginPath();
+                                        ctx.arc(x, y, 6, 0, Math.PI * 2);
+                                        ctx.fillStyle = `rgba(66, 133, 244, ${0.3 + activation * 0.7})`;
+                                        ctx.fill();
+                                        ctx.strokeStyle = '#4285f4';
+                                        ctx.lineWidth = 1;
+                                        ctx.stroke();
+                                    }
+                                }
+                                
+                                // Output layer
+                                for (let i = 0; i < 3; i++) {
+                                    const y = centerY - 30 + i * 30;
+                                    
+                                    // Connect to last hidden layer
+                                    ctx.globalAlpha = 0.3;
+                                    ctx.lineWidth = 0.5;
+                                    for (let j = 0; j < 4; j++) {
+                                        ctx.beginPath();
+                                        ctx.moveTo(250, centerY - 45 + j * 30);
+                                        ctx.lineTo(300, y);
+                                        ctx.stroke();
+                                    }
+                                    ctx.globalAlpha = 1;
+                                    
+                                    ctx.beginPath();
+                                    ctx.arc(300, y, 5, 0, Math.PI * 2);
+                                    ctx.fillStyle = '#e3f2fd';
+                                    ctx.fill();
+                                    ctx.strokeStyle = '#4285f4';
+                                    ctx.lineWidth = 1;
+                                    ctx.stroke();
+                                }
+                                
+                                // Label
+                                ctx.font = 'bold 14px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('AI Theory Generator', 200, 350);
+                                ctx.fillText('(Grok-4)', 200, 365);
+                                ctx.textAlign = 'left';
+                            }
+                            
+                            function drawTheorySpace() {
+                                // Draw exploration space background
+                                const gradient = ctx.createRadialGradient(210, 480, 50, 210, 480, 150);
+                                gradient.addColorStop(0, 'rgba(232, 234, 246, 0.3)');
+                                gradient.addColorStop(1, 'rgba(232, 234, 246, 0)');
+                                ctx.fillStyle = gradient;
+                                ctx.fillRect(0, 380, canvas.width, 220);
+                                
+                                // Draw theory nodes
+                                theories.forEach((theory, index) => {
+                                    const isActive = discoveryPhase > index * 20;
+                                    
+                                    if (isActive && !theory.discovered) {
+                                        theory.discovered = true;
+                                        theory.loss = theory.breakthrough ? 0.157 : (0.2 + Math.random() * 0.8);
+                                    }
+                                    
+                                    // Draw connections between discovered theories
+                                    if (theory.discovered && index > 0) {
+                                        ctx.strokeStyle = 'rgba(66, 133, 244, 0.2)';
+                                        ctx.lineWidth = 1;
+                                        ctx.beginPath();
+                                        ctx.moveTo(theories[index - 1].x, theories[index - 1].y);
+                                        ctx.lineTo(theory.x, theory.y);
+                                        ctx.stroke();
+                                    }
+                                    
+                                    // Draw node
+                                    ctx.beginPath();
+                                    ctx.arc(theory.x, theory.y, theory.discovered ? 12 : 8, 0, Math.PI * 2);
+                                    
+                                    if (theory.discovered) {
+                                        if (theory.breakthrough) {
+                                            // Pulsing effect for breakthrough
+                                            const pulse = Math.sin(animationFrame * 0.05) * 0.3 + 0.7;
+                                            ctx.fillStyle = `rgba(76, 175, 80, ${pulse})`;
+                                            ctx.strokeStyle = '#4caf50';
+                                            ctx.lineWidth = 3;
+                                        } else {
+                                            const quality = 1 - theory.loss;
+                                            const r = Math.floor(255 * theory.loss);
+                                            const g = Math.floor(255 * quality);
+                                            ctx.fillStyle = `rgba(${r}, ${g}, 80, 0.7)`;
+                                            ctx.strokeStyle = `rgb(${r}, ${g}, 80)`;
+                                            ctx.lineWidth = 2;
+                                        }
+                                    } else {
+                                        ctx.fillStyle = 'rgba(189, 189, 189, 0.3)';
+                                        ctx.strokeStyle = '#bdbdbd';
+                                        ctx.lineWidth = 1;
+                                    }
+                                    
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    
+                                    // Draw label
+                                    if (theory.discovered) {
+                                        ctx.font = '11px Aeonik, sans-serif';
+                                        ctx.fillStyle = '#202124';
+                                        ctx.textAlign = 'center';
+                                        ctx.fillText(theory.name, theory.x, theory.y + 25);
+                                        
+                                        // Draw loss value
+                                        ctx.font = '10px monospace';
+                                        ctx.fillStyle = theory.breakthrough ? '#4caf50' : '#5f6368';
+                                        ctx.fillText(`Loss: ${theory.loss.toFixed(3)}`, theory.x, theory.y + 38);
+                                    }
+                                });
+                                
+                                // Title
+                                ctx.font = 'bold 14px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Theory Discovery Space', 200, 400);
+                                ctx.textAlign = 'left';
+                            }
+                            
+                            function drawFlowParticles() {
+                                particles.forEach(particle => {
+                                    // Update position
+                                    particle.x += particle.vx;
+                                    particle.y += particle.vy;
+                                    
+                                    // Reset if out of bounds
+                                    if (particle.y > 380) {
+                                        particle.y = 180;
+                                        particle.x = 100 + Math.random() * 200;
+                                    }
+                                    
+                                    // Draw particle
+                                    ctx.beginPath();
+                                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                                    ctx.fillStyle = `rgba(66, 133, 244, ${particle.opacity})`;
+                                    ctx.fill();
+                                });
+                            }
+                            
+                            function drawStats() {
+                                // Draw stats box
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                                ctx.strokeStyle = '#dadce0';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.roundRect(280, 420, 120, 80, 5);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                const theoriesGenerated = Math.floor(discoveryPhase / 10);
+                                const breakthroughsFound = discoveryPhase > 100 ? 1 : 0;
+                                
+                                ctx.font = '12px Aeonik, sans-serif';
+                                ctx.fillStyle = '#202124';
+                                ctx.fillText('Theories: ' + theoriesGenerated, 290, 440);
+                                ctx.fillText('Tested: ' + theoriesGenerated, 290, 455);
+                                ctx.fillText('Promising: ' + Math.floor(theoriesGenerated / 20), 290, 470);
+                                ctx.fillStyle = '#4caf50';
+                                ctx.font = 'bold 12px Aeonik, sans-serif';
+                                ctx.fillText('Breakthroughs: ' + breakthroughsFound, 290, 490);
+                            }
+                            
+                            function animate() {
+                                if (isPaused) return;
+                                
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Draw components
+                                drawEinsteinNotes();
+                                drawFlowParticles();
+                                drawAIProcessor();
+                                drawTheorySpace();
+                                drawStats();
+                                
+                                // Update animation state
+                                animationFrame++;
+                                discoveryPhase = (discoveryPhase + 0.5) % 150;
+                                
+                                requestAnimationFrame(animate);
+                            }
+                            
+                            // Start animation
+                            animate();
+                        })();
+                    </script>
+                </section>
+
+                <!-- Section 2: The Computational Framework -->
+                <section class="section scroll-mt-20" id="framework">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        2. The Computational Framework: Physics as High-Throughput Science
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        <div class="space-y-6">
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                Traditional gravitational theory development proceeds at the pace of human insight—months or years per theory. We've transformed this into a high-throughput computational system where hundreds of gravitational theories can be generated, tested, and validated per hour. Our framework treats physical theories not as abstract mathematics, but as executable models that make concrete predictions.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                Built entirely in <strong>PyTorch</strong>, the system leverages modern deep learning infrastructure for physics. Each theory is represented as a metric tensor function <span class="math-var">g<sub>μν</sub>(r, θ, φ, t; α<sub>i</sub>)</span> that generates spacetime geometry. We then simulate test particles orbiting black holes, computing full trajectories and extracting any physical observable.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                The framework computes fundamental quantities like energy, angular momentum, orbital precession, and 4-velocities. From these, we can evaluate theories using <strong>any metric</strong>: conservation laws, stability analysis, chaos indicators, quantum decoherence rates, or information-theoretic measures. The dual-baseline methodology tests against both pure gravity (Schwarzschild) and gravity plus electromagnetism (Reissner-Nordström).
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                <strong>Anyone can set up and replicate our results</strong> by running the open-source simulation at
+                                <a href="https://github.com/PimDeWitte/gravity-compression" class="text-physics-blue underline break-all" target="_blank" rel="noopener">github.com/PimDeWitte/gravity-compression</a>.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                At its core, this framework calculates the predictive accuracy of classical and quantum-inspired gravitational frameworks using known astronomical inputs and outputs. By systematically comparing theories against dual baselines (pure gravity and gravity+electromagnetism), we aim to identify unifying structures. In the process, we're building the largest computational database of gravitational theories, their predictions, and validation metrics—creating a foundation for discovering novel theories beyond unification.
+                            </p>
+                        </div>
+                        
+                        <div class="lg:sticky lg:top-8">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6">
+                                <canvas id="generalFrameworkCanvas" class="w-full" width="420" height="500"></canvas>
+                                <p class="text-sm text-center text-physics-gray mt-4">The Physics Engine: Transform any theory into testable predictions. Click to explore.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- New general framework canvas -->
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('generalFrameworkCanvas');
+                            const ctx = canvas.getContext('2d');
+                            let animationFrame = 0;
+                            let hoveredElement = null;
+                            let selectedView = 'main'; // 'main', 'theory', 'compute', 'observables', 'metrics', 'ai'
+                            let flowProgress = 0;
+                            
+                            // Interactive regions with clean layout
+                            const regions = {
+                                theory: { x: 30, y: 60, width: 160, height: 90 },
+                                code: { x: 210, y: 60, width: 170, height: 90 },
+                                compute: { x: 210, y: 170, width: 170, height: 60 },
+                                observables: { x: 80, y: 260, width: 140, height: 50 },
+                                metrics: { x: 240, y: 260, width: 140, height: 50 },
+                                results: { x: 160, y: 340, width: 140, height: 40 },
+                                ai: { x: 30, y: 410, width: 350, height: 70 }
+                            };
+                            
+                            // Theory examples with proper formatting
+                            const theoryExamples = [
+                                {
+                                    name: "Schwarzschild",
+                                    eq: "g_tt = -(1 - rs/r)",
+                                    desc: "Pure gravity"
+                                },
+                                {
+                                    name: "Asymmetric Torsion",
+                                    eq: "g_tφ = α(rs/r)² sin²θ",
+                                    desc: "Unification candidate"
+                                },
+                                {
+                                    name: "Quantum Corrected",
+                                    eq: "g_rr = 1/(1 - rs/r + Lₚ²/r²)",
+                                    desc: "Planck scale effects"
+                                }
+                            ];
+                            
+                            // Mouse interaction
+                            canvas.addEventListener('mousemove', (e) => {
+                                const rect = canvas.getBoundingClientRect();
+                                const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+                                const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+                                
+                                hoveredElement = null;
+                                for (const [key, region] of Object.entries(regions)) {
+                                    if (x >= region.x && x <= region.x + region.width &&
+                                        y >= region.y && y <= region.y + region.height) {
+                                        hoveredElement = key;
+                                        canvas.style.cursor = 'pointer';
+                                        break;
+                                    }
+                                }
+                                if (!hoveredElement) {
+                                    canvas.style.cursor = 'default';
+                                }
+                            });
+                            
+                            canvas.addEventListener('click', (e) => {
+                                if (hoveredElement && hoveredElement !== 'ai') {
+                                    selectedView = hoveredElement;
+                                } else {
+                                    selectedView = 'main';
+                                }
+                            });
+                            
+                            // Add roundRect polyfill
+                            if (!ctx.roundRect) {
+                                ctx.roundRect = function(x, y, width, height, radius) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(x + radius, y);
+                                    ctx.lineTo(x + width - radius, y);
+                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                                    ctx.lineTo(x + width, y + height - radius);
+                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                                    ctx.lineTo(x + radius, y + height);
+                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                                    ctx.lineTo(x, y + radius);
+                                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                                    ctx.closePath();
+                                };
+                            }
+                            
+                            function drawTheoryNote() {
+                                const note = regions.theory;
+                                const currentTheory = theoryExamples[Math.floor(animationFrame / 300) % theoryExamples.length];
+                                
+                                // Clean white background with subtle shadow
+                                ctx.fillStyle = '#ffffff';
+                                ctx.strokeStyle = hoveredElement === 'theory' ? '#1a0dab' : '#e0e0e0';
+                                ctx.lineWidth = hoveredElement === 'theory' ? 2 : 1;
+                                
+                                // Shadow
+                                ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+                                ctx.shadowBlur = 10;
+                                ctx.shadowOffsetX = 2;
+                                ctx.shadowOffsetY = 2;
+                                
+                                ctx.beginPath();
+                                ctx.roundRect(note.x, note.y, note.width, note.height, 8);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                ctx.shadowColor = 'transparent';
+                                
+                                // Theory header
+                                ctx.font = '11px Aeonik, sans-serif';
+                                ctx.fillStyle = '#5f6368';
+                                ctx.textAlign = 'left';
+                                ctx.fillText(currentTheory.name, note.x + 12, note.y + 20);
+                                
+                                // Main equation
+                                ctx.font = 'italic 16px Georgia, serif';
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.fillText(currentTheory.eq, note.x + 12, note.y + 45);
+                                
+                                // Description
+                                ctx.font = '10px Aeonik, sans-serif';
+                                ctx.fillStyle = '#7f8c8d';
+                                ctx.fillText(currentTheory.desc, note.x + 12, note.y + 65);
+                                
+                                if (hoveredElement === 'theory') {
+                                    ctx.font = 'italic 10px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#4285f4';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('Click to explore', note.x + note.width/2, note.y + 82);
+                                }
+                            }
+                            
+                            function drawFlowArrow(x1, y1, x2, y2, progress, color = '#e0e0e0') {
+                                if (progress <= 0) return;
+                                
+                                const dx = x2 - x1;
+                                const dy = y2 - y1;
+                                const currentX = x1 + dx * Math.min(progress, 1);
+                                const currentY = y1 + dy * Math.min(progress, 1);
+                                
+                                // Simple line
+                                ctx.strokeStyle = color;
+                                ctx.lineWidth = 2;
+                                ctx.lineCap = 'round';
+                                ctx.beginPath();
+                                ctx.moveTo(x1, y1);
+                                ctx.lineTo(currentX, currentY);
+                                ctx.stroke();
+                                
+                                // Small arrowhead
+                                if (progress >= 1) {
+                                    const angle = Math.atan2(dy, dx);
+                                    ctx.save();
+                                    ctx.translate(x2, y2);
+                                    ctx.rotate(angle);
+                                    ctx.fillStyle = color;
+                                    ctx.beginPath();
+                                    ctx.moveTo(0, 0);
+                                    ctx.lineTo(-8, -4);
+                                    ctx.lineTo(-8, 4);
+                                    ctx.closePath();
+                                    ctx.fill();
+                                    ctx.restore();
+                                }
+                            }
+                            
+                            function drawMainView() {
+                                // Title
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.font = 'bold 20px Aeonik, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('The Physics Engine', 210, 30);
+                                
+                                // Draw theory note
+                                drawTheoryNote();
+                                
+                                // Draw clean pipeline boxes
+                                const stages = [
+                                    { 
+                                        key: 'code', 
+                                        label: 'Theory as Code', 
+                                        sublabel: 'Python class',
+                                        color: '#1976d2' 
+                                    },
+                                    { 
+                                        key: 'compute', 
+                                        label: 'PyTorch Tensors', 
+                                        sublabel: 'Auto-differentiation',
+                                        color: '#4caf50' 
+                                    },
+                                    { 
+                                        key: 'observables', 
+                                        label: 'Observables', 
+                                        sublabel: 'E, L, trajectories',
+                                        color: '#00bcd4' 
+                                    },
+                                    { 
+                                        key: 'metrics', 
+                                        label: 'Evaluation', 
+                                        sublabel: 'Any metric',
+                                        color: '#ff9800' 
+                                    },
+                                    { 
+                                        key: 'results', 
+                                        label: 'Results', 
+                                        sublabel: 'Loss & validation',
+                                        color: '#9c27b0' 
+                                    }
+                                ];
+                                
+                                stages.forEach((stage, index) => {
+                                    if (!regions[stage.key]) return;
+                                    const region = regions[stage.key];
+                                    const isActive = Math.floor(flowProgress * 5) >= index;
+                                    const isHovered = hoveredElement === stage.key;
+                                    
+                                    // Clean box design
+                                    ctx.fillStyle = isActive ? '#f8f9fa' : '#ffffff';
+                                    ctx.strokeStyle = isActive ? stage.color : '#e0e0e0';
+                                    ctx.lineWidth = isHovered ? 2 : 1;
+                                    
+                                    if (isHovered) {
+                                        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+                                        ctx.shadowBlur = 8;
+                                        ctx.shadowOffsetX = 0;
+                                        ctx.shadowOffsetY = 2;
+                                    }
+                                    
+                                    ctx.beginPath();
+                                    ctx.roundRect(region.x, region.y, region.width, region.height, 6);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    
+                                    ctx.shadowColor = 'transparent';
+                                    
+                                    // Active indicator
+                                    if (isActive) {
+                                        ctx.fillStyle = stage.color;
+                                        ctx.fillRect(region.x, region.y, 3, region.height);
+                                    }
+                                    
+                                    // Label
+                                    ctx.font = 'bold 13px Aeonik, sans-serif';
+                                    ctx.fillStyle = isActive ? stage.color : '#5f6368';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText(stage.label, region.x + region.width/2, region.y + region.height/2 - 5);
+                                    
+                                    // Sublabel
+                                    ctx.font = '11px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#7f8c8d';
+                                    ctx.fillText(stage.sublabel, region.x + region.width/2, region.y + region.height/2 + 10);
+                                });
+                                
+                                // Draw flow connections (simpler)
+                                const connections = [
+                                    { from: 'theory', to: 'code', offset: 0 },
+                                    { from: 'code', to: 'compute', offset: 0.2 },
+                                    { from: 'compute', to: 'observables', offset: 0.4, toOffset: -30 },
+                                    { from: 'compute', to: 'metrics', offset: 0.4, toOffset: 30 },
+                                    { from: 'observables', to: 'results', offset: 0.6, fromOffset: 30 },
+                                    { from: 'metrics', to: 'results', offset: 0.6, fromOffset: -30 }
+                                ];
+                                
+                                connections.forEach(conn => {
+                                    const from = regions[conn.from];
+                                    const to = regions[conn.to];
+                                    if (!from || !to) return;
+                                    
+                                    let x1, y1, x2, y2;
+                                    
+                                    if (conn.from === 'theory' && conn.to === 'code') {
+                                        x1 = from.x + from.width;
+                                        y1 = from.y + from.height/2;
+                                        x2 = to.x;
+                                        y2 = to.y + to.height/2;
+                                    } else if (conn.from === 'compute' && (conn.to === 'observables' || conn.to === 'metrics')) {
+                                        x1 = from.x + from.width/2 + (conn.toOffset || 0);
+                                        y1 = from.y + from.height;
+                                        x2 = to.x + to.width/2;
+                                        y2 = to.y;
+                                    } else if ((conn.from === 'observables' || conn.from === 'metrics') && conn.to === 'results') {
+                                        x1 = from.x + from.width/2;
+                                        y1 = from.y + from.height;
+                                        x2 = to.x + to.width/2 + (conn.fromOffset || 0);
+                                        y2 = to.y;
+                                    } else {
+                                        x1 = from.x + from.width/2;
+                                        y1 = from.y + from.height;
+                                        x2 = to.x + to.width/2;
+                                        y2 = to.y;
+                                    }
+                                    
+                                    const progress = Math.max(0, Math.min(1, (flowProgress - conn.offset) * 3));
+                                    if (progress > 0) {
+                                        drawFlowArrow(x1, y1, x2, y2, progress, '#e0e0e0');
+                                    }
+                                });
+                                
+                                // AI Learning section (cleaner)
+                                const ai = regions.ai;
+                                const aiActive = flowProgress > 0.8;
+                                
+                                ctx.fillStyle = aiActive ? '#f0f7ff' : '#fafafa';
+                                ctx.strokeStyle = '#4285f4';
+                                ctx.lineWidth = aiActive ? 2 : 1;
+                                ctx.beginPath();
+                                ctx.roundRect(ai.x, ai.y, ai.width, ai.height, 8);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                // AI icon and text
+                                ctx.font = '14px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.textAlign = 'left';
+                                ctx.fillText('🤖', ai.x + 15, ai.y + 30);
+                                
+                                ctx.font = 'bold 13px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1976d2';
+                                ctx.fillText('Self-Improving AI', ai.x + 40, ai.y + 25);
+                                
+                                ctx.font = '12px Aeonik, sans-serif';
+                                ctx.fillStyle = '#5f6368';
+                                ctx.fillText('Learns from every test → Generates better theories', ai.x + 40, ai.y + 42);
+                                
+                                // Progress indicator
+                                if (aiActive) {
+                                    const indicatorX = ai.x + ai.width - 60;
+                                    ctx.font = '11px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#4caf50';
+                                    ctx.fillText('Active', indicatorX, ai.y + 35);
+                                    
+                                    // Pulse dot
+                                    const pulse = (Math.sin(animationFrame * 0.05) + 1) / 2;
+                                    ctx.fillStyle = `rgba(76, 175, 80, ${0.3 + pulse * 0.7})`;
+                                    ctx.beginPath();
+                                    ctx.arc(indicatorX + 35, ai.y + 30, 4, 0, Math.PI * 2);
+                                    ctx.fill();
+                                }
+                                
+                                // Update flow
+                                flowProgress = (flowProgress + 0.005) % 1;
+                            }
+                            
+                            function drawDetailView(viewType) {
+                                // Back button
+                                ctx.fillStyle = '#ffffff';
+                                ctx.strokeStyle = '#e0e0e0';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.roundRect(20, 20, 60, 30, 5);
+                                ctx.fill();
+                                ctx.stroke();
+                                ctx.fillStyle = '#5f6368';
+                                ctx.font = '12px Aeonik, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('← Back', 50, 40);
+                                
+                                // View-specific content
+                                switch(viewType) {
+                                    case 'theory':
+                                        drawTheoryDetail();
+                                        break;
+                                    case 'code':
+                                        drawCodeDetail();
+                                        break;
+                                    case 'compute':
+                                        drawComputeDetail();
+                                        break;
+                                    case 'observables':
+                                        drawObservablesDetail();
+                                        break;
+                                    case 'metrics':
+                                        drawMetricsDetail();
+                                        break;
+                                }
+                            }
+                            
+                            function drawTheoryDetail() {
+                                ctx.font = 'bold 18px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Writing a Theory', 210, 80);
+                                
+                                // Key concepts
+                                const concepts = [
+                                    { y: 120, title: 'Metric Tensor g_μν', desc: 'The fundamental object describing spacetime geometry' },
+                                    { y: 180, title: 'Four Components', desc: 'g_tt (time), g_rr (radial), g_φφ (angular), g_tφ (cross-terms)' },
+                                    { y: 240, title: 'Symmetry Breaking', desc: 'g_tφ ≠ 0 introduces torsion and rotation coupling' },
+                                    { y: 300, title: 'Parameterization', desc: 'Use α, β, γ to create theory families for exploration' }
+                                ];
+                                
+                                concepts.forEach(concept => {
+                                    ctx.font = 'bold 13px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#1976d2';
+                                    ctx.textAlign = 'left';
+                                    ctx.fillText(concept.title, 60, concept.y);
+                                    
+                                    ctx.font = '12px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#5f6368';
+                                    ctx.fillText(concept.desc, 60, concept.y + 20);
+                                });
+                            }
+                            
+                            function drawCodeDetail() {
+                                ctx.font = 'bold 18px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1976d2';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Theory as Code', 210, 80);
+                                
+                                // Clean code example
+                                const codeBox = { x: 50, y: 100, width: 320, height: 160 };
+                                ctx.fillStyle = '#f8f9fa';
+                                ctx.strokeStyle = '#e0e0e0';
+                                ctx.beginPath();
+                                ctx.roundRect(codeBox.x, codeBox.y, codeBox.width, codeBox.height, 5);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                ctx.font = '11px monospace';
+                                ctx.fillStyle = '#202124';
+                                ctx.textAlign = 'left';
+                                const code = [
+                                    'class LinearSignalLoss(GravitationalTheory):',
+                                    '    def __init__(self, gamma=1.0):',
+                                    '        self.gamma = gamma',
+                                    '    ',
+                                    '    def get_metric(self, r, M, c, G):',
+                                    '        rs = 2 * G * M / c**2',
+                                    '        degradation = 1 - self.gamma * (rs/r)',
+                                    '        return -degradation*(1-rs/r), ...'
+                                ];
+                                code.forEach((line, i) => {
+                                    ctx.fillText(line, codeBox.x + 10, codeBox.y + 20 + i * 18);
+                                });
+                                
+                                // Key points
+                                ctx.font = 'bold 12px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1976d2';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Key Points:', 210, 290);
+                                
+                                ctx.font = '11px Aeonik, sans-serif';
+                                ctx.fillStyle = '#5f6368';
+                                ctx.fillText('• Inherit from GravitationalTheory base class', 210, 310);
+                                ctx.fillText('• Return metric components as PyTorch tensors', 210, 330);
+                                ctx.fillText('• Framework handles all physics automatically', 210, 350);
+                            }
+                            
+                            function drawComputeDetail() {
+                                ctx.font = 'bold 18px Aeonik, sans-serif';
+                                ctx.fillStyle = '#4caf50';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('PyTorch Tensors', 210, 80);
+                                
+                                // Key features
+                                const features = [
+                                    { 
+                                        y: 120, 
+                                        title: 'Automatic Differentiation',
+                                        desc: 'Christoffel symbols Γ^λ_μν computed via autograd'
+                                    },
+                                    { 
+                                        y: 180, 
+                                        title: 'Tensor Operations',
+                                        desc: 'All metric components as GPU-accelerated tensors'
+                                    },
+                                    { 
+                                        y: 240, 
+                                        title: 'Batched Integration',
+                                        desc: 'Multiple trajectories computed in parallel'
+                                    },
+                                    { 
+                                        y: 300, 
+                                        title: 'Numerical Precision',
+                                        desc: 'Float32 for speed, Float64 for validation'
+                                    }
+                                ];
+                                
+                                features.forEach(feature => {
+                                    ctx.font = 'bold 13px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#2e7d32';
+                                    ctx.textAlign = 'left';
+                                    ctx.fillText(feature.title, 60, feature.y);
+                                    
+                                    ctx.font = '12px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#5f6368';
+                                    ctx.fillText(feature.desc, 60, feature.y + 20);
+                                });
+                                
+                                // Performance note
+                                ctx.font = '11px Aeonik, sans-serif';
+                                ctx.fillStyle = '#7f8c8d';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('50,000+ integration steps/second on modern GPUs', 210, 380);
+                            }
+                            
+                            function drawObservablesDetail() {
+                                ctx.font = 'bold 18px Aeonik, sans-serif';
+                                ctx.fillStyle = '#00bcd4';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Physical Observables', 210, 80);
+                                
+                                // Grid of observables
+                                const observables = [
+                                    { x: 60, y: 110, icon: 'E', name: 'Energy', unit: 'J' },
+                                    { x: 220, y: 110, icon: 'L', name: 'Angular Mom.', unit: 'J·s' },
+                                    { x: 60, y: 190, icon: 'r(τ)', name: 'Trajectory', unit: 'm' },
+                                    { x: 220, y: 190, icon: 'u^μ', name: '4-velocity', unit: 'c' },
+                                    { x: 60, y: 270, icon: 'g_μν', name: 'Metric', unit: '—' },
+                                    { x: 220, y: 270, icon: 'S^λ_μν', name: 'Torsion', unit: 'm⁻¹' }
+                                ];
+                                
+                                observables.forEach(obs => {
+                                    // Box
+                                    ctx.fillStyle = '#f0fbff';
+                                    ctx.strokeStyle = '#00bcd4';
+                                    ctx.lineWidth = 1;
+                                    ctx.beginPath();
+                                    ctx.roundRect(obs.x, obs.y, 140, 60, 5);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    
+                                    // Icon
+                                    ctx.font = 'italic 16px Georgia, serif';
+                                    ctx.fillStyle = '#00838f';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText(obs.icon, obs.x + 30, obs.y + 35);
+                                    
+                                    // Name
+                                    ctx.font = 'bold 11px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#006064';
+                                    ctx.textAlign = 'left';
+                                    ctx.fillText(obs.name, obs.x + 50, obs.y + 25);
+                                    
+                                    // Unit
+                                    ctx.font = '10px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#00acc1';
+                                    ctx.fillText(obs.unit, obs.x + 50, obs.y + 40);
+                                });
+                                
+                                ctx.font = '11px Aeonik, sans-serif';
+                                ctx.fillStyle = '#7f8c8d';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('All computed automatically from the metric tensor', 210, 360);
+                            }
+                            
+                            function drawMetricsDetail() {
+                                ctx.font = 'bold 18px Aeonik, sans-serif';
+                                ctx.fillStyle = '#ff9800';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Evaluation Metrics', 210, 80);
+                                
+                                // Subtitle
+                                ctx.font = '12px Aeonik, sans-serif';
+                                ctx.fillStyle = '#7f8c8d';
+                                ctx.fillText('Choose ANY metric to test theories - not limited to one approach', 210, 100);
+                                
+                                const metrics = [
+                                    { y: 130, name: 'FFT Loss', desc: 'Frequency spectrum comparison (default)', color: '#2196f3' },
+                                    { y: 180, name: 'Conservation', desc: 'dE/dt, dL/dt violations', color: '#f44336' },
+                                    { y: 230, name: 'Stability', desc: 'Lyapunov exponents, chaos metrics', color: '#9c27b0' },
+                                    { y: 280, name: 'Information', desc: 'Entropy, compression ratios', color: '#4caf50' },
+                                    { y: 330, name: 'Quantum', desc: 'Decoherence, stochastic effects', color: '#ff9800' }
+                                ];
+                                
+                                metrics.forEach(metric => {
+                                    ctx.fillStyle = '#fafafa';
+                                    ctx.strokeStyle = metric.color;
+                                    ctx.lineWidth = 1;
+                                    ctx.beginPath();
+                                    ctx.roundRect(60, metric.y, 300, 35, 5);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    
+                                    // Color indicator
+                                    ctx.fillStyle = metric.color;
+                                    ctx.fillRect(60, metric.y, 3, 35);
+                                    
+                                    ctx.font = 'bold 12px Aeonik, sans-serif';
+                                    ctx.fillStyle = metric.color;
+                                    ctx.textAlign = 'left';
+                                    ctx.fillText(metric.name, 75, metric.y + 14);
+                                    
+                                    ctx.font = '11px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#5f6368';
+                                    ctx.fillText(metric.desc, 75, metric.y + 26);
+                                });
+                            }
+                            
+                            function animate() {
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                if (selectedView === 'main') {
+                                    drawMainView();
+                                } else {
+                                    drawDetailView(selectedView);
+                                }
+                                
+                                animationFrame++;
+                                requestAnimationFrame(animate);
+                            }
+                            
+                            // Start animation
+                            animate();
+                        })();
+                    </script>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">2.1 What the Framework Actually Computes</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">📊 Physical Observables</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• <strong>Conserved Quantities:</strong> Energy E, Angular momentum L<sub>z</sub></li>
+                                <li>• <strong>Trajectories:</strong> Full spacetime paths r(τ), φ(τ), t(τ)</li>
+                                <li>• <strong>4-Velocities:</strong> u<sup>μ</sup> = dx<sup>μ</sup>/dτ components</li>
+                                <li>• <strong>Metric Components:</strong> g<sub>μν</sub> including torsion (g<sub>tφ</sub> ≠ 0)</li>
+                                <li>• <strong>Christoffel Symbols:</strong> Γ<sup>λ</sup><sub>μν</sub> via automatic differentiation</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">🔬 Evaluation Capabilities</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• <strong>Orbital Dynamics:</strong> Precession rates, perihelion advance</li>
+                                <li>• <strong>Stability Analysis:</strong> Lyapunov exponents, chaos indicators</li>
+                                <li>• <strong>Conservation Tests:</strong> dE/dt, dL/dt for violations</li>
+                                <li>• <strong>Quantum Effects:</strong> Decoherence rates, stochastic noise</li>
+                                <li>• <strong>Information Theory:</strong> Entropy, compression ratios</li>
+                                <li>• <strong>Extreme Regime:</strong> Horizon structure, ergosphere boundaries</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed">
+                        This generality means researchers can test theories against <strong>any physical criterion</strong>—not just one specific metric. Whether you're interested in quantum gravity effects, chaotic dynamics, or information-theoretic properties, the framework provides the computational infrastructure to explore it all.
+                    </p>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">2.2 Why This Changes Everything</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">🚀 Speed</h4>
+                            <p class="text-sm lg:text-base">
+                                Test hundreds of theories per hour instead of one per year. GPU acceleration enables exploration at unprecedented scale.
+                            </p>
+                        </div>
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">🤖 Intelligence</h4>
+                            <p class="text-sm lg:text-base">
+                                AI learns from each test, generating increasingly sophisticated theories based on what works and what doesn't.
+                            </p>
+                        </div>
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">✅ Flexibility</h4>
+                            <p class="text-sm lg:text-base">
+                                Evaluate theories using ANY metric: dynamics, stability, quantum effects, or custom criteria for your research.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">2.3 Loss Metrics for Theory Evaluation</h3>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        To measure how well a theory "preserves information" when decoding trajectories, we use multiple loss metrics. Each captures different aspects of similarity to baseline theories, helping identify true unification signals:
+                    </p>
+                    <ul class="list-disc list-inside space-y-3 text-base lg:text-lg mb-8">
+                        <li><strong>fft:</strong> Fourier spectrum MSE - Captures frequency differences in orbital dynamics (precession, periodicity)</li>
+                        <li><strong>endpoint_mse:</strong> Endpoint Cartesian MSE - Measures final position deviation</li>
+                        <li><strong>cosine:</strong> Average (1 - cosine similarity) - Scale-invariant angular matching of paths</li>
+                        <li><strong>trajectory_mse:</strong> Average positional MSE over all points - Overall path fidelity</li>
+                        <li><strong>hausdorff:</strong> Maximum deviation between path point sets - Worst-case shape difference</li>
+                        <li><strong>frechet:</strong> Path-aware distance considering ordering - Continuous trajectory matching</li>
+                        <li><strong>trajectory_dot:</strong> Average normalized dot product - Representation similarity (DL-inspired)</li>
+                    </ul>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        Run with <code>--loss-type=[type]</code> to select (default: fft). Use <code>--multi-loss</code> to compute all in one run. Add <code>--no-cache</code> to force fresh computations.
+                    </p>
+                </section>
+
+                <!-- Section 3: AI-Assisted Discovery Loop -->
+                <section class="section scroll-mt-20" id="ai-discovery">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        3. The AI-Assisted Discovery Loop
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <p class="text-base lg:text-lg leading-relaxed">
+                            The heart of our system is a self-improving discovery loop that combines AI creativity with rigorous physics validation. Here's how it works:
+                        </p>
+                        
+                        <div class="bg-blue-50 border-l-4 border-physics-blue p-6 rounded-r-lg">
+                            <ol class="list-decimal list-inside space-y-3 text-base lg:text-lg">
+                                <li><strong>Historical Context:</strong> We seed the AI with Einstein's final notes—non-symmetric metrics, torsion fields, and coupling constants.</li>
+                                <li><strong>Theory Generation:</strong> The AI (Grok-4) generates new Python classes implementing gravitational theories, inspired by both physics and modern deep learning architectures.</li>
+                                <li><strong>Simulation:</strong> Each theory is tested by simulating particle orbits around black holes for up to 5 million time steps.</li>
+                                <li><strong>Evaluation:</strong> We measure how well each theory matches known physics using Fourier analysis of orbital trajectories.</li>
+                                <li><strong>Learning:</strong> Results feed back to the AI, which learns what mathematical structures show promise.</li>
+                                <li><strong>Iteration:</strong> The cycle repeats indefinitely, exploring an ever-expanding space of possibilities.</li>
+                            </ol>
+                        </div>
+                        
+                        <p class="text-base lg:text-lg leading-relaxed">
+                            This isn't just automation—it's a new form of scientific discovery where human intuition guides AI exploration, and computational validation ensures rigor. In 24 hours, we can explore more theories than a human physicist could in a lifetime.
+                        </p>
+                        
+                        <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg">
+                            <p class="mb-0"><strong>📊 Deep Dive Available:</strong> For a comprehensive technical exploration of the AI discovery loop including system architecture, prompt evolution, and example outputs, see <a href="https://www.pimdewitte.com/gravity-compression/papers/003/ai_discovery_diagram.html" target="_blank" class="text-physics-blue hover:underline font-medium">The Discovery Loop Technical Details →</a></p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 4: The Prediction Game -->
+                <section class="section scroll-mt-20" id="prediction-game">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        4. The Prediction Game: Gamifying Physics Discovery
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        <div class="space-y-6">
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                What if finding a unified theory of physics was like playing a strategic game? Our framework transforms theoretical physics into exactly that—a scored competition where theories earn points for accurate predictions and lose points for failures. This gamification isn't just clever framing; it's a fundamental shift in how we approach theory discovery.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                Here's how it works: Each theory starts with a baseline score. When it correctly predicts Mercury's perihelion advance or matches pulsar timing data, it gains points. When it fails to reproduce known results or makes wild predictions, it loses points. Most importantly, these scores feed back into the AI's prompt, teaching it which mathematical structures are worth exploring.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                This approach fundamentally differs from traditional methods. Instead of hoping for rare flashes of insight, we're systematically optimizing through a vast theoretical landscape. The AI learns that theories matching both Schwarzschild (pure gravity) and Reissner-Nordström (gravity + electromagnetism) baselines score highest—naturally guiding it toward unification without explicitly programming that goal.
+                            </p>
+                        </div>
+                        
+                        <div class="lg:sticky lg:top-8">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6">
+                                <canvas id="predictionGameCanvas" class="w-full" width="420" height="600"></canvas>
+                                <p class="text-sm text-center text-physics-gray mt-4">Orbital Prediction Validation: Watch theories predict orbits and learn from their accuracy. Click to pause.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Interactive prediction validation visualization -->
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('predictionGameCanvas');
+                            const ctx = canvas.getContext('2d');
+                            let animationFrame = 0;
+                            let isPaused = false;
+                            let currentTheoryIndex = 0;
+                            let orbitPhase = 0;
+                            let validationStep = 0; // 0: show truth, 1: predict, 2: compare, 3: learn
+                            
+                            // Theories trying to predict orbits
+                            const theories = [
+                                {
+                                    name: 'Schwarzschild GR',
+                                    formula: 'g_tt = -(1 - r_s/r)',
+                                    color: '#2196f3',
+                                    accuracy: 0.95,
+                                    prediction: [],
+                                    score: 0
+                                },
+                                {
+                                    name: 'Linear Signal Loss',
+                                    formula: 'g_tt = -(1 - γr_s/r)(1 - r_s/r)',
+                                    color: '#4caf50',
+                                    accuracy: 0.92,
+                                    prediction: [],
+                                    score: 0,
+                                    isOurs: true
+                                },
+                                {
+                                    name: 'Reissner-Nordström',
+                                    formula: 'g_tt = -(1 - r_s/r + r_Q²/r²)',
+                                    color: '#ff9800',
+                                    accuracy: 0.88,
+                                    prediction: [],
+                                    score: 0
+                                },
+                                {
+                                    name: 'Quantum Corrected',
+                                    formula: 'g_rr = 1/(1 - r_s/r + L_p²/r²)',
+                                    color: '#9c27b0',
+                                    accuracy: 0.75,
+                                    prediction: [],
+                                    score: 0
+                                }
+                            ];
+                            
+                            // Training data sets
+                            const validationData = [
+                                { name: 'Mercury orbit', difficulty: 1.0 },
+                                { name: 'Binary pulsar', difficulty: 1.5 },
+                                { name: 'S2 star (Sgr A*)', difficulty: 2.0 }
+                            ];
+                            
+                            let currentDataIndex = 0;
+                            let learningHistory = [];
+                            
+                            canvas.addEventListener('click', () => {
+                                isPaused = !isPaused;
+                                if (!isPaused) animate();
+                            });
+                            
+                            // Add roundRect polyfill
+                            if (!ctx.roundRect) {
+                                ctx.roundRect = function(x, y, width, height, radius) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(x + radius, y);
+                                    ctx.lineTo(x + width - radius, y);
+                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                                    ctx.lineTo(x + width, y + height - radius);
+                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                                    ctx.lineTo(x + radius, y + height);
+                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                                    ctx.lineTo(x, y + radius);
+                                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                                    ctx.closePath();
+                                };
+                            }
+                            
+                            function drawTitle() {
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.font = 'bold 18px Aeonik, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Orbital Prediction Validation Loop', 210, 25);
+                                
+                                // Current validation data
+                                ctx.font = '13px Aeonik, sans-serif';
+                                ctx.fillStyle = '#5f6368';
+                                ctx.fillText(`Testing on: ${validationData[currentDataIndex].name}`, 210, 45);
+                            }
+                            
+                            function drawOrbitVisualization() {
+                                const centerX = 210;
+                                const centerY = 150;
+                                const baseRadius = 60;
+                                
+                                // Draw central mass (black hole)
+                                const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 20);
+                                gradient.addColorStop(0, '#000000');
+                                gradient.addColorStop(0.7, '#37474f');
+                                gradient.addColorStop(1, '#90a4ae');
+                                ctx.fillStyle = gradient;
+                                ctx.beginPath();
+                                ctx.arc(centerX, centerY, 15, 0, Math.PI * 2);
+                                ctx.fill();
+                                
+                                // Draw event horizon
+                                ctx.strokeStyle = '#616161';
+                                ctx.lineWidth = 1;
+                                ctx.setLineDash([2, 2]);
+                                ctx.beginPath();
+                                ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                                
+                                // Draw true orbit (ground truth)
+                                ctx.strokeStyle = '#1976d2';
+                                ctx.lineWidth = 3;
+                                ctx.beginPath();
+                                for (let angle = 0; angle <= Math.PI * 2; angle += 0.1) {
+                                    const r = baseRadius * (1 + 0.3 * Math.cos(3 * angle + orbitPhase));
+                                    const x = centerX + r * Math.cos(angle);
+                                    const y = centerY + r * Math.sin(angle) * 0.6; // Elliptical
+                                    if (angle === 0) ctx.moveTo(x, y);
+                                    else ctx.lineTo(x, y);
+                                }
+                                ctx.closePath();
+                                ctx.stroke();
+                                
+                                // Label
+                                ctx.font = 'bold 11px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1976d2';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('True Orbit', centerX, centerY + 100);
+                                
+                                // Draw particle position
+                                const particleAngle = orbitPhase * 2;
+                                const particleR = baseRadius * (1 + 0.3 * Math.cos(3 * particleAngle + orbitPhase));
+                                const particleX = centerX + particleR * Math.cos(particleAngle);
+                                const particleY = centerY + particleR * Math.sin(particleAngle) * 0.6;
+                                
+                                ctx.fillStyle = '#ffd700';
+                                ctx.beginPath();
+                                ctx.arc(particleX, particleY, 5, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                            
+                            function drawTheoryPredictions() {
+                                const startY = 270;
+                                const theory = theories[currentTheoryIndex];
+                                
+                                // Theory box
+                                ctx.fillStyle = validationStep >= 1 ? '#f8f9fa' : '#ffffff';
+                                ctx.strokeStyle = theory.color;
+                                ctx.lineWidth = validationStep === 1 ? 3 : 1;
+                                ctx.beginPath();
+                                ctx.roundRect(40, startY - 20, 340, 60, 8);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                // Theory name and formula
+                                ctx.font = 'bold 13px Aeonik, sans-serif';
+                                ctx.fillStyle = theory.color;
+                                ctx.textAlign = 'left';
+                                ctx.fillText(theory.name, 50, startY);
+                                
+                                ctx.font = 'italic 12px Georgia, serif';
+                                ctx.fillStyle = '#202124';
+                                ctx.fillText(theory.formula, 50, startY + 20);
+                                
+                                // Prediction status
+                                if (validationStep >= 1) {
+                                    ctx.font = '11px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#5f6368';
+                                    ctx.textAlign = 'right';
+                                    ctx.fillText('Predicting...', 370, startY);
+                                }
+                                
+                                // Draw predicted orbit if in prediction phase
+                                if (validationStep >= 1) {
+                                    const centerX = 210;
+                                    const centerY = 150;
+                                    const baseRadius = 60;
+                                    
+                                    ctx.strokeStyle = theory.color;
+                                    ctx.lineWidth = 2;
+                                    ctx.globalAlpha = 0.7;
+                                    ctx.setLineDash([5, 5]);
+                                    ctx.beginPath();
+                                    
+                                    // Slightly different orbit based on accuracy
+                                    const errorFactor = 1 - theory.accuracy;
+                                    for (let angle = 0; angle <= Math.PI * 2; angle += 0.1) {
+                                        const r = baseRadius * (1 + 0.3 * Math.cos(3 * angle + orbitPhase + errorFactor));
+                                        const x = centerX + r * Math.cos(angle + errorFactor * 0.1);
+                                        const y = centerY + r * Math.sin(angle + errorFactor * 0.1) * 0.6;
+                                        if (angle === 0) ctx.moveTo(x, y);
+                                        else ctx.lineTo(x, y);
+                                    }
+                                    ctx.stroke();
+                                    ctx.setLineDash([]);
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            function drawValidationResult() {
+                                if (validationStep < 2) return;
+                                
+                                const theory = theories[currentTheoryIndex];
+                                const resultY = 350;
+                                
+                                // Result box
+                                const isCorrect = theory.accuracy > 0.85;
+                                ctx.fillStyle = isCorrect ? '#e8f5e9' : '#ffebee';
+                                ctx.strokeStyle = isCorrect ? '#4caf50' : '#f44336';
+                                ctx.lineWidth = 2;
+                                ctx.beginPath();
+                                ctx.roundRect(80, resultY - 15, 260, 40, 6);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                // Result text
+                                ctx.font = 'bold 14px Aeonik, sans-serif';
+                                ctx.fillStyle = isCorrect ? '#2e7d32' : '#c62828';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(isCorrect ? '✓ CORRECT' : '✗ INCORRECT', 210, resultY + 5);
+                                
+                                // Accuracy score
+                                ctx.font = '12px Aeonik, sans-serif';
+                                ctx.fillStyle = '#5f6368';
+                                ctx.fillText(`Accuracy: ${Math.round(theory.accuracy * 100)}%`, 210, resultY + 20);
+                            }
+                            
+                            function drawLearningFeedback() {
+                                if (validationStep < 3) return;
+                                
+                                const feedbackY = 420;
+                                const theory = theories[currentTheoryIndex];
+                                
+                                // AI Learning section
+                                ctx.fillStyle = '#f0f7ff';
+                                ctx.strokeStyle = '#4285f4';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.roundRect(30, feedbackY, 360, 80, 8);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                // Learning icon and title
+                                ctx.font = 'bold 13px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1976d2';
+                                ctx.textAlign = 'left';
+                                ctx.fillText('🤖 Deep Learning Update:', 40, feedbackY + 20);
+                                
+                                // Feedback message
+                                ctx.font = '11px Aeonik, sans-serif';
+                                ctx.fillStyle = '#5f6368';
+                                const isCorrect = theory.accuracy > 0.85;
+                                if (theory.isOurs) {
+                                    ctx.fillText('Linear Signal Loss shows balanced GR/RN matching!', 40, feedbackY + 40);
+                                    ctx.fillText('→ Strong unification candidate, updating weights...', 40, feedbackY + 55);
+                                } else if (isCorrect) {
+                                    ctx.fillText(`${theory.name} prediction successful.`, 40, feedbackY + 40);
+                                    ctx.fillText('→ Reinforcing this metric structure in next generation.', 40, feedbackY + 55);
+                                } else {
+                                    ctx.fillText(`${theory.name} failed to match observations.`, 40, feedbackY + 40);
+                                    ctx.fillText('→ Penalizing this approach, exploring alternatives.', 40, feedbackY + 55);
+                                }
+                                
+                                // Update theory score
+                                theory.score += (isCorrect ? 10 : -5) * validationData[currentDataIndex].difficulty;
+                            }
+                            
+                            function drawProgressIndicator() {
+                                const progressY = 520;
+                                
+                                // Step indicators
+                                const steps = ['Observe', 'Predict', 'Validate', 'Learn'];
+                                const stepWidth = 90;
+                                const startX = (canvas.width - stepWidth * 4) / 2;
+                                
+                                steps.forEach((step, index) => {
+                                    const x = startX + index * stepWidth + stepWidth / 2;
+                                    const isActive = index === validationStep;
+                                    const isPast = index < validationStep;
+                                    
+                                    // Circle
+                                    ctx.fillStyle = isActive ? '#4285f4' : (isPast ? '#4caf50' : '#e0e0e0');
+                                    ctx.beginPath();
+                                    ctx.arc(x, progressY, 15, 0, Math.PI * 2);
+                                    ctx.fill();
+                                    
+                                    // Number
+                                    ctx.font = 'bold 12px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#ffffff';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText(index + 1, x, progressY + 4);
+                                    
+                                    // Label
+                                    ctx.font = '11px Aeonik, sans-serif';
+                                    ctx.fillStyle = isActive ? '#1976d2' : '#5f6368';
+                                    ctx.fillText(step, x, progressY + 30);
+                                    
+                                    // Connector line
+                                    if (index < steps.length - 1) {
+                                        ctx.strokeStyle = isPast ? '#4caf50' : '#e0e0e0';
+                                        ctx.lineWidth = 2;
+                                        ctx.beginPath();
+                                        ctx.moveTo(x + 15, progressY);
+                                        ctx.lineTo(x + stepWidth - 15, progressY);
+                                        ctx.stroke();
+                                    }
+                                });
+                                
+                                // Loop indicator
+                                if (validationStep >= 3) {
+                                    ctx.strokeStyle = '#ff9800';
+                                    ctx.lineWidth = 2;
+                                    ctx.setLineDash([5, 5]);
+                                    ctx.beginPath();
+                                    ctx.moveTo(startX + 3.5 * stepWidth, progressY - 10);
+                                    ctx.quadraticCurveTo(startX + 4 * stepWidth, progressY - 40, startX + stepWidth / 2, progressY - 10);
+                                    ctx.stroke();
+                                    ctx.setLineDash([]);
+                                    
+                                    ctx.font = '10px Aeonik, sans-serif';
+                                    ctx.fillStyle = '#ff6f00';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('Loop continues...', 210, progressY - 45);
+                                }
+                            }
+                            
+                            function updateSimulation() {
+                                // Update orbit animation
+                                orbitPhase += 0.02;
+                                
+                                // Progress through validation steps
+                                if (animationFrame % 100 === 0) {
+                                    validationStep = (validationStep + 1) % 4;
+                                    
+                                    // Move to next theory after learning
+                                    if (validationStep === 0) {
+                                        currentTheoryIndex = (currentTheoryIndex + 1) % theories.length;
+                                        
+                                        // Move to next validation data after all theories
+                                        if (currentTheoryIndex === 0) {
+                                            currentDataIndex = (currentDataIndex + 1) % validationData.length;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            function animate() {
+                                if (isPaused) return;
+                                
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                drawTitle();
+                                drawOrbitVisualization();
+                                drawTheoryPredictions();
+                                drawValidationResult();
+                                drawLearningFeedback();
+                                drawProgressIndicator();
+                                
+                                updateSimulation();
+                                animationFrame++;
+                                requestAnimationFrame(animate);
+                            }
+                            
+                            // Start animation
+                            animate();
+                        })();
+                    </script>
+                    
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">4.1 Why This Is Different from Reissner-Nordström</h3>
+                    <div class="space-y-4 text-base lg:text-lg leading-relaxed">
+                        <p>
+                            The Reissner-Nordström metric adds electric charge as an <em>additional</em> parameter to general relativity. It's gravity <strong>plus</strong> electromagnetism, not a true unification. The metric looks like:
+                        </p>
+                        <div class="formula-display">
+                            g<sub>tt</sub> = -(1 - r<sub>s</sub>/r + r<sub>Q</sub>²/r²)
+                        </div>
+                        <p>
+                            Where r<sub>Q</sub>² = Q²G/(4πε₀c⁴) introduces charge Q as a separate physical quantity. This is fundamentally different from our Linear Signal Loss approach, which modifies the gravitational structure itself:
+                        </p>
+                        <div class="formula-display">
+                            g<sub>tt</sub> = -(1 - γr<sub>s</sub>/r)(1 - r<sub>s</sub>/r)
+                        </div>
+                        <p>
+                            Here, γ represents information degradation that affects <em>both</em> gravitational and electromagnetic phenomena equally. When our "game" rewards theories that match both baselines with minimal parameters, it naturally discovers this unified structure—suggesting gravity and electromagnetism share a common information-theoretic origin.
+                        </p>
+                    </div>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">4.2 The Self-Improving Loop</h3>
+                    <div class="bg-blue-50 border-l-4 border-physics-blue p-6 rounded-r-lg">
+                        <h4 class="text-lg font-semibold text-physics-blue mb-3">How the AI Gets Smarter:</h4>
+                        <ol class="list-decimal list-inside space-y-3 text-base lg:text-lg">
+                            <li><strong>Score Theories:</strong> Test against Mercury perihelion, pulsar timing, gravitational waves</li>
+                            <li><strong>Rank Performance:</strong> Higher scores for accurate predictions across multiple phenomena</li>
+                            <li><strong>Extract Patterns:</strong> What mathematical structures correlate with high scores?</li>
+                            <li><strong>Update Prompts:</strong> "Previous winner had structure X with score Y. Try variations..."</li>
+                            <li><strong>Generate Better:</strong> AI proposes theories more likely to score well</li>
+                            <li><strong>Repeat:</strong> Each cycle improves the AI's "physics intuition"</li>
+                        </ol>
+                    </div>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mt-6">
+                        This gamification transforms an intractable search problem into an optimization task. Instead of randomly exploring theory space, we're hill-climbing toward unification, guided by the simple principle that the best theory should explain the most phenomena with the fewest assumptions.
+                    </p>
+                </section>
+
+                <!-- Section 5: Theories We Tested (renumbered from 4) -->
+                <section class="section scroll-mt-20" id="tested-theories">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        5. Theories We Tested: From Einstein to AI
+                    </h2>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mb-8">
+                        Our framework has tested hundreds of theories across three categories:
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">Classical Extensions</h4>
+                            <ul class="text-sm lg:text-base space-y-1">
+                                <li>• PPN modifications</li>
+                                <li>• Variable G theories</li>
+                                <li>• Higher-order corrections</li>
+                                <li>• Yukawa potentials</li>
+                            </ul>
+                        </div>
+                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-purple-700 mb-3">Quantum-Inspired</h4>
+                            <ul class="text-sm lg:text-base space-y-1">
+                                <li>• Loop quantum corrections</li>
+                                <li>• Planck-scale modifications</li>
+                                <li>• Stochastic metrics</li>
+                                <li>• Information-theoretic models</li>
+                            </ul>
+                        </div>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-green-700 mb-3">Einstein's Legacy</h4>
+                            <ul class="text-sm lg:text-base space-y-1">
+                                <li>• Non-symmetric metrics</li>
+                                <li>• Torsion fields</li>
+                                <li>• Kaluza-Klein 5D</li>
+                                <li>• Teleparallel gravity</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed">
+                        Among all these approaches, one novel theory emerged as particularly promising: the idea that gravity might be understood as an information compression process. This wasn't in Einstein's toolkit, but represents the kind of creative leap that our AI-human collaboration enables.
+                    </p>
+                </section>
+
+                <!-- Section 6: Gravity as Compression (moved from introduction) -->
+                <section class="section scroll-mt-20" id="compression-hypothesis">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        6. One Promising Theory: Gravity as Information Compression
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        <div class="space-y-6">
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                Among the hundreds of theories tested, one stood out for its conceptual elegance and computational performance: the hypothesis that gravity is an emergent phenomenon rooted in information compression.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                This theory posits that physical laws are algorithms mapping high-dimensional quantum states onto low-dimensional classical spacetime. The universe acts as a vast compression engine, with gravity emerging as the process that maintains this dimensional reduction. Black holes exemplify this: an entire star's information compressed to just mass, charge, and spin.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                We formalized this as the "Linear Signal Loss" model, which degrades gravitational information systematically. Remarkably, when we degrade the gravitational "signal," both gravity and electromagnetic effects degrade proportionally—suggesting they share a common information-theoretic substrate.
+                            </p>
+                        </div>
+                        
+                        <div class="lg:sticky lg:top-8">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6">
+                                <canvas id="compressionHypothesisCanvas" class="w-full" width="420" height="420"></canvas>
+                                <p class="text-sm text-center text-physics-gray mt-4">The Compression Hypothesis: Physical laws as information codecs. Click to animate.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Canvas script (same as before) -->
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('compressionHypothesisCanvas');
+                            const ctx = canvas.getContext('2d');
+                            let animationFrame = 0;
+                            let isPaused = false;
+                            let compressionProgress = 0;
+                            let waveOffset = 0;
+                            
+                            canvas.addEventListener('click', () => {
+                                isPaused = !isPaused;
+                                if (!isPaused) animate();
+                            });
+                            
+                            // Add roundRect polyfill
+                            if (!ctx.roundRect) {
+                                ctx.roundRect = function(x, y, width, height, radius) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(x + radius, y);
+                                    ctx.lineTo(x + width - radius, y);
+                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                                    ctx.lineTo(x + width, y + height - radius);
+                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                                    ctx.lineTo(x + radius, y + height);
+                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                                    ctx.lineTo(x, y + radius);
+                                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                                    ctx.closePath();
+                                };
+                            }
+                            
+                            function drawQuantumState(x, y, size) {
+                                // Draw complex quantum wavefunction
+                                ctx.save();
+                                ctx.translate(x, y);
+                                
+                                // Background circle
+                                ctx.fillStyle = '#e8eaf6';
+                                ctx.beginPath();
+                                ctx.arc(0, 0, size, 0, Math.PI * 2);
+                                ctx.fill();
+                                
+                                // Quantum waves
+                                ctx.strokeStyle = '#3f51b5';
+                                ctx.lineWidth = 1.5;
+                                for (let i = 0; i < 5; i++) {
+                                    ctx.beginPath();
+                                    for (let angle = 0; angle < Math.PI * 2; angle += 0.1) {
+                                        const r = size * 0.5 + 10 * Math.sin(angle * 3 + waveOffset + i);
+                                        const x = r * Math.cos(angle);
+                                        const y = r * Math.sin(angle);
+                                        if (angle === 0) ctx.moveTo(x, y);
+                                        else ctx.lineTo(x, y);
+                                    }
+                                    ctx.closePath();
+                                    ctx.globalAlpha = 0.3 - i * 0.05;
+                                    ctx.stroke();
+                                }
+                                ctx.globalAlpha = 1;
+                                
+                                // Label
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.font = 'bold 15px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Quantum State', 0, size + 25);
+                                ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                ctx.fillStyle = '#5f6368';
+                                ctx.fillText('(High-dimensional)', 0, size + 40);
+                                
+                                ctx.restore();
+                            }
+                            
+                            function drawClassicalSpacetime(x, y, size) {
+                                ctx.save();
+                                ctx.translate(x, y);
+                                
+                                // Draw grid representing spacetime
+                                ctx.strokeStyle = '#757575';
+                                ctx.lineWidth = 1;
+                                const gridSize = 15;
+                                const halfSize = size;
+                                
+                                // Grid lines
+                                for (let i = -halfSize; i <= halfSize; i += gridSize) {
+                                    // Curved grid to show spacetime curvature
+                                    ctx.beginPath();
+                                    for (let j = -halfSize; j <= halfSize; j += 5) {
+                                        const curvature = 20 * Math.exp(-((i*i + j*j) / (halfSize*halfSize)));
+                                        if (j === -halfSize) ctx.moveTo(j, i - curvature);
+                                        else ctx.lineTo(j, i - curvature);
+                                    }
+                                    ctx.stroke();
+                                    
+                                    ctx.beginPath();
+                                    for (let j = -halfSize; j <= halfSize; j += 5) {
+                                        const curvature = 20 * Math.exp(-((i*i + j*j) / (halfSize*halfSize)));
+                                        if (j === -halfSize) ctx.moveTo(i, j - curvature);
+                                        else ctx.lineTo(i, j - curvature);
+                                    }
+                                    ctx.stroke();
+                                }
+                                
+                                // Central mass
+                                const gradient = ctx.createRadialGradient(0, -10, 0, 0, -10, 30);
+                                gradient.addColorStop(0, '#37474f');
+                                gradient.addColorStop(1, '#90a4ae');
+                                ctx.fillStyle = gradient;
+                                ctx.beginPath();
+                                ctx.arc(0, -10, 15, 0, Math.PI * 2);
+                                ctx.fill();
+                                
+                                // Label
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.font = 'bold 15px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Classical Spacetime', 0, size + 25);
+                                ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                ctx.fillStyle = '#5f6368';
+                                ctx.fillText('(4D Observable)', 0, size + 40);
+                                
+                                ctx.restore();
+                            }
+                            
+                            function drawCompressionArrow(x1, y1, x2, y2, progress) {
+                                const dx = x2 - x1;
+                                const dy = y2 - y1;
+                                const angle = Math.atan2(dy, dx);
+                                
+                                // Draw wavy arrow representing compression
+                                ctx.save();
+                                ctx.strokeStyle = '#4caf50';
+                                ctx.lineWidth = 3;
+                                ctx.setLineDash([5, 5]);
+                                ctx.lineDashOffset = -animationFrame * 0.5;
+                                
+                                ctx.beginPath();
+                                for (let t = 0; t <= progress; t += 0.02) {
+                                    const x = x1 + dx * t;
+                                    const y = y1 + dy * t + 10 * Math.sin(t * 10 + waveOffset);
+                                    if (t === 0) ctx.moveTo(x, y);
+                                    else ctx.lineTo(x, y);
+                                }
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                                
+                                // Arrowhead
+                                if (progress > 0.9) {
+                                    const endX = x1 + dx * progress;
+                                    const endY = y1 + dy * progress;
+                                    ctx.translate(endX, endY);
+                                    ctx.rotate(angle);
+                                    ctx.fillStyle = '#4caf50';
+                                    ctx.beginPath();
+                                    ctx.moveTo(0, 0);
+                                    ctx.lineTo(-15, -8);
+                                    ctx.lineTo(-15, 8);
+                                    ctx.closePath();
+                                    ctx.fill();
+                                }
+                                ctx.restore();
+                                
+                                // Label
+                                const midX = x1 + dx * 0.5;
+                                const midY = y1 + dy * 0.5 - 20;
+                                ctx.fillStyle = '#2e7d32';
+                                ctx.font = 'bold 13px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('GRAVITY', midX, midY);
+                                ctx.font = '11px Aeonik, -apple-system, sans-serif';
+                                ctx.fillText('(Compression)', midX, midY + 12);
+                            }
+                            
+                            function drawTheoryBox(x, y) {
+                                // Draw theory evaluation box
+                                ctx.fillStyle = '#fff3e0';
+                                ctx.strokeStyle = '#f57c00';
+                                ctx.lineWidth = 2;
+                                ctx.beginPath();
+                                ctx.roundRect(x - 60, y - 25, 120, 50, 5);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                ctx.fillStyle = '#e65100';
+                                ctx.font = 'bold 13px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Theory g_μν', x, y);
+                                ctx.font = '11px Aeonik, -apple-system, sans-serif';
+                                ctx.fillText('Decoder', x, y + 12);
+                            }
+                            
+                            function drawLossIndicator(x, y, loss) {
+                                // Draw loss meter
+                                const width = 100;
+                                const height = 20;
+                                
+                                ctx.fillStyle = '#f5f5f5';
+                                ctx.strokeStyle = '#9e9e9e';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.roundRect(x - width/2, y - height/2, width, height, 3);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                // Fill based on loss
+                                const fillWidth = width * (1 - loss);
+                                const color = loss < 0.1 ? '#4caf50' : loss < 0.5 ? '#ff9800' : '#f44336';
+                                ctx.fillStyle = color;
+                                ctx.beginPath();
+                                ctx.roundRect(x - width/2, y - height/2, fillWidth, height, 3);
+                                ctx.fill();
+                                
+                                // Label
+                                ctx.fillStyle = '#202124';
+                                ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Decoding Loss', x, y + 25);
+                            }
+                            
+                            function animate() {
+                                if (isPaused) return;
+                                
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Title
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.font = 'bold 18px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('The Compression Hypothesis', canvas.width / 2, 30);
+                                
+                                // Update animation states
+                                waveOffset += 0.05;
+                                compressionProgress = (Math.sin(animationFrame * 0.02) + 1) * 0.5;
+                                
+                                // Draw components
+                                drawQuantumState(100, 100, 50);
+                                drawClassicalSpacetime(280, 100, 50);
+                                drawCompressionArrow(150, 100, 230, 100, compressionProgress);
+                                
+                                // Draw theory evaluation
+                                drawTheoryBox(190, 220);
+                                
+                                // Draw loss indicator
+                                const loss = 0.1 + 0.4 * (1 - compressionProgress);
+                                drawLossIndicator(190, 280, loss);
+                                
+                                // Information text
+                                ctx.fillStyle = '#5f6368';
+                                ctx.font = '11px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Physical laws = Information codecs', canvas.width / 2, 365);
+                                ctx.fillText('Better theory = Lower decoding loss', canvas.width / 2, 380);
+                                
+                                animationFrame++;
+                                requestAnimationFrame(animate);
+                            }
+                            
+                            // Start animation
+                            animate();
+                        })();
+                    </script>
+                    
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">5.1 How We Test the Compression Hypothesis</h3>
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        For this specific theory, we developed a specialized evaluation methodology using <strong>information loss</strong> as the key metric. The idea: if gravity is compression, then theories can be evaluated by how well they preserve information when "decoding" particle trajectories.
+                    </p>
+                    
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6 mb-8">
+                        <canvas id="compressionPipelineCanvas" class="w-full" width="420" height="500"></canvas>
+                        <p class="text-sm text-center text-physics-gray mt-4">Computational pipeline for testing compression theories using FFT loss. Click to see data flow.</p>
+                    </div>
+                    
+                    <!-- Original computational framework canvas adapted for compression -->
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('compressionPipelineCanvas');
+                            const ctx = canvas.getContext('2d');
+                            let animationFrame = 0;
+                            let isPaused = false;
+                            let dataFlowProgress = 0;
+                            let currentStage = 0;
+                            
+                            // Pipeline stages
+                            const stages = [
+                                { name: 'Compression Theory', y: 30, color: '#1a73e8', icon: 'g_μν' },
+                                { name: 'Metric Tensor', y: 80, color: '#2196f3', icon: 'M' },
+                                { name: 'Christoffel Symbols', y: 130, color: '#03a9f4', icon: 'Γ' },
+                                { name: 'Geodesic Integration', y: 180, color: '#00bcd4', icon: '∫' },
+                                { name: 'Trajectory r(t)', y: 230, color: '#009688', icon: 'r(t)' },
+                                { name: 'Fourier Transform', y: 280, color: '#4caf50', icon: 'FFT' },
+                                { name: 'Dual Baseline', y: 330, color: '#ff9800', icon: '⟷' },
+                                { name: 'Loss Computation', y: 380, color: '#f44336', icon: 'L' }
+                            ];
+                            
+                            // Validation tiers
+                            const tiers = [
+                                { name: 'TEST\n1K steps', x: 50, color: '#fdd835' },
+                                { name: 'VALIDATION\n100K steps', x: 190, color: '#ff9800' },
+                                { name: 'FINAL\n5M steps', x: 330, color: '#f44336' }
+                            ];
+                            
+                            canvas.addEventListener('click', () => {
+                                isPaused = !isPaused;
+                                if (!isPaused) animate();
+                            });
+                            
+                            function drawStage(stage, index) {
+                                const x = canvas.width / 2;
+                                const isActive = Math.floor(dataFlowProgress) === index;
+                                const isPast = dataFlowProgress > index;
+                                
+                                // Draw box
+                                ctx.fillStyle = isActive ? stage.color : (isPast ? stage.color + '40' : '#f8f9fa');
+                                ctx.strokeStyle = stage.color;
+                                ctx.lineWidth = isActive ? 3 : 1;
+                                
+                                const boxWidth = 200;
+                                const boxHeight = 35;
+                                
+                                ctx.beginPath();
+                                ctx.roundRect(x - boxWidth/2, stage.y - boxHeight/2, boxWidth, boxHeight, 5);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                // Draw icon
+                                ctx.fillStyle = isActive ? '#ffffff' : stage.color;
+                                ctx.font = 'bold 15px Georgia, serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(stage.icon, x - boxWidth/2 + 30, stage.y + 4);
+                                
+                                // Draw label
+                                ctx.fillStyle = isActive ? '#ffffff' : '#202124';
+                                ctx.font = '13px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(stage.name, x + 20, stage.y + 3);
+                                
+                                // Draw arrow to next stage
+                                if (index < stages.length - 1) {
+                                    const nextStage = stages[index + 1];
+                                    const arrowProgress = Math.max(0, Math.min(1, dataFlowProgress - index));
+                                    
+                                    if (arrowProgress > 0) {
+                                        const startY = stage.y + boxHeight/2;
+                                        const endY = nextStage.y - boxHeight/2;
+                                        const currentY = startY + (endY - startY) * arrowProgress;
+                                        
+                                        ctx.strokeStyle = stage.color;
+                                        ctx.lineWidth = 2;
+                                        ctx.beginPath();
+                                        ctx.moveTo(x, startY);
+                                        ctx.lineTo(x, currentY);
+                                        ctx.stroke();
+                                        
+                                        // Arrowhead
+                                        if (arrowProgress > 0.8) {
+                                            ctx.fillStyle = stage.color;
+                                            ctx.beginPath();
+                                            ctx.moveTo(x, currentY);
+                                            ctx.lineTo(x - 5, currentY - 8);
+                                            ctx.lineTo(x + 5, currentY - 8);
+                                            ctx.closePath();
+                                            ctx.fill();
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            function drawDualBaseline() {
+                                const baselineY = stages[6].y;
+                                const x = canvas.width / 2;
+                                const isActive = Math.floor(dataFlowProgress) === 6;
+                                
+                                if (dataFlowProgress >= 6) {
+                                    // Draw baseline boxes
+                                    const baselineWidth = 85;
+                                    const spacing = 65;
+                                    
+                                    // Schwarzschild baseline
+                                    ctx.fillStyle = isActive ? '#e3f2fd' : '#f8f9fa';
+                                    ctx.strokeStyle = '#1976d2';
+                                    ctx.lineWidth = 1;
+                                    ctx.beginPath();
+                                    ctx.roundRect(x - spacing - baselineWidth, baselineY - 15, baselineWidth, 30, 3);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    ctx.fillStyle = '#1976d2';
+                                    ctx.font = '11px Aeonik, -apple-system, sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('Schwarzschild', x - spacing - baselineWidth/2, baselineY + 3);
+                                    
+                                    // Reissner-Nordström baseline
+                                    ctx.fillStyle = isActive ? '#fff3e0' : '#f8f9fa';
+                                    ctx.strokeStyle = '#f57c00';
+                                    ctx.beginPath();
+                                    ctx.roundRect(x + spacing, baselineY - 15, baselineWidth, 30, 3);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    ctx.fillStyle = '#f57c00';
+                                    ctx.fillText('Reissner-N', x + spacing + baselineWidth/2, baselineY + 3);
+                                }
+                            }
+                            
+                            function drawValidationTiers() {
+                                const tierY = 415;
+                                
+                                ctx.fillStyle = '#5f6368';
+                                ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Validation Tiers:', canvas.width / 2, tierY);
+                                
+                                tiers.forEach(tier => {
+                                    const isActive = dataFlowProgress >= stages.length - 1;
+                                    
+                                    ctx.fillStyle = isActive ? tier.color + '20' : '#f8f9fa';
+                                    ctx.strokeStyle = tier.color;
+                                    ctx.lineWidth = 1;
+                                    ctx.beginPath();
+                                    ctx.roundRect(tier.x - 30, tierY + 8, 60, 32, 3);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    
+                                    ctx.fillStyle = tier.color;
+                                    ctx.font = '10px Aeonik, -apple-system, sans-serif';
+                                    const lines = tier.name.split('\n');
+                                    lines.forEach((line, i) => {
+                                        ctx.fillText(line, tier.x, tierY + 20 + i * 11);
+                                    });
+                                });
+                            }
+                            
+                            function animate() {
+                                if (isPaused) return;
+                                
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Draw stages
+                                stages.forEach((stage, index) => {
+                                    drawStage(stage, index);
+                                });
+                                
+                                // Draw dual baseline comparison
+                                drawDualBaseline();
+                                
+                                // Draw validation tiers at bottom
+                                drawValidationTiers();
+                                
+                                // Update data flow
+                                dataFlowProgress += 0.02;
+                                if (dataFlowProgress > stages.length) {
+                                    dataFlowProgress = 0;
+                                }
+                                
+                                animationFrame++;
+                                requestAnimationFrame(animate);
+                            }
+                            
+                            // Add roundRect polyfill for older browsers
+                            if (!ctx.roundRect) {
+                                ctx.roundRect = function(x, y, width, height, radius) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(x + radius, y);
+                                    ctx.lineTo(x + width - radius, y);
+                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                                    ctx.lineTo(x + width, y + height - radius);
+                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                                    ctx.lineTo(x + radius, y + height);
+                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                                    ctx.lineTo(x, y + radius);
+                                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                                    ctx.closePath();
+                                };
+                            }
+                            
+                            // Start animation
+                            animate();
+                        })();
+                    </script>
+                    
+                    <div class="bg-blue-50 border-l-4 border-physics-blue p-6 rounded-r-lg">
+                        <h4 class="text-lg font-semibold text-physics-blue mb-3">The FFT Loss Metric</h4>
+                        <p class="text-sm lg:text-base mb-3">
+                            We use Fourier Transform analysis to compare the frequency spectra of orbital trajectories. This captures subtle differences in precession rates and periodic effects that simple position comparisons would miss.
+                    </p>
+                    <div class="formula-display">
+                        L<sub>FFT</sub> = ||FFT(r<sup>candidate</sup>(t)) - FFT(r<sup>truth</sup>(t))||²
+                    </div>
+                        <p class="text-sm lg:text-base">
+                            A theory with lower "loss" better preserves the information content of gravitational dynamics—supporting the compression hypothesis.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Section 7: Promising Candidates -->
+                <section class="section scroll-mt-20" id="promising-candidates">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        7. Promising Candidates for Unification
+                    </h2>
+                    <p class="text-base lg:text-lg leading-relaxed mb-8">
+                        Our dual-baseline methodology revealed several theories that demonstrate exceptional promise for unifying gravity and electromagnetism. These candidates maintain low loss values against both baselines, indicating potential unified structures.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <!-- Linear Signal Loss (γ=+0.75) -->
+                        <div class="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-physics-blue">Linear Signal Loss (γ=+0.75)</h3>
+                            </div>
+                            <div class="flex gap-2 p-4 bg-gray-50 justify-center">
+                                <a href="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+0_75/plot.png" target="_blank" class="w-1/2">
+                                    <img src="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+0_75/plot.png" 
+                                         alt="Trajectory" 
+                                         class="w-full h-auto rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+                                </a>
+                                <a href="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+0_75/metric_plot.png" target="_blank" class="w-1/2">
+                                    <img src="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+0_75/metric_plot.png" 
+                                         alt="Metric" 
+                                         class="w-full h-auto rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+                                </a>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <p class="text-sm font-medium text-physics-blue">
+                                    Performance: Loss_GR: 0.153, Loss_RN: 0.161
+                                </p>
+                                <div class="bg-blue-50 p-3 rounded-lg">
+                                    <p class="text-sm font-mono text-center">
+                                        <span class="math-var">m = (1 - γ (r_s / r)) × (1 - r_s / r)</span>
+                                    </p>
+                                </div>
+                                <p class="text-sm text-physics-gray italic">
+                                    Balanced losses suggest unification through information degradation.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Linear Signal Loss (γ=+1.00) -->
+                        <div class="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-physics-blue">Linear Signal Loss (γ=+1.00)</h3>
+                            </div>
+                            <div class="flex gap-2 p-4 bg-gray-50 justify-center">
+                                <a href="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+1_00/plot.png" target="_blank" class="w-1/2">
+                                    <img src="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+1_00/plot.png" 
+                                         alt="Trajectory" 
+                                         class="w-full h-auto rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+                                </a>
+                                <a href="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+1_00/metric_plot.png" target="_blank" class="w-1/2">
+                                    <img src="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+1_00/metric_plot.png" 
+                                         alt="Metric" 
+                                         class="w-full h-auto rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+                                </a>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <p class="text-sm font-medium text-physics-blue">
+                                    Performance: Loss_GR: 0.133, Loss_RN: 0.133
+                                </p>
+                                <div class="bg-blue-50 p-3 rounded-lg">
+                                    <p class="text-sm font-mono text-center">
+                                        <span class="math-var">m = (1 - γ (r_s / r)) × (1 - r_s / r)</span>
+                                    </p>
+                                </div>
+                                <p class="text-sm text-physics-gray italic">
+                                    Perfect balance at full degradation indicates robust unification.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Other candidates... (kept but abbreviated for space) -->
+                        
+                        <!-- AI-Generated Theory Example -->
+                        <div class="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                            <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-purple-700">AI: Asymmetric Torsion Theory</h3>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <p class="text-sm font-medium text-purple-700">
+                                    Generated by Grok-4 after analyzing Einstein's notes
+                                </p>
+                                <div class="bg-purple-50 p-3 rounded-lg">
+                                    <p class="text-sm font-mono text-center">
+                                        <span class="math-var">g_tφ = α(r_s/r)² sin²θ</span>
+                                    </p>
+                                </div>
+                                <p class="text-sm text-physics-gray italic">
+                                    Non-symmetric metric inspired by Einstein's final calculations, showing how AI extends historical insights.
+                                </p>
+                            </div>
+                        </div>
+                            </div>
+                </section>
+
+                <!-- Interactive Visualization Section (kept as is) -->
+                <section class="section scroll-mt-20" id="interactive-viz">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        8. Interactive Visualization System
+                    </h2>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        To facilitate deeper exploration and understanding of the generated theories, we have developed an interactive, browser-based 3D visualization system. This tool allows researchers to simulate particle trajectories in real-time under different metrics, adjust parameters on-the-fly, and observe quantum-like effects, all powered by WebGL for GPU acceleration.
+                    </p>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-8 mb-4">Key Features</h3>
+                    <ul class="list-disc list-inside space-y-3 text-base lg:text-lg mb-8">
+                        <li><strong>Real-time Trajectory Simulation:</strong> Visualize multiple particles orbiting a central black hole with dynamic trails showing paths.</li>
+                        <li><strong>Parameter Adjustment:</strong> Interactive sliders for theory parameters (e.g., α, γ) and quantum variables (e.g., noise strength for stochastic fluctuations).</li>
+                        <li><strong>Quantum Effects:</strong> Simulate energy-based tests with random perturbations to velocities, colored by kinetic energy.</li>
+                        <li><strong>Accessibility:</strong> Runs entirely in the browser—no installation required. Supports desktop and mobile devices.</li>
+                    </ul>
+                    
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-8 mb-4">How It Works</h3>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        For each evaluated theory, an interactive <code>viz.html</code> file is automatically generated in the theory's run directory. This file loads the central visualization engine and embeds the theory's metric function converted to JavaScript.
+                    </p>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        An example visualization for the 'Linear Signal Loss (γ=+1.00)' theory is available at: <a href="../../../viz/example_viz.html" target="_blank" class="text-physics-blue hover:underline font-medium">viz/example_viz.html</a>. Open it in a browser to interact with the simulation.
+                    </p>
+
+                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
+                        <p class="mb-0"><strong>📊 Getting Started:</strong> See the project README.md for detailed instructions on generating and using these visualizations. The source code is in <code>viz/visualization_enhanced.js</code>.</p>
+                                </div>
+                </section>
+
+                <!-- Black Hole Visualization (kept as is) -->
+                <section class="section scroll-mt-20" id="black-hole-visualization">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        9. Interactive Black Hole Demonstration
+                    </h2>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        To provide an intuitive understanding of how information compression manifests near extreme gravitational fields, we've developed an interactive 3D visualization of a black hole. This demonstration shows how reality's information compression intensifies as you approach the event horizon.
+                    </p>
+
+                    <div class="bg-blue-50 border-l-4 border-physics-blue p-6 rounded-r-lg mb-8">
+                        <h3 class="text-lg font-semibold text-physics-blue mb-3">Key Features of the Visualization:</h3>
+                        <ul class="list-disc list-inside space-y-2 text-sm lg:text-base">
+                            <li><strong>Dynamic Distance Indicator:</strong> Shows your position in Schwarzschild radii (Rs) with real-time explanations</li>
+                            <li><strong>Interactive Elements:</strong> Click on glowing indicators to explore particle, time, gravity, and space behavior</li>
+                            <li><strong>Event Horizon Approach:</strong> Navigate to where 3D visualization fails—demonstrating ultimate compression</li>
+                            <li><strong>Visual Effects:</strong> Experience increasing distortion as information compression intensifies</li>
+                        </ul>
+                        </div>
+    
+                    <div class="relative w-full" style="padding-bottom: 75%; height: 0; min-height: 700px;">
+                        <iframe 
+                            src="interactive_black_hole.html" 
+                            class="absolute top-0 left-0 w-full h-full border-2 border-gray-300 rounded-lg shadow-lg"
+                            style="min-height: 700px;"
+                            allow="fullscreen"
+                            title="Interactive Black Hole Compression Demonstration">
+                        </iframe>
+                        </div>
+    
+                    <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-physics-dark mb-3">Navigation Instructions:</h3>
+                        <ul class="list-disc list-inside space-y-2 text-sm lg:text-base">
+                            <li><strong>Rotate:</strong> Click and drag to orbit around the black hole</li>
+                            <li><strong>Zoom:</strong> Scroll to approach or retreat from the event horizon</li>
+                            <li><strong>Explore:</strong> Click interactive elements for detailed physics explanations</li>
+                        </ul>
+                        </div>
+    
+                    <p class="text-base lg:text-lg leading-relaxed mt-6">
+                        For the full immersive experience, <a href="interactive_black_hole.html" target="_blank" class="text-physics-blue hover:underline font-medium">open the visualization in a new tab</a>.
+                    </p>
+                </section>
+
+                <!-- Contributing Section (kept as is) -->
+                <section class="section scroll-mt-20 no-print" id="appendix-e">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        10. Contributing to the Project
+                    </h2>
+            
+                    <div class="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-r-lg mb-8 flex items-center gap-6">
+                        <div>
+                            <svg class="w-10 h-10 text-blue-500 inline-block mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-semibold text-blue-800 mb-1 flex items-center gap-2">
+                                <a href="https://github.com/pimdewitte/gravity-compression/" target="_blank" rel="noopener" class="inline-block text-physics-blue hover:underline font-medium">
+                                    <svg class="w-5 h-5 inline-block" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.75.41-1.27.74-1.56-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .98-.31 3.2 1.18a11.1 11.1 0 0 1 2.92-.39c.99.01 1.99.13 2.92.39 2.22-1.49 3.2-1.18 3.2-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.41-5.27 5.7.42.36.79 1.09.79 2.2 0 1.59-.01 2.87-.01 3.26 0 .31.21.68.8.56C20.71 21.39 24 17.08 24 12c0-6.27-5.23-11.5-12-11.5z"/>
+                                    </svg>
+                                </a>
+                            </h4>
+                            <p class="text-sm text-blue-700">
+                                The Gravity Compression codebase is <a href="https://github.com/pimdewitte/gravity-compression/" target="_blank" rel="noopener" class="text-physics-blue hover:underline font-medium">available on GitHub</a>.<br>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">🔬 Theory Development</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• Propose new metric modifications</li>
+                                <li>• Implement theories from literature</li>
+                                <li>• Explore parameter spaces</li>
+                                <li>• Validate physical constraints</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">💻 Code Improvements</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• Optimize geodesic integration</li>
+                                <li>• Add new loss metrics</li>
+                                <li>• Improve caching system</li>
+                                <li>• Enhance visualization tools</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">🤖 AI Enhancement</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• Refine discovery prompts</li>
+                                <li>• Add new LLM integrations</li>
+                                <li>• Improve theory validation</li>
+                                <li>• Develop learning algorithms</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">📚 Documentation</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• Write tutorials</li>
+                                <li>• Document discoveries</li>
+                                <li>• Create visualizations</li>
+                                <li>• Translate content</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Experimental Validation (kept as is) -->
+                <section class="section scroll-mt-20" id="experimental-validation">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        11. Proposed Experimental Validation
+                    </h2>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        While our computational framework can test millions of theories, real validation requires comparison with astronomical observations. We propose the following experimental tests:
+                    </p>
+                    
+                    <div class="responsive-table">
+                        <table class="w-full border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Test ID</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Scientific goal</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Primary datasets</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Pass / fail criterion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">S-1</td>
+                                    <td class="px-4 py-3 border-b">Validate PPN-γ parameter in Linear Signal Loss vs Cassini data</td>
+                                    <td class="px-4 py-3 border-b">Cassini radio science</td>
+                                    <td class="px-4 py-3 border-b">|γ-1| < 10^{-5} and balanced GR/RN residuals</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">P-1</td>
+                                    <td class="px-4 py-3 border-b">Test post-Keplerian parameters in binary pulsar timing</td>
+                                    <td class="px-4 py-3 border-b">Hulse-Taylor pulsar</td>
+                                    <td class="px-4 py-3 border-b">Energy loss within 0.1% of GR; loss ratio GR/RN >0.9</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">P-5</td>
+                                    <td class="px-4 py-3 border-b">Analyze GW ringdown for information loss signatures</td>
+                                    <td class="px-4 py-3 border-b">LIGO O3 events</td>
+                                    <td class="px-4 py-3 border-b">Evidence for γ>0 at >3σ; consistent across events</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">11.1 Testing Predictive Abilities</h3>
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        The ultimate test of any theory is its ability to make accurate predictions about unobserved phenomena. To evaluate this, we incorporate various predictive tests into the framework:
+                    </p>
+                    <ul class="list-disc list-inside space-y-3 text-base lg:text-lg mb-8">
+                        <li><strong>Mercury Perihelion Precession:</strong> Predict advance rate and compare to observed 43 arcseconds/century.</li>
+                        <li><strong>Gravitational Wave Propagation:</strong> Forecast waveform distortions in LIGO/Virgo events.</li>
+                        <li><strong>Black Hole Shadow:</strong> Simulate EHT images for M87* and Sgr A*.</li>
+                        <li><strong>Cosmological Parameters:</strong> Predict Hubble constant and dark energy density.</li>
+                        <li><strong>Quantum Corrections:</strong> Forecast Hawking radiation spectra for micro black holes.</li>
+                    </ul>
+                    <p class="text-base lg:text-lg leading-relaxed">
+                        These tests use the framework's simulation capabilities to generate predictions, which are then scored against held-out observational data not used in theory generation.
+                    </p>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">11.2 The Prediction Pipeline</h3>
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        To move from simulation to real-world validation, we follow a structured prediction process:
+                    </p>
+                    <ol class="list-decimal list-inside space-y-4 text-base lg:text-lg">
+                        <li><strong>Idea to Theory:</strong> Any concept expressible as a metric tensor g_μν becomes a testable Python class.</li>
+                        <li><strong>Baseline Comparison:</strong> Compute loss against classical (Schwarzschild) and quantum-inspired (Reissner-Nordström) baselines using FFT trajectory analysis. Balanced low losses indicate promise.</li>
+                        <li><strong>Promising Theory Logging:</strong> If loss < 0.9 × baseline cross-loss, automatically log to promising_candidates.log.</li>
+                        <li><strong>Historical Validation:</strong> Predict known events (e.g., Mercury perihelion) using baselines first, then the new theory. Compare residuals.</li>
+                        <li><strong>Future Predictions:</strong> Generate forecasts for unexplained phenomena, like pulsar anomalies not fully captured by GR. Test against public datasets for better fits.</li>
+                    </ol>
+                </section>
+
+                <!-- Conclusion -->
+                <section class="section scroll-mt-20" id="conclusion">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        12. Conclusion: A New Era of Physics Research
+                    </h2>
+                    
+                    <div class="space-y-6 text-base lg:text-lg leading-relaxed">
+                        <p>
+                            We have demonstrated that computational power and AI can transform theoretical physics from a field limited by human insight to one accelerated by machine exploration. Our framework doesn't replace physicists—it amplifies their capabilities by orders of magnitude.
+                        </p>
+                        
+                        <p>
+                            The discovery of promising unification candidates like Linear Signal Loss shows the potential of this approach. But more importantly, we've established a new paradigm: self-improving physics research where every theory tested makes the system smarter, and centuries of exploration can happen in days.
+                        </p>
+                        
+                        <p>
+                            Einstein spent 30 years searching for a unified field theory with paper and pencil. With modern computation, we can explore more possibilities in a weekend than he could in a lifetime. This isn't just about speed—it's about expanding the frontier of what's possible in fundamental physics.
+                        </p>
+                        
+                        <div class="bg-blue-50 border-l-4 border-physics-blue p-6 rounded-r-lg mt-8">
+                            <p class="font-semibold text-physics-blue mb-2">The Future</p>
+                            <p>
+                                As AI systems become more sophisticated and computational power grows, this framework will only become more powerful. We envision a future where theoretical physics progresses not through rare flashes of genius, but through systematic computational exploration guided by human insight—completing Einstein's quest not through a single breakthrough, but through the relentless march of silicon and algorithms.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Critical Review Section -->
+                <section class="section scroll-mt-20" id="critical-review">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        13. Critical Review: Accuracy, Limitations, and Reality Check
+                    </h2>
+                    
+                    <div class="bg-amber-50 border-l-4 border-amber-600 p-6 rounded-r-lg mb-8">
+                        <p class="font-semibold text-amber-800 mb-2">Important Context</p>
+                        <p class="text-sm lg:text-base">
+                            While this framework represents significant progress in computational physics, it's crucial to understand its limitations and maintain scientific rigor when interpreting results.
+                        </p>
+                    </div>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-8 mb-6">13.1 What the Framework Actually Does</h3>
+                    <div class="space-y-4 text-base lg:text-lg leading-relaxed">
+                        <p>
+                            <strong>✓ Accurate:</strong> The framework efficiently tests gravitational theories by simulating particle orbits around black holes and comparing trajectory predictions.
+                        </p>
+                        <p>
+                            <strong>⚠️ Clarification Needed:</strong> "Exploring more theories in hours than Einstein could in decades" is technically true for computational testing, but Einstein's deep mathematical insights and conceptual breakthroughs cannot be reduced to computational throughput.
+                        </p>
+                        <p>
+                            <strong>✗ Overstated:</strong> The framework does not "complete Einstein's quest"—it provides a tool for systematic exploration. True unification requires experimental validation that we don't yet have.
+                        </p>
+                    </div>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">13.2 Key Limitations</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-red-700 mb-3">⚠️ Validation Scope</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• Tests only in strong-field regime (black holes)</li>
+                                <li>• No weak-field or cosmological validation</li>
+                                <li>• Limited to 2-body orbital dynamics</li>
+                                <li>• Cannot test quantum gravity effects directly</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-red-700 mb-3">⚠️ Theoretical Constraints</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• Assumes metric theory of gravity</li>
+                                <li>• Cannot explore non-geometric approaches</li>
+                                <li>• Limited to 4D spacetime (despite 5D claims)</li>
+                                <li>• No true quantum field theory integration</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">13.3 The "Compression Hypothesis" Reality Check</h3>
+                    <div class="space-y-4 text-base lg:text-lg leading-relaxed">
+                        <p>
+                            The Linear Signal Loss theory shows interesting mathematical properties, but several caveats apply:
+                        </p>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li>The "information compression" interpretation is metaphorical—we're actually just modifying metric components</li>
+                            <li>Low computational loss doesn't guarantee physical correctness</li>
+                            <li>The theory hasn't been tested against precision solar system data</li>
+                            <li>No mechanism is provided for why nature would implement such compression</li>
+                        </ul>
+                    </div>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">13.4 AI Limitations</h3>
+                    <div class="bg-yellow-50 border-l-4 border-yellow-600 p-6 rounded-r-lg">
+                        <p class="text-base lg:text-lg mb-3">
+                            <strong>The AI doesn't "understand" physics</strong>—it pattern-matches from training data and generates syntactically valid code. Key limitations:
+                        </p>
+                        <ul class="list-disc list-inside space-y-2 text-sm lg:text-base">
+                            <li>Cannot guarantee physical consistency of generated theories</li>
+                            <li>May rediscover known theories under different names</li>
+                            <li>Biased toward theories similar to training examples</li>
+                            <li>Cannot reason about experimental feasibility</li>
+                        </ul>
+                    </div>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">13.5 What Would Make This Truly Valuable</h3>
+                    <div class="space-y-4 text-base lg:text-lg leading-relaxed">
+                        <p>
+                            To move from interesting computational tool to genuine physics breakthrough, we need:
+                        </p>
+                        <ol class="list-decimal list-inside space-y-3">
+                            <li><strong>Experimental Predictions:</strong> Specific, measurable deviations from GR in upcoming experiments</li>
+                            <li><strong>Theoretical Consistency:</strong> Proof that promising theories satisfy energy conditions, causality, etc.</li>
+                            <li><strong>Broader Testing:</strong> Extension to cosmological scales, gravitational waves, and weak-field limits</li>
+                            <li><strong>Physical Mechanism:</strong> Clear explanation of why nature would implement these modifications</li>
+                            <li><strong>Quantum Integration:</strong> True incorporation of quantum field theory, not just classical analogies</li>
+                        </ol>
+                    </div>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">13.6 The Real Value Proposition</h3>
+                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg">
+                        <p class="text-base lg:text-lg mb-3">
+                            Despite limitations, this framework offers genuine value:
+                        </p>
+                        <ul class="list-disc list-inside space-y-2 text-sm lg:text-base">
+                            <li><strong>Systematic Exploration:</strong> Tests theories that would take years to analyze by hand</li>
+                            <li><strong>Open Infrastructure:</strong> Provides reusable tools for gravitational physics research</li>
+                            <li><strong>Hypothesis Generation:</strong> Suggests new directions for theoretical investigation</li>
+                            <li><strong>Educational Tool:</strong> Helps visualize and understand gravitational theories</li>
+                            <li><strong>Community Platform:</strong> Enables collaborative theory development and testing</li>
+                        </ul>
+                    </div>
+
+                    <div class="mt-8 p-6 bg-gray-50 border border-gray-300 rounded-lg">
+                        <p class="text-base lg:text-lg italic text-center text-physics-gray">
+                            "The framework is a powerful telescope for exploring theoretical space—but like any telescope, it can only show us where to look, not guarantee what we'll find."
+                        </p>
+                    </div>
+                </section>
+                
+                <!-- New Horizontal Process Diagram -->
+                <div class="mt-12 mb-12">
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6">
+                        <canvas id="predictionProcessCanvas" class="w-full" width="840" height="300"></canvas>
+                        <p class="text-sm text-center text-physics-gray mt-4">The Prediction and Validation Process: From Idea to Verified Theory. Click to animate.</p>
+                    </div>
+                </div>
+
+                <script>
+                    (function() {
+                        const canvas = document.getElementById('predictionProcessCanvas');
+                        const ctx = canvas.getContext('2d');
+                        let animationFrame = 0;
+                        let isPaused = false;
+                        let progress = 0;
+                        
+                        const stages = [
+                            { name: '1. Idea to Theory', x: 10, details: 'Express as metric tensor g_μν in Python class' },
+                            { name: '2. Baseline Comparison', x: 180, details: 'Compute FFT loss vs GR and RN baselines' },
+                            { name: '3. Promising Check', x: 350, details: 'If loss < 0.9 × cross-loss, log as promising' },
+                            { name: '4. Historical Validation', x: 520, details: 'Predict known events and compare residuals' },
+                            { name: '5. Future Predictions', x: 690, details: 'Forecast unexplained phenomena like pulsar anomalies' }
+                        ];
+                        
+                        canvas.addEventListener('click', () => {
+                            isPaused = !isPaused;
+                            if (!isPaused) animate();
+                        });
+                        
+                        function drawStage(stage, index) {
+                            const y = 100;
+                            const width = 140;
+                            const height = 80;
+                            const isActive = Math.floor(progress) === index;
+                            const isPast = progress > index;
+                            
+                            ctx.fillStyle = isActive ? '#e3f2fd' : (isPast ? '#f8f9fa' : '#ffffff');
+                            ctx.strokeStyle = isActive ? '#1976d2' : '#dadce0';
+                            ctx.lineWidth = isActive ? 3 : 1;
+                            
+                            ctx.beginPath();
+                            ctx.roundRect(stage.x, y, width, height, 10);
+                            ctx.fill();
+                            ctx.stroke();
+                            
+                            ctx.fillStyle = isActive ? '#1976d2' : '#202124';
+                            ctx.font = 'bold 12px Aeonik, sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(stage.name, stage.x + width/2, y + 30);
+                            
+                            ctx.font = '11px Aeonik, sans-serif';
+                            ctx.fillStyle = isActive ? '#1976d2' : '#5f6368';
+                            const words = stage.details.split(' ');
+                            let line = '';
+                            let lineY = y + 50;
+                            words.forEach(word => {
+                                if (line.length + word.length > 18) {
+                                    ctx.fillText(line, stage.x + width/2, lineY);
+                                    line = word + ' ';
+                                    lineY += 15;
+                                } else {
+                                    line += word + ' ';
+                                }
+                            });
+                            ctx.fillText(line, stage.x + width/2, lineY);
+                        }
+                        
+                        function drawArrow(x1, y1, x2, y2, prog) {
+                            const dx = x2 - x1;
+                            const dy = y2 - y1;
+                            const currentX = x1 + dx * prog;
+                            const currentY = y1 + dy * prog;
+                            
+                            ctx.strokeStyle = '#616161';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.moveTo(x1, y1);
+                            ctx.lineTo(currentX, currentY);
+                            ctx.stroke();
+                            
+                            if (prog >= 1) {
+                                const angle = Math.atan2(dy, dx);
+                                ctx.save();
+                                ctx.translate(x2, y2);
+                                ctx.rotate(angle);
+                                ctx.fillStyle = '#616161';
+                                ctx.beginPath();
+                                ctx.moveTo(0, 0);
+                                ctx.lineTo(-10, -5);
+                                ctx.lineTo(-10, 5);
+                                ctx.closePath();
+                                ctx.fill();
+                                ctx.restore();
+                            }
+                        }
+                        
+                        function animate() {
+                            if (isPaused) return;
+                            
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            
+                            // Title
+                            ctx.fillStyle = '#1a0dab';
+                            ctx.font = 'bold 18px Aeonik, sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('Prediction & Validation Process', canvas.width/2, 40);
+                            
+                            // Draw all stages
+                            stages.forEach((stage, index) => {
+                                drawStage(stage, index);
+                            });
+                            
+                            // Draw connecting arrows with progress
+                            for (let i = 0; i < stages.length - 1; i++) {
+                                const arrowProg = Math.max(0, Math.min(1, (progress - i) * 2));
+                                drawArrow(stages[i].x + 140, 140, stages[i+1].x, 140, arrowProg);
+                            }
+                            
+                            progress += 0.005;
+                            if (progress > stages.length - 1) progress = 0;
+                            
+                            animationFrame++;
+                            requestAnimationFrame(animate);
+                        }
+                        
+                        // Start animation
+                        animate();
+                    })();
+                </script>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts (kept as is) -->
+    <script>
+        // Mobile menu functionality
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileMenuClose = document.getElementById('mobile-menu-close');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        if (mobileMenuToggle) {
+            mobileMenuToggle.addEventListener('click', () => {
+                mobileMenu.classList.remove('translate-x-full');
+            });
+        }
+        
+        if (mobileMenuClose) {
+            mobileMenuClose.addEventListener('click', () => {
+                mobileMenu.classList.add('translate-x-full');
+            });
+        }
+        
+        // Close mobile menu when clicking a link
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('translate-x-full');
+            });
+        });
+        
+        // Smooth scroll offset for fixed header
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const offset = window.innerWidth < 1024 ? 80 : 20; // Different offset for mobile vs desktop
+                    const targetPosition = target.offsetTop - offset;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // Active section highlighting in navigation
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('nav a[href^="#"]');
+        
+        function highlightActiveSection() {
+            const scrollY = window.pageYOffset;
+            
+            sections.forEach(section => {
+                const sectionHeight = section.offsetHeight;
+                const sectionTop = section.offsetTop - 100;
+                const sectionId = section.getAttribute('id');
+                
+                if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('bg-blue-100', 'text-physics-blue', 'font-medium');
+                        if (link.getAttribute('href') === `#${sectionId}`) {
+                            link.classList.add('bg-blue-100', 'text-physics-blue', 'font-medium');
+                        }
+                    });
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', highlightActiveSection);
+        highlightActiveSection(); // Initial check
+        
+        // Responsive table wrapper
+        document.querySelectorAll('table').forEach(table => {
+            if (!table.closest('.responsive-table')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'responsive-table overflow-x-auto';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
+                table.className = 'min-w-full border-collapse text-sm lg:text-base';
+            }
+        });
+    </script>
+</body>
+</html>

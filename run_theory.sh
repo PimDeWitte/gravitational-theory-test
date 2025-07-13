@@ -66,13 +66,20 @@ else
 fi
 
 # Check Python environment
-if [[ -f .venv_gpu/bin/python ]]; then
-    PYTHON=.venv_gpu/bin/python
-elif [[ -f .venv/bin/python ]]; then
+if [[ -f .venv/bin/python ]]; then
     PYTHON=.venv/bin/python
+elif [[ -f .venv_gpu/bin/python ]]; then
+    # Legacy support - warn about old environment
+    echo "WARNING: Found old .venv_gpu environment. Please run ./setup.sh to create unified environment."
+    PYTHON=.venv_gpu/bin/python
+elif [[ -f .venv_cpu/bin/python ]]; then
+    # Legacy support - warn about old environment
+    echo "WARNING: Found old .venv_cpu environment. Please run ./setup.sh to create unified environment."
+    PYTHON=.venv_cpu/bin/python
 else
     PYTHON=python3
 fi
+echo "Using Python: $PYTHON"
 
 echo "=================================="
 echo "Theory Runner"

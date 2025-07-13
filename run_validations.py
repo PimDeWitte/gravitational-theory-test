@@ -10,6 +10,10 @@ import base_theory  # Ensure base_theory is imported first
 from base_validation import ObservationalValidation
 import importlib.util
 import numpy as np
+try:
+    import matplotlib
+except ImportError:
+    matplotlib = None
 
 # Argument parser
 def parse_args():
@@ -58,10 +62,35 @@ def run_all_validations(theories: List, device=None, dtype=None, verbose=False, 
         filepath = os.path.join(validator_dir, filename)
         print(f"  Loading {filename} from {filepath}")
         try:
+            # Add project root and validator directory to sys.path temporarily
+            import sys
+            old_path = sys.path.copy()
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+            if validator_dir not in sys.path:
+                sys.path.insert(0, validator_dir)
+            
             # Load the module
             spec = importlib.util.spec_from_file_location(module_name, filepath)
             module = importlib.util.module_from_spec(spec)
+            
+            # Inject commonly needed modules into the module's namespace
+            module.__dict__['torch'] = torch
+            module.__dict__['np'] = np
+            module.__dict__['numpy'] = np
+            # Ensure matplotlib is available
+            try:
+                import matplotlib.pyplot as plt
+                module.__dict__['plt'] = plt
+                module.__dict__['matplotlib'] = matplotlib
+            except ImportError:
+                print("Warning: matplotlib not available for plotting")
+            
             spec.loader.exec_module(module)
+            
+            # Restore original path
+            sys.path = old_path
             
             # Find validation classes
             for name, obj in inspect.getmembers(module):

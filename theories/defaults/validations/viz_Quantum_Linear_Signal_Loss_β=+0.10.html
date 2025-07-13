@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Orbit Viz: Quantum Linear Signal Loss (β=+0.10)</title>
+    <style> body { margin: 0; } </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <script>
+        fetch('traj_Quantum_Linear_Signal_Loss_β=+0.10.json').then(res => res.json()).then(data => {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            
+            // Function to create orbit line
+            function createOrbit(points, color) {
+                const geometry = new THREE.BufferGeometry().setFromPoints(points.map(p => new THREE.Vector3(p[0] * Math.cos(p[1]), p[0] * Math.sin(p[1]), 0)));
+                const material = new THREE.LineBasicMaterial({color});
+                return new THREE.Line(geometry, material);
+            }
+            
+            scene.add(createOrbit(data.sim, 0xff0000));  // Red for sim
+            if (data.gr.length) scene.add(createOrbit(data.gr, 0x00ff00));  // Green for GR
+            
+            // Auto-scale camera
+            const allPoints = data.sim.concat(data.gr);
+            const maxR = Math.max(...allPoints.map(p => p[0])) * 1.2;
+            camera.position.z = maxR;
+            
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+        });
+    </script>
+</body>
+</html>
