@@ -1,0 +1,11 @@
+{
+    "test_name": "PSR B1913+16 Periastron Advance",
+    "theory": "Quantum Linear Signal Loss (\u03b2=+0.10)",
+    "tag": "PSR_B1913+16_Periastron_Advance_Quantum_Linear_Signal_Loss_\u03b2=+0.10_10000_f32_746589120_M5624891866891676046016657752064",
+    "N_STEPS": 999,
+    "DTau": 27.906980514526367,
+    "r0": 746589120.0,
+    "device": "cpu",
+    "dtype": "torch.float32",
+    "timestamp": "20250713_121719"
+}

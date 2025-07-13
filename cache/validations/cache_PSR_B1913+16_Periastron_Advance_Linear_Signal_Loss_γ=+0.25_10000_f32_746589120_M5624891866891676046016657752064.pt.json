@@ -1,0 +1,11 @@
+{
+    "test_name": "PSR B1913+16 Periastron Advance",
+    "theory": "Linear Signal Loss (\u03b3=+0.25)",
+    "tag": "PSR_B1913+16_Periastron_Advance_Linear_Signal_Loss_\u03b3=+0.25_10000_f32_746589120_M5624891866891676046016657752064",
+    "N_STEPS": 999,
+    "DTau": 27.906980514526367,
+    "r0": 746589120.0,
+    "device": "cpu",
+    "dtype": "torch.float32",
+    "timestamp": "20250713_121530"
+}

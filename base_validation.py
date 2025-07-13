@@ -59,20 +59,34 @@ class BaseValidation:
         self.epsilon_0 = self.tensor(epsilon_0)
         self.hbar = self.tensor(hbar)
         
-    def tensor(self, data: Union[float, list, np.ndarray, torch.Tensor]) -> torch.Tensor:
-        """Convert any data to tensor on correct device with correct dtype."""
+    def tensor(self, data, **kwargs):
+        """Convert data to tensor with correct device and dtype."""
         if isinstance(data, torch.Tensor):
-            if data.device != self.device:
-                print(f"Debug: Moving tensor from {data.device} to {self.device}")
-            return data.to(device=self.device, dtype=self.dtype)
+            tensor = data.to(device=self.device, dtype=self.dtype)
+            # Check if verbose mode is enabled
+            try:
+                from self_discovery import args
+                if args.verbose and data.device != self.device:
+                    print(f"Debug: Moving tensor from {data.device} to {self.device}")
+            except:
+                pass
         elif isinstance(data, np.ndarray):
             tensor = torch.from_numpy(data).to(device=self.device, dtype=self.dtype)
-            print(f"Debug: Created tensor from numpy on {tensor.device}")
-            return tensor
+            try:
+                from self_discovery import args
+                if args.verbose:
+                    print(f"Debug: Created tensor from numpy on {tensor.device}")
+            except:
+                pass
         else:
-            tensor = torch.tensor(data, device=self.device, dtype=self.dtype)
-            print(f"Debug: Created tensor from scalar/list on {tensor.device}")
-            return tensor
+            tensor = torch.tensor(data, device=self.device, dtype=self.dtype, **kwargs)
+            try:
+                from self_discovery import args
+                if args.verbose:
+                    print(f"Debug: Created tensor from scalar/list on {tensor.device}")
+            except:
+                pass
+        return tensor
     
     def zeros(self, *shape) -> torch.Tensor:
         """Create zeros tensor on correct device."""
@@ -125,6 +139,34 @@ class BaseValidation:
         
         # Return full state vector
         return self.tensor([0.0, r0.item(), 0.0, dt_dtau0.item(), 0.0, dphi_dtau0.item()])
+
+
+class ObservationalValidation(BaseValidation):
+    """
+    Base class for observational validation tests.
+    All validation implementations should inherit from this class.
+    """
+    
+    def validate(self, theory: GravitationalTheory, **kwargs) -> Dict[str, Any]:
+        """
+        Validate a theory against observational data.
+        
+        Args:
+            theory: The gravitational theory to validate
+            **kwargs: Additional parameters for validation
+            
+        Returns:
+            Dict containing:
+                - test_name: Name of the validation test
+                - observed: Observed value
+                - predicted: Predicted value
+                - error: Absolute or relative error
+                - units: Units of measurement
+                - passed: Boolean indicating if test passed
+                - trajectory: Optional trajectory data
+        """
+        raise NotImplementedError("Subclasses must implement validate()")
+
 
 # Example usage (for standalone testing)
 if __name__ == "__main__":

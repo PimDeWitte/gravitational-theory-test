@@ -1,0 +1,11 @@
+{
+    "test_name": "Mercury Perihelion Precession",
+    "theory": "Linear Signal Loss (\u03b3=+0.25)",
+    "tag": "Mercury_Perihelion_Precession_Linear_Signal_Loss_\u03b3=+0.25_100000_f32_46001172480_M1989000014062258928892726214656",
+    "N_STEPS": 999,
+    "DTau": 1520.1043701171875,
+    "r0": 46001172480.0,
+    "device": "cpu",
+    "dtype": "torch.float32",
+    "timestamp": "20250713_121544"
+}

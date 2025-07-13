@@ -1,0 +1,7 @@
+{
+    "ref_tag": "Reissner-Nordstr\u00f6m_Q_1_00e+19_Q1ep19_1000_f32_r15",
+    "pred_tag": "Schwarzschild_GR_1000_f32_r15",
+    "loss_type": "fft",
+    "loss": 1.376072988694168e-11,
+    "timestamp": "20250713_121342"
+}

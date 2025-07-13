@@ -1,0 +1,25 @@
+{
+  "unknown": [
+    {
+      "theory": "Linear Signal Loss (\u03b3=+0.00)"
+    },
+    {
+      "theory": "Linear Signal Loss (\u03b3=+0.00)"
+    },
+    {
+      "theory": "Linear Signal Loss (\u03b3=+0.25)"
+    },
+    {
+      "theory": "Linear Signal Loss (\u03b3=+0.50)"
+    },
+    {
+      "theory": "Linear Signal Loss (\u03b3=+0.75)"
+    },
+    {
+      "theory": "Linear Signal Loss (\u03b3=+1.00)"
+    },
+    {
+      "theory": "Quantum Linear Signal Loss (\u03b2=+0.10)"
+    }
+  ]
+}

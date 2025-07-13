@@ -1,0 +1,7 @@
+{
+    "ref_tag": "Reissner-Nordstr\u00f6m_Q_1_00e+19_Q1ep19_1000_f32_r15",
+    "pred_tag": "Linear_Signal_Loss_\u03b3_+1_00_1000_f32_r15",
+    "loss_type": "fft",
+    "loss": 0.17843139502022215,
+    "timestamp": "20250713_121346"
+}

@@ -1,0 +1,7 @@
+{
+    "ref_tag": "Schwarzschild_GR_1000_f32_r15",
+    "pred_tag": "Linear_Signal_Loss_\u03b3_+0_25_1000_f32_r15",
+    "loss_type": "fft",
+    "loss": 0.03316169963076297,
+    "timestamp": "20250713_121343"
+}

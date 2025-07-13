@@ -16,7 +16,7 @@ from __future__ import annotations
 # insensitive to the full orbital history.
 #
 # New method: Fourier-domain analysis. The radial component of the orbit,
-# r(τ), is treated as a time-series signal. We compute the Fast Fourier
+# r(τ), is treated as a time-series sign'al. We compute the Fast Fourier
 # Transform (FFT) of this signal for both the reference and predicted
 # trajectories. The loss is then defined as the Mean Squared Error (MSE)
 # between the magnitudes of these two frequency spectra.
@@ -108,33 +108,36 @@ def parse_cli() -> argparse.Namespace:
     # <reason>chain: Added --multi-loss flag to compute all loss types at once for comprehensive comparison in unification tests.&lt;/reason&gt;
     p.add_argument("--no-cache", action="store_true", help="Force recomputation by ignoring existing cache files.")
     # <reason>chain: Added --no-cache flag to purge/invalidate caches and force fresh computations for testing.&lt;/reason&gt;
+    p.add_argument("--verbose", action="store_true", help="Enable verbose logging for debugging. WARNING: This will significantly slow down performance and should only be used with --test mode.")
+    # <reason>Added --verbose flag to control logging verbosity, with warning about performance impact</reason>
+    p.add_argument("--device", type=str, default=None, help="PyTorch device (e.g., 'mps', 'cpu'). Defaults to auto-detection.")
+    p.add_argument("--dtype", type=str, default=None, help="PyTorch data type (e.g., 'float32', 'float64'). Defaults to auto based on --cpu-f64.")
     return p.parse_args()
 # <reason>chain: Defined parse_cli with arguments; added manual file arg for new feature.</reason>
 
 args = parse_cli()
 # <reason>chain: Parsed arguments; no change.</reason>
 
-# Check for API keys based on provider
-API_KEYS = {
-    "grok": os.environ.get("XAI_API_KEY"),
-    "gemini": os.environ.get("GEMINI_API_KEY"),
-    "openai": os.environ.get("OPENAI_API_KEY"),
-    "anthropic": os.environ.get("ANTHROPIC_API_KEY"),
-}
-# <reason>chain: Defined API keys dict; no change.</reason>
-if args.self_discover and not API_KEYS.get(args.api_provider):
-    raise ValueError(f"{args.api_provider.upper()}_API_KEY environment variable is required for self-discovery mode.")
-# <reason>chain: Checked API key; no change.</reason>
-
 # Set device and data type based on CLI flags. This must be done before any tensors are created.
 # <reason>This block allows for flexible hardware and precision choices. The default is fast GPU/float32 for exploration, while --cpu-f64 enables high-precision CPU runs for validating key results, as recommended in the research plan.</reason>
-if args.final or args.cpu_f64:
-    DTYPE  = torch.float64
+if args.device is not None:
+    device = torch.device(args.device)
+elif args.final or args.cpu_f64:
     device = torch.device("cpu")
-    # <reason>chain: Default to float64 in --final for high-precision validation, per paper recommendations.</reason>
 else:
-    DTYPE  = torch.float32
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+
+if args.dtype is not None:
+    if args.dtype == "float32":
+        DTYPE = torch.float32
+    elif args.dtype == "float64":
+        DTYPE = torch.float64
+    else:
+        raise ValueError(f"Unsupported dtype: {args.dtype}")
+elif args.final or args.cpu_f64:
+    DTYPE = torch.float64
+else:
+    DTYPE = torch.float32
 # <reason>chain: Set device and dtype; no change.</reason>
 
 # Epsilon value for numerical stability, scaled by the chosen data type's precision.
@@ -502,23 +505,28 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
     """
     prompt = build_prompt(history, initial_prompt)
     # <reason>chain: Built prompt; no change.</reason>
-    print("\nDebug: Prompt sent to API:\n", prompt)
+    if args.verbose:
+        print("\nDebug: Prompt sent to API:\n", prompt)
     # <reason>chain: Print prompt; no change.</reason>
 
     max_retries = 25
     temperature = 0.8
     for attempt in range(1, max_retries + 1):
-        print(f"\nDebug: API Call Attempt {attempt}/{max_retries} with temperature={temperature}")
+        if args.verbose:
+            print(f"\nDebug: API Call Attempt {attempt}/{max_retries} with temperature={temperature}")
         try:
             content = call_api(args.api_provider, prompt)
-            print(f"\nGenerated theory code:\n{content}\n")
+            if args.verbose:
+                print(f"\nGenerated theory code:\n{content}\n")
             if not content.strip():
-                print("Debug: Empty content received.")
+                if args.verbose:
+                    print("Debug: Empty content received.")
                 temperature = min(temperature + 0.2, 1.5)  # Increased cap to 1.5 for more creativity on failures.
                 time.sleep(2 ** attempt)
                 continue
         except Exception as e:
-            print(f"Debug: API Call Error: {e}")
+            if args.verbose:
+                print(f"Debug: API Call Error: {e}")
             temperature = min(temperature + 0.2, 1.5)  # Increased cap.
             time.sleep(2 ** attempt)
             continue
@@ -534,7 +542,8 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
         content = re.sub(r'^(from|import)\s+.*$', '', content, flags=re.MULTILINE).strip()
         # <reason>chain: Remove imports; no change.</reason>
 
-        print(f"\nCleaned theory code:\n{content}\n")
+        if args.verbose:
+            print(f"\nCleaned theory code:\n{content}\n")
         # <reason>chain: Print cleaned; no change.</reason>
 
         # Extract summary
@@ -595,7 +604,8 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
                     content = re.sub(r'^(from|import)\s+.*$', '', content, flags=re.MULTILINE).strip()
                     # <reason>chain: Remove imports; no change.</reason>
 
-                    print(f"\nCleaned theory code:\n{content}\n")
+                    if args.verbose:
+                        print(f"\nCleaned theory code:\n{content}\n")
                     # <reason>chain: Print cleaned; no change.</reason>
 
                     # Extract summary
@@ -711,7 +721,10 @@ class GeodesicIntegrator:
         r_grad = r.clone().detach().requires_grad_(True)
         g_tt, g_rr, g_pp, g_tp = self.model.get_metric(r_grad, self.M, self.c, self.G)
         if torch.any(g_tp != 0) and not self.torsion_detected:
-            print(f"Torsion detected in {self.model.name}: g_tp mean = {g_tp.mean().item()}")
+            g_tp_mean = g_tp.mean().item()
+            # Only print if verbose mode or if torsion is significant
+            if args.verbose or abs(g_tp_mean) > 1e-6:
+                print(f"Torsion detected in {self.model.name}: g_tp mean = {g_tp_mean}")
             self.torsion_detected = True
         det = g_tp ** 2 - g_tt * g_pp
         if torch.abs(det) < EPSILON: return torch.zeros_like(y_state)
@@ -763,13 +776,16 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
         for i in range(N_STEPS):
             y = integ.rk4_step(y, DTau)
             y = y.to(device)  # Explicitly ensure on device
-            print(f"Step {i+1}: y device = {y.device}, isfinite = {torch.all(torch.isfinite(y))}")
+            if args.verbose:
+                print(f"Step {i+1}: y device = {y.device}, isfinite = {torch.all(torch.isfinite(y))}")
             hist[i + 1] = y
-            if (i + 1) % STEP_PRINT == 0: print(f"  ...step {i+1:,}/{N_STEPS:,} | r={y[1]/RS:.3f} RS")
+            if (i + 1) % STEP_PRINT == 0: 
+                print(f"  ...step {i+1:,}/{N_STEPS:,} | r={y[1]/RS:.3f} RS")
             if not torch.all(torch.isfinite(y)):
                 if first_nan_step == -1:
                     first_nan_step = i + 1
-                    print(f"Debug: First non-finite detected at step {first_nan_step}: y={y.tolist()}")
+                    if args.verbose:
+                        print(f"Debug: First non-finite detected at step {first_nan_step}: y={y.tolist()}")
                 consecutive_failures += 1
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                     print(f"  ! ABORTED: Simulation unstable for {consecutive_failures} consecutive steps starting at {first_nan_step}.")
@@ -799,13 +815,16 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
     for i in range(N_STEPS):
         y = integ.rk4_step(y, DTau)
         y = y.to(device)  # Explicitly ensure on device
-        print(f"Step {i+1}: y device = {y.device}, isfinite = {torch.all(torch.isfinite(y))}")
+        if args.verbose:
+            print(f"Step {i+1}: y device = {y.device}, isfinite = {torch.all(torch.isfinite(y))}")
         hist[i + 1] = y
-        if (i + 1) % STEP_PRINT == 0: print(f"  ...step {i+1:,}/{N_STEPS:,} | r={y[1]/RS:.3f} RS")
+        if (i + 1) % STEP_PRINT == 0: 
+            print(f"  ...step {i+1:,}/{N_STEPS:,} | r={y[1]/RS:.3f} RS")
         if not torch.all(torch.isfinite(y)):
             if first_nan_step == -1:
                 first_nan_step = i + 1
-                print(f"Debug: First non-finite detected at step {first_nan_step}: y={y.tolist()}")
+                if args.verbose:
+                    print(f"Debug: First non-finite detected at step {first_nan_step}: y={y.tolist()}")
             consecutive_failures += 1
             if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                 print(f"  ! ABORTED: Simulation unstable for {consecutive_failures} consecutive steps starting at {first_nan_step}.")
@@ -978,15 +997,17 @@ def calculate_loss(traj_ref: Tensor, traj_pred: Tensor, ref_tag: str = None, pre
     
     return loss
 
-def get_initial_conditions(model: GravitationalTheory, r0: Tensor) -> Tensor:
+def get_initial_conditions(model: GravitationalTheory, r0: Tensor, M_param: Tensor = None) -> Tensor:
     """
     Computes initial conditions normalized using the given model's metric at r0.
     <reason>To ensure consistent physical initial conditions (r0, v_tan Newtonian circular), but proper 4-velocity normalization per theory's metric. This fixes the issue where RN ground truth was not generating properly because initial dt_dtau0 was calculated with GR metric, leading to incorrect normalization for RN.</reason>
     """
+    # Use provided M_param if given, else global M
+    M_use = M_param if M_param is not None else M
     # New: Solve for exact circular E, Lz
     def compute_V_sq_and_grad(r, E, Lz):
         r.requires_grad_(True)
-        g_tt, g_rr, g_pp, g_tp = model.get_metric(r, M, c, G)
+        g_tt, g_rr, g_pp, g_tp = model.get_metric(r, M_use, c, G)
         if not all(torch.isfinite(t).all() for t in (g_tt, g_rr, g_pp, g_tp)):
             return torch.tensor(1e20, device=device, dtype=DTYPE), torch.tensor(1e20, device=device, dtype=DTYPE)
         det = g_tp**2 - g_tt * g_pp
@@ -1002,8 +1023,8 @@ def get_initial_conditions(model: GravitationalTheory, r0: Tensor) -> Tensor:
         return V_sq, dV_dr
 
     # Initial guess from approximate
-    v_tan = torch.sqrt(G_T * M / r0)
-    g_tt0, _, g_pp0, g_tp0 = model.get_metric(r0, M, c, G)
+    v_tan = torch.sqrt(G_T * M_use / r0)
+    g_tt0, _, g_pp0, g_tp0 = model.get_metric(r0, M_use, c, G)
     norm_sq = -g_tt0 - g_pp0 * (v_tan / (r0 * C_T)) ** 2
     dt_dtau0_approx = 1.0 / torch.sqrt(norm_sq + EPSILON)
     dphi_dtau0_approx = (v_tan / r0) * dt_dtau0_approx
@@ -1026,7 +1047,8 @@ def get_initial_conditions(model: GravitationalTheory, r0: Tensor) -> Tensor:
         try:
             loss.backward()
         except Exception as e:
-            print(f"Debug: Backward error in optimization for {model.name}: {e}")
+            if args.verbose:
+                print(f"Debug: Backward error in optimization for {model.name}: {e}")
         return loss
 
     optimizer = torch.optim.LBFGS([params], lr=0.01, max_iter=20, tolerance_grad=1e-8, tolerance_change=1e-10)
@@ -1034,7 +1056,7 @@ def get_initial_conditions(model: GravitationalTheory, r0: Tensor) -> Tensor:
         current_loss = closure()
         optimizer.step(closure)
         params.data = torch.clamp(params.data, 0.5, 2.0)  # Prevent extreme values
-        if iter % 100 == 0:
+        if args.verbose and iter % 100 == 0:
             E_param = params[0] * E_scale
             Lz_param = params[1] * Lz_scale
             V_sq_val, dV_dr_val = compute_V_sq_and_grad(r0.clone(), E_param, Lz_param)
@@ -1052,7 +1074,7 @@ def get_initial_conditions(model: GravitationalTheory, r0: Tensor) -> Tensor:
         E_param = params[0] * E_scale
         Lz_param = params[1] * Lz_scale
         # Compute u_t, u_phi
-        g_tt, g_rr, g_pp, g_tp = model.get_metric(r0, M, c, G)
+        g_tt, g_rr, g_pp, g_tp = model.get_metric(r0, M_use, c, G)
         det = g_tp**2 - g_tt * g_pp
         u_t = (E_param * g_pp + Lz_param * g_tp) / det
         u_phi = - (E_param * g_tp + Lz_param * g_tt) / det
@@ -1634,22 +1656,30 @@ def main() -> None:
     theory_dirs_dict = {}
     if args.theory_dirs and not args.self_discover:
         theory_dirs_dict = load_theories_from_dirs(args.theory_dirs)
-        # If using new structure, clear old predefined lists
+        # If using new structure AND found theories, use them instead of predefined
         if theory_dirs_dict:
-            classical_predefined = []
-            quantum_predefined = []
-            unified_predefined = []
-            
-            # Combine all theories from directories
-            for theory_dir, theories in theory_dirs_dict.items():
-                for theory in theories:
-                    cat = getattr(theory.__class__, "category", "classical")
-                    if cat == "quantum":
-                        quantum_predefined.append(theory)
-                    elif cat == "unified":
-                        unified_predefined.append(theory)
-                    else:
-                        classical_predefined.append(theory)
+            # Check if we actually have any theories
+            total_theories = sum(len(theories) for theories in theory_dirs_dict.values())
+            if total_theories > 0:
+                # Only clear predefined lists if we found actual theories to replace them with
+                classical_predefined = []
+                quantum_predefined = []
+                unified_predefined = []
+                
+                # Combine all theories from directories
+                for theory_dir, theories in theory_dirs_dict.items():
+                    for theory in theories:
+                        cat = getattr(theory.__class__, "category", "classical")
+                        if cat == "quantum":
+                            quantum_predefined.append(theory)
+                        elif cat == "unified":
+                            unified_predefined.append(theory)
+                        else:
+                            classical_predefined.append(theory)
+            else:
+                print("No theories found in specified directories, using predefined theories")
+        else:
+            print("No valid theory directories found, using predefined theories")
 
 
 
@@ -1670,9 +1700,12 @@ def main() -> None:
     else:
         N_STEPS = 100_000  # Exploratory steps: 100,000 chosen to capture ~10 orbits with ~100 points per orbit (based on period_est), ensuring reliable FFT spectra for loss while keeping runs efficient (~1-2 min/theory on GPU). Higher (e.g., 500k) increases accuracy marginally but slows iteration; lower risks aliasing in frequency analysis.
         print("Mode: EXPLORATORY (balanced accuracy/efficiency)")
-    STEP_PRINT = max(1, N_STEPS // 50)
-
-    # Remove the old assignments with STEP_PRINT
+    
+    # Adjust step printing frequency based on mode
+    if args.verbose:
+        STEP_PRINT = max(1, N_STEPS // 50)  # Show 50 updates in verbose mode
+    else:
+        STEP_PRINT = max(1, N_STEPS // 10)  # Show only 10 updates by default
 
     # -- Load Baseline Theories from all specified directories --
     print("\nLoading baseline theories...")
