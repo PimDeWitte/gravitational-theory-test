@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #viz { width: 100vw; height: 100vh; background: #222; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div id="viz"></div>
+    <div id="info">Loading...</div>
+    <script>
+        const info = document.getElementById('info');
+        try {
+            info.textContent = 'Creating scene...';
+            
+            // Basic Three.js setup
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000033); // Dark blue background
+            document.getElementById('viz').appendChild(renderer.domElement);
+            
+            info.textContent = 'Adding objects...';
+            
+            // Add a simple cube
+            const geometry = new THREE.BoxGeometry(2, 2, 2);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const cube = new THREE.Mesh(geometry, material);
+            scene.add(cube);
+            
+            // Add lighting
+            const light = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(light);
+            
+            camera.position.z = 5;
+            
+            info.textContent = 'Starting animation...';
+            
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                cube.rotation.x += 0.01;
+                cube.rotation.y += 0.01;
+                renderer.render(scene, camera);
+            }
+            animate();
+            
+            info.textContent = 'Three.js version: ' + THREE.REVISION + ' | WebGL: ' + (renderer.capabilities.isWebGL2 ? '2' : '1');
+            
+        } catch (e) {
+            info.textContent = 'ERROR: ' + e.message;
+            console.error(e);
+        }
+    </script>
+</body>
+</html> 

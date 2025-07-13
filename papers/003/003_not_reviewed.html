@@ -137,6 +137,39 @@
             }
         }
         
+        /* Iframe container styling */
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 75%; /* 4:3 aspect ratio for better visualization */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            min-height: 700px;
+        }
+        
+        .iframe-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            min-height: 700px;
+        }
+        
+        @media (max-width: 768px) {
+            .iframe-container {
+                padding-bottom: 100%; /* Square on mobile */
+                min-height: 500px;
+            }
+            .iframe-container iframe {
+                min-height: 500px;
+            }
+        }
+        
         /* Table improvements */
         .responsive-table {
             @apply w-full overflow-x-auto;
@@ -227,7 +260,10 @@
                 <a href="#gravity-robust" class="block py-2 px-4 rounded hover:bg-gray-100">4. Gravity as Robust Compression</a>
                 <a href="#fourier-loss" class="block py-2 px-4 rounded hover:bg-gray-100">5. Scaling Steps</a>
                 <a href="#ai-discovery" class="block py-2 px-4 rounded hover:bg-gray-100">6. AI-Assisted Discovery</a>
-                <a href="#appendix-e" class="block py-2 px-4 rounded hover:bg-gray-100">7. Contributing</a>
+                <a href="#interactive-viz" class="block py-2 px-4 rounded hover:bg-gray-100">7. Interactive Visualization</a>
+                <a href="#black-hole-visualization" class="block py-2 px-4 rounded hover:bg-gray-100">8. Black Hole Demo</a>
+                <a href="#appendix-e" class="block py-2 px-4 rounded hover:bg-gray-100">9. Contributing</a>
+                <a href="#experimental-validation" class="block py-2 px-4 rounded hover:bg-gray-100">10. Experimental Validation</a>
             </nav>
         </div>
     </div>
@@ -244,7 +280,10 @@
                 <a href="#gravity-robust" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">4. Gravity as Robust Compression</a>
                 <a href="#fourier-loss" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">5. Scaling Steps</a>
                 <a href="#ai-discovery" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">6. AI-Assisted Discovery</a>
-                <a href="#appendix-e" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">7. Contributing</a>
+                <a href="#interactive-viz" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">7. Interactive Visualization</a>
+                <a href="#black-hole-visualization" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">8. Black Hole Demo</a>
+                <a href="#appendix-e" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">9. Contributing</a>
+                <a href="#experimental-validation" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">10. Experimental Validation</a>
             </nav>
         </div>
     </nav>
@@ -278,7 +317,7 @@
                         Foundational principles such as the holographic principle and black hole thermodynamics suggest that gravity may be an emergent phenomenon rooted in information. 
                     </p>
                     <p>
-                        To test this hypothesis, we developed a computational framework treating gravitational theories as compression codecs and measuring their "decoding loss"—information destroyed when reconstructing particle trajectories. With PyTorch, using a similar architecture powering world models, we systematically evaluated established gravitational theories alongside novel formulations generated through AI-assisted exploration of mathematical structures suggested by Einstein's final theoretical investigations. The (potential** need lots of feedback on whether the test is correct!) breakthrough is our discovered "Linear Signal Loss" theory—the first showing balanced, low loss across gravitational and electromagnetic baselines. This suggests gravity and electromagnetism aren't separate forces but different projections of a single information-theoretic process. While this computational proxy indicates potential unification signals, it serves as a screening tool rather than a complete analytic derivation; future work will validate against real observations and quantum regimes.
+                        To explore this hypothesis, we developed a computational framework treating gravitational theories as compression codecs and measuring their "decoding loss"—information destroyed when reconstructing particle trajectories. Using PyTorch, we systematically evaluated established gravitational theories alongside novel formulations generated through AI-assisted exploration of mathematical structures suggested by Einstein's final investigations. Our framework identified the "Linear Signal Loss" model as showing balanced losses against gravitational and electromagnetic baselines, suggesting potential unification signals. However, this is a computational proxy; future work must validate against real observations and develop full analytic derivations.
                     </p>
                 </div>
             </div>
@@ -297,10 +336,10 @@
                                 This paper posits that gravity is not just the curvature of spacetime, but is rather the <strong class="bg-yellow-100 px-1 rounded">emergent thermodynamic and computational process that governs this compression</strong>. We propose that physical laws are algorithms that map the immense information of the quantum state (the input) onto a compressed, stable, latent representation (the classical world). In this view, the Einstein Field Equations are the "decoder"—the mathematical rules that allow for the reconstruction of the smooth spacetime geometry from the compressed information.
                             </p>
                             <p class="text-base lg:text-lg leading-relaxed">
-                                If this hypothesis is correct, then physical theories can be evaluated not just on their predictive accuracy, but on their fidelity as decoding algorithms. A superior theory should be "lossless," perfectly reconstructing the observed dynamics from the minimal required information. This motivated our methodology. We designed a computational framework to directly measure this "decoding loss." By simulating orbital mechanics—a process highly sensitive to the full four-dimensional geometry of spacetime—we can precisely quantify the deviation between a candidate theory's predicted trajectory and the ground truth established by General Relativity.
+                                If this hypothesis is correct, then physical theories can be evaluated not just on their predictive accuracy, but on their fidelity as decoding algorithms. A superior theory should minimize "loss," better reconstructing the observed dynamics from compressed information. This motivated our methodology: a framework to measure "decoding loss" by simulating orbital mechanics and quantifying deviations from ground truth geodesics.
                             </p>
                             <p class="text-base lg:text-lg leading-relaxed">
-                                We acknowledge that our framework operates within modifications to GR and uses RN as a proxy for EM effects. True unification, as Einstein envisioned, requires deriving EM from geometric axioms without ad-hoc fields. Our approach complements this by computationally screening candidates, with validation against real experiments planned.
+                                We acknowledge limitations: our framework operates within GR modifications and uses RN as an EM proxy. True unification requires deriving EM from geometry without ad-hoc fields. Our approach screens candidates computationally, with real validation planned.
                             </p>
                         </div>
                         
@@ -1478,7 +1517,7 @@
                         We draw inspiration from Joint Embedding Predictive Architectures (JEPAs) in machine learning, which excel at learning robust representations by predicting missing or noisy information in latent space. Applying this concept to physics, we designed a new theoretical model to explicitly test the resilience of the gravitational "algorithm":
                     </p>
                     <ul class="list-disc list-inside space-y-3 text-base lg:text-lg mb-8">
-                        <li><strong>Linear Signal Loss:</strong> This model introduces a parameter that smoothly degrades the gravitational "signal" (i.e., the deviation from flat spacetime) as a function of proximity to the central mass. This allows us to measure a theory's "breaking point"—how much information can be lost before its predictions diverge catastrophically from the stable orbit defined by GR. It is analogous to studying how an image degrades as compression quality is reduced.</li>
+                        <li><strong>Linear Signal Loss:</strong> Introduces a parameter degrading the gravitational "signal" near the central mass. This measures the theory's "breaking point"—information loss before predictions diverge from stable GR orbits. Analogous to image degradation in lossy compression.</li>
                     </ul>
                     
                     <div class="mt-12 mb-12">
@@ -2002,7 +2041,7 @@ When we degrade the compression quality (γ), both channels degrade proportional
                         <div class="mt-8 p-6 bg-gray-50 rounded-xl">
                             <h3 class="text-xl font-semibold text-physics-blue mb-4">Synthesis of Results</h3>
                             <p class="text-base lg:text-lg leading-relaxed">
-                                Across all γ values, the Linear Signal Loss family demonstrates systematic unification: as degradation increases, losses against both baselines rise proportionally. This family represents a continuum from pure GR (γ=0) to fully symmetric unification (γ=1), providing a tunable framework for quantum gravity investigations. All configurations maintain numerical stability over 5M steps, with Fourier analyses confirming preserved orbital harmonics.
+                                The Linear Signal Loss family shows systematic proportionality in losses against both baselines as degradation increases. This provides a tunable framework for quantum gravity investigations, but requires further validation against observations.
                             </p>
                         </div>
                 </section>
@@ -2377,7 +2416,7 @@ When we degrade the compression quality (γ), both channels degrade proportional
 
                 <section class="section scroll-mt-20 no-print" id="appendix-e">
                     <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
-                        7. Contributing to the Project
+                        9. Contributing to the Project
                     </h2>
                     
         
@@ -2445,8 +2484,173 @@ When we degrade the compression quality (γ), both channels degrade proportional
                 </section>
 
                 <section class="section scroll-mt-20" id="limitations">
-                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">Limitations and Future Directions</h2>
-                    <p>While promising, our results are limited to classical scales within a GR-like framework. Future work will: 1) Compare to astrophysical data (e.g., binary pulsars, black hole shadows). 2) Incorporate quantum effects via semiclassical metrics. 3) Develop analytic derivations for top candidates.</p>
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">11. Limitations and Future Directions</h2>
+                    <p>Our results are limited to classical scales within a GR-like framework. The promising signals from Linear Signal Loss require rigorous validation. Future work will: 1) Compare to astrophysical data. 2) Incorporate quantum effects. 3) Develop analytic derivations for top candidates. 4) Test against more diverse baselines.</p>
+                </section>
+
+                <section class="section scroll-mt-20" id="interactive-viz">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        7. Interactive Visualization System
+                    </h2>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        To facilitate deeper exploration and understanding of the generated theories, we have developed an interactive, browser-based 3D visualization system. This tool allows researchers to simulate particle trajectories in real-time under different metrics, adjust parameters on-the-fly, and observe quantum-like effects, all powered by WebGL for GPU acceleration.
+                    </p>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-8 mb-4">Key Features</h3>
+                    <ul class="list-disc list-inside space-y-3 text-base lg:text-lg mb-8">
+                        <li><strong>Real-time Trajectory Simulation:</strong> Visualize multiple particles orbiting a central black hole with dynamic trails showing paths.</li>
+                        <li><strong>Parameter Adjustment:</strong> Interactive sliders for theory parameters (e.g., α, γ) and quantum variables (e.g., noise strength for stochastic fluctuations).</li>
+                        <li><strong>Quantum Effects:</strong> Simulate energy-based tests with random perturbations to velocities, colored by kinetic energy.</li>
+                        <li><strong>Accessibility:</strong> Runs entirely in the browser—no installation required. Supports desktop and mobile devices.</li>
+                    </ul>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-8 mb-4">How It Works</h3>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        For each evaluated theory, an interactive <code>viz.html</code> file is automatically generated in the theory's run directory (e.g., <code>runs/&lt;timestamp&gt;/&lt;category&gt;/&lt;theory_dir&gt;/viz.html</code>). This file loads the central <code>viz/visualization_enhanced.js</code> engine and embeds the theory's metric function converted to JavaScript.
+                    </p>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        An example visualization for the 'Linear Signal Loss (γ=+1.00)' theory is available at the project root: <a href="../../../viz/example_viz.html" target="_blank" class="text-physics-blue hover:underline font-medium">viz/example_viz.html</a>. Open it in a browser to interact with the simulation.
+                    </p>
+
+                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
+                        <p class="mb-0"><strong>📊 Getting Started:</strong> See the project README.md for detailed instructions on generating and using these visualizations. The source code is in <code>viz/visualization_enhanced.js</code>.</p>
+                    </div>
+                </section>
+
+                <section class="section scroll-mt-20" id="black-hole-visualization">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        8. Interactive Black Hole Demonstration
+                    </h2>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        To provide an intuitive understanding of how the Compression Hypothesis manifests near extreme gravitational fields, we've developed an interactive 3D visualization of a black hole. This demonstration shows how reality's information compression intensifies as you approach the event horizon, where the universe's ability to maintain coherent 3D spacetime completely fails.
+                    </p>
+
+                    <div class="bg-blue-50 border-l-4 border-physics-blue p-6 rounded-r-lg mb-8">
+                        <h3 class="text-lg font-semibold text-physics-blue mb-3">Key Features of the Visualization:</h3>
+                        <ul class="list-disc list-inside space-y-2 text-sm lg:text-base">
+                            <li><strong>Dynamic Distance Indicator:</strong> Shows your position in Schwarzschild radii (Rs) with real-time explanations of compression effects</li>
+                            <li><strong>Interactive Elements:</strong> Click on glowing indicators to explore how particles, time, gravity, and space behave under extreme compression</li>
+                            <li><strong>Event Horizon Approach:</strong> Navigate all the way to 1.35 Rs where a special modal explains why 3D visualization fails</li>
+                            <li><strong>Visual Effects:</strong> Experience increasing distortion, chromatic aberration, and darkening as compression intensifies</li>
+                        </ul>
+                    </div>
+
+                    <div class="relative w-full" style="padding-bottom: 75%; height: 0; min-height: 700px;">
+                        <iframe 
+                            src="interactive_black_hole.html" 
+                            class="absolute top-0 left-0 w-full h-full border-2 border-gray-300 rounded-lg shadow-lg"
+                            style="min-height: 700px;"
+                            allow="fullscreen"
+                            title="Interactive Black Hole Compression Demonstration">
+                        </iframe>
+                    </div>
+                    
+                    <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-physics-dark mb-3">Navigation Instructions:</h3>
+                        <ul class="list-disc list-inside space-y-2 text-sm lg:text-base">
+                            <li><strong>Rotate:</strong> Click and drag to orbit around the black hole</li>
+                            <li><strong>Zoom:</strong> Scroll to approach or retreat from the event horizon</li>
+                            <li><strong>Explore:</strong> Click the distance indicator at the top to see comprehensive information about Rs</li>
+                            <li><strong>Interactive Elements:</strong> Click the glowing orbs (particles, time, gravity, space) for detailed explanations</li>
+                            <li><strong>Auto-Rotate:</strong> Toggle automatic rotation in the bottom-right controls</li>
+                        </ul>
+                    </div>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-8 mb-4">8.1 Connection to Linear Signal Loss Theory</h3>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        This visualization directly demonstrates the core principle of our Linear Signal Loss model. As you approach the event horizon, notice how:
+                    </p>
+                    <ul class="list-disc list-inside space-y-3 text-base lg:text-lg mb-6">
+                        <li>The "gravitational signal" degrades proportionally to your distance from Rs</li>
+                        <li>Both gravitational and electromagnetic effects (represented by the interactive elements) degrade together</li>
+                        <li>At the event horizon (1.0 Rs), information compression reaches 100%—the point where our unified field equations predict complete signal loss</li>
+                        <li>The 3D→2D holographic transition represents the ultimate compression: an entire star's information reduced to just mass, charge, and spin</li>
+                    </ul>
+
+                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
+                        <p class="mb-0"><strong>💡 Try This:</strong> Navigate to different distances and observe how the explanatory text changes. Pay special attention to the compression percentages—they follow the Linear Signal Loss formula where degradation increases as you approach Rs, matching our theoretical predictions of unified field behavior.</p>
+                    </div>
+
+                    <p class="text-base lg:text-lg leading-relaxed">
+                        For the full immersive experience, <a href="interactive_black_hole.html" target="_blank" class="text-physics-blue hover:underline font-medium">open the visualization in a new tab</a>. The demonstration works on both desktop and mobile devices, though desktop provides the best interaction experience.
+                    </p>
+                </section>
+
+                <section class="section scroll-mt-20" id="experimental-validation">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        10. Proposed Experimental Validation
+                    </h2>
+                    
+                    <div class="responsive-table">
+                        <table class="w-full border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Test ID</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Scientific goal</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Primary datasets</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Toolchain & tips</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Est. GPU/CPU time</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Pass / fail criterion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">S-1</td>
+                                    <td class="px-4 py-3 border-b">Validate PPN-γ parameter in Linear Signal Loss vs Cassini data</td>
+                                    <td class="px-4 py-3 border-b">1, 2</td>
+                                    <td class="px-4 py-3 border-b">Use spiceypy for trajectory, poliastro for propagation; implement metric in PyTorch; fit γ by minimizing residuals against ODF data; filter plasma noise with solar angle >30°; use least-squares with lmfit</td>
+                                    <td class="px-4 py-3 border-b">8 GPU-h</td>
+                                    <td class="px-4 py-3 border-b">|γ-1| < 10^{-5} and loss ≤ GR baseline; balanced residuals vs RN simulation</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">S-3</td>
+                                    <td class="px-4 py-3 border-b">Test Mercury perihelion precession and Shapiro delay in charged scenarios</td>
+                                    <td class="px-4 py-3 border-b">2, 3, 5</td>
+                                    <td class="px-4 py-3 border-b">Integrate geodesics with adaptive Runge-Kutta in PyTorch (float64); compare precession rate to MESSENGER data; simulate charged black hole analog; use CALCEPH for ephemerides</td>
+                                    <td class="px-4 py-3 border-b">4 GPU-h</td>
+                                    <td class="px-4 py-3 border-b">Precession match within 0.1% of observed; delay residuals ≤0.2m; similar accuracy for neutral/charged cases</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">S-5</td>
+                                    <td class="px-4 py-3 border-b">Verify signal degradation effects in Juno solar conjunction data</td>
+                                    <td class="px-4 py-3 border-b">2, 26</td>
+                                    <td class="px-4 py-3 border-b">Compute two-way light-time with Linear Signal Loss metric; fit γ parameter to Ka-band residuals; compare to standard GR fit; process in batches of 1000 points</td>
+                                    <td class="px-4 py-3 border-b">2 GPU-h</td>
+                                    <td class="px-4 py-3 border-b">Residual std <1m; γ posterior peaks at 0.75-1.0 with balanced GR/RN losses</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">P-1</td>
+                                    <td class="px-4 py-3 border-b">Test post-Keplerian parameters in binary pulsar timing</td>
+                                    <td class="px-4 py-3 border-b">2, 6</td>
+                                    <td class="px-4 py-3 border-b">Use TEMPO2 with custom metric plugin; fit PK parameters including orbital decay; compare energy loss to GR prediction; run MCMC with 10^5 samples</td>
+                                    <td class="px-4 py-3 border-b">6 GPU-h</td>
+                                    <td class="px-4 py-3 border-b">Energy loss within 0.1% of GR; similar for charged pulsar analog; loss ratio GR/RN >0.9</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">P-5</td>
+                                    <td class="px-4 py-3 border-b">Analyze GW ringdown for information loss signatures</td>
+                                    <td class="px-4 py-3 border-b">8</td>
+                                    <td class="px-4 py-3 border-b">Modify pyRing to include γ-dependent damping; fit to O3 events; compute Bayes factor vs standard GR; parallel process 10 events</td>
+                                    <td class="px-4 py-3 border-b">12 GPU-h</td>
+                                    <td class="px-4 py-3 border-b">Evidence for γ>0 at >3σ; consistent τ across events; balanced with EM-like dispersion</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">P-6</td>
+                                    <td class="px-4 py-3 border-b">Test anomalous acceleration in PSR J2043+1711 for Linear Signal Loss signatures</td>
+                                    <td class="px-4 py-3 border-b">NANOGrav 15-yr dataset (PSR J2043+1711 timing residuals)</td>
+                                    <td class="px-4 py-3 border-b">Download NANOGrav 15-yr data; implement metric in PyTorch; fit γ to residuals using TEMPO2 with custom plugin; compare precession deviations to GR baseline; run MCMC with 10^5 samples; use enterprise for noise modeling</td>
+                                    <td class="px-4 py-3 border-b">8 GPU-h</td>
+                                    <td class="px-4 py-3 border-b">Acceleration match within 0.5σ of observed; better fit (Δχ² > 5) than GR; balanced GR/RN losses</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mt-6">
+                        These tests focus on validating the core claims of balanced losses and unification signals in Linear Signal Loss theory. Each test includes specific instructions for implementation, focusing on computational verification against real datasets.
+                    </p>
                 </section>
             </main>
         </div>

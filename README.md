@@ -19,6 +19,12 @@ Think of it like testing video codecs - a good codec reproduces the original per
 - Python 3.8+ 
 - PyTorch (CPU or GPU)
 - 8GB+ RAM recommended
+
+### Theory Directory Structure
+All theories are organized in the `theories/` directory:
+- `theories/defaults/` - Baseline theories (GR, RN) and standard tests
+- `theories/linear_signal_loss/` - Example theory showing unification signals
+- `theories/template/` - Template for creating new theories
 - macOS/Linux (Windows users: use WSL)
 
 ### Installation
@@ -27,71 +33,127 @@ Think of it like testing video codecs - a good codec reproduces the original per
 git clone https://github.com/pimdewitte/gravity-compression.git
 cd gravity-compression
 
+# Create virtual environment (recommended)
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install torch numpy matplotlib scipy
+
+# Optional: For GPU support
+pip install torch --index-url https://download.pytorch.org/whl/cu118
+```
+
+### Running Theories
+
+```bash
+# Run all default theories with standard validations
+./run_theory.sh
+
+# Run a specific theory
+./run_theory.sh theories/linear_signal_loss
+
+# Run with high precision
+./run_theory.sh theories/linear_signal_loss --final
+
+# Quick test mode
+./run_theory.sh --test
+
+# Skip baseline comparisons
+./run_theory.sh --skip-defaults theories/my_theory
+
+# Self-discovery mode - AI generates variations
+./run_theory.sh theories/linear_signal_loss --self-discover
+
+# Self-discovery with custom prompt
+./run_theory.sh theories/einstein_deathbed_unified --self-discover \
+  --initial-prompt "explore torsion and asymmetric metrics"
+
 # Run the setup script (creates Python virtual environment)
 ./setup_gpu.sh
 
-# Test the installation - runs all theories at 1000 steps (~5-10 min)
-./run_validation_tests.sh
+# Test the installation - runs default theories at 1000 steps (~5-10 min)
+./scripts/run_validation_tests.sh
 
 # Run the Linear Signal Loss analysis (key discovery)
+cd theories/linear_signal_loss
 ./final_linear_validation_loss.sh
 ```
 
-## 🔧 Adding Your Own Theory
+## 🔧 Theory Organization
 
-Create a new theory by adding to `predefined_theories.py` or creating a new file:
+All theories are now organized in a modular structure under `theories/`:
+
+```
+theories/
+├── defaults/               # Baseline theories and all test theories
+│   ├── source/            # Theory implementations
+│   ├── grounding/         # Theoretical foundations
+│   ├── validations/       # Standard tests
+│   └── results/           # Evaluation outputs
+├── linear_signal_loss/     # The key discovery
+│   ├── source/            # Implementation
+│   ├── validations/       # Observation tests
+│   └── results/           # Analysis results
+└── einstein_deathbed_unified/  # Einstein-inspired theory
+    └── source/            # Implementation
+```
+
+### Adding Your Own Theory
+
+1. Create a new directory: `theories/your_theory_name/`
+2. Add subdirectories: `source/`, `grounding/`, `validations/`, etc.
+3. Create `source/theory.py` with your theory class:
 
 ```python
-class MyTheory(GravitationalTheory):
-    def __init__(self):
-        super().__init__("My Custom Theory")
+from base_theory import GravitationalTheory, Tensor
+import torch
+
+class YourTheory(GravitationalTheory):
+    category = "classical"  # or "quantum", "unified"
+    cacheable = True
     
-    def get_metric(self, r, M_param, C_param, G_param):
-        # Calculate the 4 metric components
-        rs = 2 * G_param * M_param / C_param**2  # Schwarzschild radius
-        
-        # Example: Standard Schwarzschild metric
-        g_tt = -(1 - rs/r)      # Time component
-        g_rr = 1/(1 - rs/r)     # Radial component  
-        g_phiphi = r**2         # Angular component
-        g_tphi = 0              # Time-angular coupling (0 for symmetric)
-        
-        return g_tt, g_rr, g_phiphi, torch.zeros_like(r)
+    def __init__(self):
+        super().__init__("Your Theory Name")
+    
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        rs = 2 * G_param * M_param / C_param**2
+        # Your metric implementation
+        g_tt = -(1 - rs/r)  # Example
+        g_rr = 1/(1 - rs/r)
+        g_pp = r**2
+        g_tp = torch.zeros_like(r)  # For torsion/rotation
+        return g_tt, g_rr, g_pp, g_tp
 ```
 
-Then test it:
+## 🔬 Running Experiments
+
+### Test Specific Theories
 ```bash
-# For theories in predefined_theories.py (auto-loaded)
-python self_discovery.py --test
+# Run a specific theory directory
+python self_discovery.py --test --theory-dirs theories/linear_signal_loss
 
-# For theories in a separate file
-python self_discovery.py --test --manual-theories-file my_theories.py
+# Run multiple theories
+python self_discovery.py --test --theory-dirs theories/linear_signal_loss theories/einstein_deathbed_unified
+
+# Run all default theories
+python self_discovery.py --test --theory-dirs theories/defaults
 ```
 
-## 🏗️ How It Works
-
-### The Core Concept
-
-```
-High-Dimensional          GRAVITY              Low-Dimensional
-Quantum State      ═══════════════════▶      Classical Spacetime
-(Hidden reality)         (Decoder)            (What we observe)
-      │                                              │
-      │              Theory = g_μν                   │
-      └──────────── Decoding Loss ──────────────────┘
-                 "How well does it work?"
+### High-Precision Validation
+```bash
+# Run with 5M steps for publication-quality results
+python self_discovery.py --final --theory-dirs theories/linear_signal_loss
 ```
 
-### The Pipeline
+### AI-Assisted Discovery
+```bash
+# Use AI to generate new theories
+export XAI_API_KEY=your_key_here
+python self_discovery.py --self-discover --initial-prompt "explore torsion-based unification"
+```
 
-1. **Define a Theory**: Each theory specifies how spacetime curves (the metric tensor)
-2. **Calculate Motion**: Use the metric to compute how objects move (geodesics)
-3. **Simulate Orbits**: Integrate the equations of motion for ~100,000 steps
-4. **Extract Frequencies**: Use FFT to analyze the orbital frequency spectrum
-5. **Compare to Baselines**: Measure deviation from General Relativity and Reissner-Nordström
-6. **Rank by Loss**: Lower loss = better theory (better "decoder")
-
-### Key Insight: Dual Baselines
+## 📊 Dual-Baseline Methodology
 
 We compare against TWO reference theories:
 - **Schwarzschild (GR)**: Pure gravity - the "perfect decoder" for mass
@@ -103,21 +165,28 @@ A unified theory should perform well against BOTH baselines without explicitly i
 
 ```
 gravity_compression/
-├── setup_gpu.sh                    # Environment setup script
-├── run_validation_tests.sh         # Quick validation runner
-├── final_linear_validation_loss.sh # Linear signal loss experiment
-├── self_discovery.py               # Main simulation engine
-├── predefined_theories.py          # Core baseline theories (Schwarzschild, Reissner-Nordström)
-├── other_generated_theories.py     # Collection of test theories (40+ variants)
-├── linear_signal_loss.py           # Signal degradation experiment
-├── cache/                          # Cached trajectory data (speeds up repeated runs)
-├── runs/                           # Results, plots, and analysis
-├── generated_codes/                # AI-generated theory attempts
-└── papers/                         # Research papers and documentation
+├── theories/                       # All gravitational theories
+│   ├── defaults/                  # Baseline theories and validations
+│   │   ├── source/               # GR, RN, and test theories
+│   │   ├── validations/          # Standard observational tests
+│   │   └── grounding/            # Theoretical foundations
+│   ├── linear_signal_loss/        # Example unified theory
+│   ├── einstein_deathbed_unified/ # Einstein-inspired theory
+│   └── template/                  # Template for new theories
+├── self_discovery.py              # Main simulation engine
+├── base_theory.py                 # Base class for all theories
+├── run_theory.sh                  # Universal theory runner
+├── cache/                         # Cached trajectory data
+└── papers/                        # Research documentation
 ```
 
-**Note**: Many theories include parameter sweeps. For example, `LinearSignalLoss` tests 5 different γ values, 
-so the total number of theory instances tested can exceed 100+ when all sweeps are included.
+Each theory directory is self-contained with:
+- `source/` - Implementation
+- `grounding/` - Theory
+- `validations/` - Tests
+- `results/` - Outputs
+- `self_discovery/` - AI variations
+- `runs/` - Simulations
 
 ## 🔬 Key Discoveries
 
@@ -129,102 +198,67 @@ The most striking discovery: when we degrade the gravitational signal linearly (
 γ = 0.00 (Pure GR)          γ = 0.75 (Sweet Spot)         γ = 1.00 (Maximum degradation)
       │                              │                               │
       ▼                              ▼                               ▼
-Loss vs GR:  0.000              Loss vs GR:  0.153              Loss vs GR:  0.133
-Loss vs RN:  0.269              Loss vs RN:  0.161              Loss vs RN:  0.133
-                                     │
-                              UNIFIED REGIME
-                         (Equal distance to both!)
+Loss vs GR:  0.000                0.153                          0.133
+Loss vs RN:  0.250                0.161                          0.133
 ```
 
-This suggests that controlled information loss might be key to unification.
+This suggests gravity and electromagnetism might be different "compression settings" of the same underlying process!
 
-### 2. AI-Assisted Theory Discovery
+### 2. Robustness as a Feature
 
-The framework includes an AI loop that:
-- Learns from previous results
-- Generates new theories inspired by Einstein's work
-- Tests them automatically
-- Searches for breakthrough unifications
+General Relativity isn't just accurate - it's the most *robust* theory. Like a well-designed codec that handles noise gracefully, GR maintains stability even under extreme conditions where other theories fail.
 
-Run with: `python self_discovery.py --self-discover`
+### 3. Information Loss = Physical Effects
 
-## 📊 Understanding the Results
+The amount of "compression loss" correlates with observable deviations from GR. This provides a new way to classify and understand alternative theories of gravity.
 
-When you run a test, you'll see rankings like:
+## 🛠️ Advanced Usage
 
-```
---- RANKING vs. GENERAL RELATIVITY (GR) ---
-Rank | Model                          | Loss (FFT MSE)
------|--------------------------------|---------------
-   1 | Schwarzschild (GR)             | 0.000e+00  ← Perfect (it IS the baseline)
-   2 | Einstein Regularised Core      | 2.451e-06  ← Tiny deviation
-   3 | Log Corrected (β=+0.17)        | 1.823e-04  ← Small quantum correction
-   4 | Variable G (δ=-0.10)           | 3.421e-03  ← Noticeable difference
-  ...
-```
-
-Lower loss = closer to the baseline = better information preservation.
-
-### Generated Visualizations
-
-For each theory tested, the framework generates:
-
-1. **Orbital Trajectory Plot** (`plot.png`): Shows the actual orbit in polar coordinates
-   - Black dashed line: Schwarzschild (pure gravity) baseline
-   - Blue dotted line: Reissner-Nordström (gravity + charge) baseline
-   - Red solid line: The theory being tested
-   - Green dot: Starting position
-   - Red X: Ending position
-
-2. **Metric Components Plot** (`metric_plot.png`): Shows the 4 metric tensor components
-   - g_tt: Time dilation effects
-   - g_rr: Radial space curvature
-   - g_φφ: Angular space scaling
-   - g_tφ: Time-space coupling (0 for symmetric theories)
-
-All results are saved in timestamped directories under `runs/`.
-
-## ⚙️ Command-Line Options
-
-### Basic Usage
-```bash
-python self_discovery.py [options]
-```
-
-### Available Options
+### Command Line Options
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--test` | Quick test mode with 1,000 steps | 100,000 steps |
-| `--final` | High-precision mode with 5M steps and float64 | float32, 100k steps |
-| `--cpu-f64` | Force CPU with float64 precision | GPU with float32 |
-| `--self-discover` | Enable AI theory generation loop | Disabled |
-| `--initial-prompt "..."` | Seed prompt for AI generation | Empty |
-| `--api-provider [grok/gemini/openai/anthropic]` | Choose AI provider | grok |
-| `--manual-theories-file <file.py>` | Load custom theories from file | None |
+| `--test` | Quick test mode (1,000 steps) | False |
+| `--final` | High-precision mode (5M steps) | False |
+| `--cpu-f64` | Force CPU with float64 precision | False |
+| `--self-discover` | Enable AI theory generation | False |
+| `--theory-dirs <dirs>` | Theory directories to load | theories/defaults |
+| `--initial-prompt <text>` | Seed prompt for AI discovery | "" |
 
 ### Example Commands
 
 ```bash
-# Quick test of all predefined theories
-python self_discovery.py --test
+# Quick test of Linear Signal Loss
+python self_discovery.py --test --theory-dirs theories/linear_signal_loss
 
-# Test your custom theories
-python self_discovery.py --test --manual-theories-file my_theories.py
-
-# High-precision validation
-python self_discovery.py --final
-
-# AI-assisted theory discovery
-export XAI_API_KEY=your_key_here
-python self_discovery.py --self-discover
+# High-precision validation of defaults
+python self_discovery.py --final --theory-dirs theories/defaults
 
 # AI discovery with custom prompt
-python self_discovery.py --self-discover --initial-prompt "explore torsion-based unification"
-
-# Run specific experiment
-python self_discovery.py --final --manual-theories-file linear_signal_loss.py
+python self_discovery.py --self-discover --initial-prompt "explore quantum corrections to GR"
 ```
+
+## 📈 Validation Against Observations
+
+The Linear Signal Loss theory can be tested against real astronomical data:
+
+```bash
+cd theories/linear_signal_loss/validations
+python pulsar_timing_validation.py      # Test against PSR B1913+16
+python cassini_ppn_validation.py        # Test PPN parameters
+```
+
+## 🤝 Contributing
+
+We welcome contributions! You can:
+- Add new theories to `theories/`
+- Implement validation tests against observations
+- Improve the simulation engine
+- Add visualization tools
+- Document discoveries
+
+See individual theory READMEs for specific contribution guidelines.
+
 ## 📄 Citation
 
 ```bibtex
@@ -236,6 +270,29 @@ python self_discovery.py --final --manual-theories-file linear_signal_loss.py
 }
 ```
 
+## 🔬 Creating Your Own Theory
+
+1. **Copy the template**:
+   ```bash
+   cp -r theories/template theories/my_theory
+   ```
+
+2. **Edit `theories/my_theory/source/theory.py`** with your metric:
+   ```python
+   class MyTheory(GravitationalTheory):
+       def get_metric(self, r, M, c, G):
+           rs = 2 * G * M / c**2
+           # Your metric equations here
+           return g_tt, g_rr, g_pp, g_tp
+   ```
+
+3. **Run it**:
+   ```bash
+   ./theories/my_theory/run.sh
+   ```
+
+That's it! The framework automatically handles comparisons, validations, and visualizations.
+
 ## ⚠️ Important Disclaimers
 
 This project is an exploratory framework for testing gravitational theories through a computational lens. However, please note the following:
@@ -244,12 +301,16 @@ This project is an exploratory framework for testing gravitational theories thro
 
 - **Need for Rigorous Validation**: While the FFT-based loss metric provides a novel way to compare theories, it is not a substitute for physical experiments or astronomical observations. A more comprehensive test suite, including diverse orbital scenarios, stability analyses, and comparisons with real data (e.g., from LIGO or pulsar timing), is recommended for future development to ensure robustness and reliability.
 
-These aspects highlight areas for improvement and underscore that this is a proof-of-concept tool, not a definitive test of physical theories.
+## 🔗 Links
 
-## 🚧 Future Work
+- [GitHub Repository](https://github.com/pimdewitte/gravity-compression)
+- [Research Paper](papers/003/004_not_reviewed)
+- [Interactive Visualizations](viz/example_viz.html)
 
-- Test more sophisticated "lossy compression" theories
-- Explore theories that interpolate between GR and RN
-- Add quantum noise and measure stability
+## 📧 Contact
+
+Pim de Witte - pim@generalintuition.ai
 
 ---
+
+*"The universe may be the ultimate compression algorithm, and gravity its most elegant implementation."*

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Example: Linear Signal Loss Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+    <script src="visualization_full.js"></script>
+    <style>body { margin: 0; } #viz { width: 100vw; height: 100vh; }</style>
+</head>
+<body>
+    <div id="viz"></div>
+    <script>
+        // Metric for Linear Signal Loss (γ=+1.00)
+        const metricFunction = (r, params) => {
+            const rs = 2 * params.G * params.M / params.C ** 2;
+            const m = (1 - params.gamma * (rs / r)) * (1 - rs / r);
+            return [-m, 1 / (m + 1e-10), r ** 2, 0];
+        };
+        const initialParams = { gamma: 1.0, G: 1, M: 1, C: 1 };
+        window.gravityViz = new GravityVisualizer('viz', metricFunction, initialParams);
+    </script>
+</body>
+</html> 

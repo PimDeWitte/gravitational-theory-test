@@ -73,7 +73,11 @@ from scipy.constants import G, c, k, hbar, epsilon_0
 import random  # For fallback if needed
 # <reason>chain: Imported random for fallback.</reason>
 import shutil
+import subprocess
+import webbrowser
 # <reason>chain: Imports unchanged; foundational for API, tensors, and plotting.</reason>
+import getpass  # For potential secure input if needed, but using input()
+import socket
 
 # ---------------------------------------------------------------------------
 # 0.  CLI ARGUMENTS & GLOBAL CONFIG
@@ -95,6 +99,8 @@ def parse_cli() -> argparse.Namespace:
     # <reason>chain: Added --api-provider to select which API to use for generation, if key is present.</reason>
     p.add_argument("--manual-theories-file", type=str, default=None, help="Path to a Python file containing manual theory class definitions to load.")
     # <reason>Added --manual-theories-file flag to allow loading manual equations/theories from disk, enabling user-defined inputs as per update.</reason>
+    p.add_argument("--theory-dirs", type=str, nargs='+', default=["theories/defaults"], help="Theory directories to load (default: theories/defaults). Can specify multiple.")
+    # <reason>Added --theory-dirs to specify which theory directories to load from the new structure.</reason>
     p.add_argument("--test", action="store_true", help="Run in test mode with reduced steps for quick benchmarking.")
     p.add_argument("--validate-observations", action="store_true", help="Run validation against real astronomical observations.")
     return p.parse_args()
@@ -265,11 +271,30 @@ for cls in _all_theory_classes:
     sweep = getattr(cls, "sweep", None)
     category = getattr(cls, "category", "classical")
     if sweep and isinstance(sweep, dict):
-        # For each parameter, sweep over its values (only 1D sweeps supported for now)
-        for param, values in sweep.items():
-            for v in values:
+        # Handle both single and multi-parameter sweeps
+        if len(sweep) == 1:
+            # Single parameter sweep
+            for param, values in sweep.items():
+                for v in values:
+                    try:
+                        instance = cls(**{param: float(v)})
+                        if category == "quantum":
+                            quantum_predefined.append(instance)
+                        elif category == "unified":
+                            unified_predefined.append(instance)
+                        else:
+                            classical_predefined.append(instance)
+                    except Exception:
+                        continue
+        else:
+            # Multi-parameter sweep - create cartesian product
+            import itertools
+            param_names = list(sweep.keys())
+            param_values = [sweep[p] for p in param_names]
+            for value_combo in itertools.product(*param_values):
+                kwargs = {param_names[i]: float(value_combo[i]) for i in range(len(param_names))}
                 try:
-                    instance = cls(**{param: float(v)})
+                    instance = cls(**kwargs)
                     if category == "quantum":
                         quantum_predefined.append(instance)
                     elif category == "unified":
@@ -952,28 +977,57 @@ def downsample(arr, max_points=5000):
     step = len(arr) // max_points
     return arr[::step]
 
-def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "", GR_tag: str = None, RN_tag: str = None, GR_loss_vs_RN: float = None, run_timestamp: str = "") -> dict:
+def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "", GR_tag: str = None, RN_tag: str = None, GR_loss_vs_RN: float = None, run_timestamp: str = "", theory_base_dir: str = None, is_generated: bool = False) -> dict:
     """
     Evaluates a theory by running the simulation and saving results.
+    If theory_base_dir is provided, saves to that theory's runs/ directory.
+    Otherwise uses the old runs/{timestamp}/{category} structure.
     """
-    base_dir = f"runs/{run_timestamp}/{category}"
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     safe_name = model.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
-    theory_dir = f"{base_dir}/{timestamp}_{safe_name}"
-    os.makedirs(theory_dir, exist_ok=True)
-    # <reason>chain: Theory dir; no change.</reason>
+    
+    if is_generated:
+        # For generated, create full theory structure under {theory_base_dir}/self_discovery/{safe_name}
+        if not theory_base_dir:
+            theory_base_dir = "theories/self_discovery"
+        gen_theory_dir = os.path.join(theory_base_dir, "self_discovery", safe_name)
+        os.makedirs(gen_theory_dir, exist_ok=True)
+        
+        # Create subdirs
+        subdirs = ["source", "grounding", "validations", "papers", "results", "self_discovery", "runs"]
+        for sub in subdirs:
+            os.makedirs(os.path.join(gen_theory_dir, sub), exist_ok=True)
+        
+        # Set theory_dir to runs/{timestamp}
+        theory_dir = os.path.join(gen_theory_dir, "runs", timestamp)
+        os.makedirs(theory_dir, exist_ok=True)
+        
+        # Save code to source/theory.py
+        code_path = os.path.join(gen_theory_dir, "source", "theory.py")
+    else:
+        # Regular runs go in runs subdirectory
+        base_dir = os.path.join(theory_base_dir, "runs")
+        theory_dir = f"{base_dir}/{timestamp}_{safe_name}"
+        code_path = f"{theory_dir}/code.py"
 
-    # Save code
-    if gen_content:
+    os.makedirs(theory_dir, exist_ok=True)
+
+    # Insert the following to define code
+    if is_generated:
         code = gen_content
     else:
-        try:
-            code = inspect.getsource(model.__class__)
-        except:
-            code = "Source code not available for predefined theory."
-    with open(f"{ theory_dir}/code.py", "w") as f:
+        # Try to get stored source code first, fall back to inspect
+        code = getattr(model, '_source_code', None)
+        if code is None:
+            try:
+                code = inspect.getsource(model.__class__)
+            except (TypeError, OSError):
+                # If we can't get source, create a placeholder
+                code = f"# Source code not available for {model.__class__.__name__}"
+
+    # Then, save code to code_path instead of {theory_dir}/code.py
+    with open(code_path, "w") as f:
         f.write(code)
-    # <reason>chain: Save code; no change.</reason>
 
     # Save prompt and response if generated
     if prompt:
@@ -1083,15 +1137,92 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     # New: Check if breakthrough
     is_breakthrough = not math.isnan(res["loss_RN"]) and res["loss_RN"] < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in res["name"] and "Reissner" not in res["name"]
     if is_breakthrough:
-        promising_dir = f"{base_dir}/promising"
-        os.makedirs(promising_dir, exist_ok=True)
-        promising_theory_dir = f"{promising_dir}/{timestamp}_{safe_name}"
-        shutil.move(theory_dir, promising_theory_dir)  # Move to promising subdir inside run
-        # Log to root
-        log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {promising_theory_dir}\n"
-        with open("promising_candidates.log", "a") as log_file:
+        # Log to {theory_base_dir}/promising_candidates.log
+        log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {theory_dir}\n"
+        
+        # Determine log path based on theory_base_dir
+        if theory_base_dir:
+            promising_log_path = os.path.join(theory_base_dir, "promising_candidates.log")
+        else:
+            promising_log_path = "promising_candidates.log"
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(promising_log_path) if os.path.dirname(promising_log_path) else ".", exist_ok=True)
+        
+        with open(promising_log_path, "a") as log_file:
             log_file.write(log_entry)
-        print(f"Promising! Moved { theory_dir} to {promising_theory_dir} and logged.")
+        print(f"Promising theory found! Logged to {promising_log_path}")
+
+    # After saving code and results, generate interactive visualization
+    # Extract get_metric function from code.py
+    with open(f"{theory_dir}/code.py", "r") as f:
+        code_content = f.read()
+
+    # Simple parsing to extract get_metric (assumes standard format)
+    import re
+    metric_match = re.search(r'def get_metric\(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float\) -> tuple\[Tensor, Tensor, Tensor, Tensor\]:\s*(.*?)\s*(?=def|\Z)', code_content, re.DOTALL)
+    if metric_match:
+        metric_code = metric_match.group(1).strip()
+        # Convert to JS: replace torch with Math, Tensor with number (assume scalar)
+        js_metric = metric_code.replace('torch.', 'Math.').replace('Tensor', 'number').replace('self.', '').replace('EPSILON', '1e-10')
+        js_metric = js_metric.replace('return ', 'return [').replace(', ', ', ').replace(')', '];')
+    else:
+        js_metric = '// Metric extraction failed'
+
+    # Copy particle names data file
+    os.makedirs(f"{theory_dir}/data", exist_ok=True)
+    particle_names_src = "data/particle_names.json"
+    if os.path.exists(particle_names_src):
+        shutil.copy(particle_names_src, f"{theory_dir}/data/particle_names.json")
+
+    # Generate HTML with enhanced visualization
+    html_content = f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Interactive Visualization: {res["name"]}</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+        <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+        <script src="../../viz/visualization_enhanced.js"></script>
+        <style> 
+            body {{ margin: 0; font-family: Arial, sans-serif; }} 
+            #viz {{ width: 100vw; height: 100vh; }}
+            .label:hover {{ background: rgba(0, 0, 0, 0.95) !important; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }}
+            .metric-component:hover {{ background: rgba(100, 100, 255, 0.2); }}
+        </style>
+    </head>
+    <body>
+        <div id="viz"></div>
+        <script>
+            const metricFunction = (r, params) => {{
+                const rs = 2 * params.G * params.M / params.C**2;
+                {js_metric}
+            }};
+            const initialParams = {{ alpha: 0.5 }}; // Adjust based on theory
+            new GravityVisualizerEnhanced('viz', metricFunction, initialParams);
+        </script>
+    </body>
+    </html>
+    '''
+    with open(f"{theory_dir}/viz.html", "w") as f:
+        f.write(html_content)
+
+    # Start local server and open browser
+    try:
+        # Find an available port
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('', 0))
+            s.listen(1)
+            port = s.getsockname()[1]
+        
+        server_process = subprocess.Popen(['python3', '-m', 'http.server', str(port), '--directory', theory_dir], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(0.5)  # Give server time to start
+        viz_url = f'http://localhost:{port}/viz.html'
+        print(f'Interactive visualization for {res["name"]} available at: {viz_url}')
+    except Exception as e:
+        print(f'Failed to start server: {e}')
 
     return res
 # <reason>chain: Evaluate theory updated to use model-specific initial conditions.</reason>
@@ -1129,6 +1260,27 @@ def main() -> None:
                 else:
                     classical_predefined.append(m)
     # <reason>Now manual theories are also categorized by their class variable, not arbitrarily.</reason>
+    
+    # Load theories from new directory structure if specified
+    theory_dirs_dict = {}
+    if args.theory_dirs and not args.self_discover:
+        theory_dirs_dict = load_theories_from_dirs(args.theory_dirs)
+        # If using new structure, clear old predefined lists
+        if theory_dirs_dict:
+            classical_predefined = []
+            quantum_predefined = []
+            unified_predefined = []
+            
+            # Combine all theories from directories
+            for theory_dir, theories in theory_dirs_dict.items():
+                for theory in theories:
+                    cat = getattr(theory.__class__, "category", "classical")
+                    if cat == "quantum":
+                        quantum_predefined.append(theory)
+                    elif cat == "unified":
+                        unified_predefined.append(theory)
+                    else:
+                        classical_predefined.append(theory)
 
     # Initial history from baselines
     history = [
@@ -1177,7 +1329,11 @@ def main() -> None:
     results = []
     for category, theories in [("classical_predefined", classical_predefined), ("quantum_predefined", quantum_predefined), ("unified_predefined", unified_predefined)]:
         for model in theories:
-            res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
+            # Get theory base dir if available
+            theory_base_dir = getattr(model, '_theory_dir', None)
+            res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, 
+                                GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp,
+                                theory_base_dir=theory_base_dir)
             results.append(res)
             history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": res["summary"]})
     # <reason>chain: Evaluated predefined; uses updated evaluate_theory with per-model init.</reason>
@@ -1186,6 +1342,24 @@ def main() -> None:
     breakthrough_found = False
     iteration = 1
     if args.self_discover:
+        # Determine which theory directory to use as context
+        # If multiple directories specified, use the last non-defaults one
+        seed_theory_dir = None
+        if args.theory_dirs:
+            for td in args.theory_dirs:
+                if td != "theories/defaults":
+                    seed_theory_dir = td
+        
+        if not seed_theory_dir:
+            seed_theory_dir = "theories/defaults"
+        
+        print(f"\n=== Self-Discovery Mode ===")
+        print(f"Seed theory directory: {seed_theory_dir}")
+        print(f"API provider: {args.api_provider}")
+        if args.initial_prompt:
+            print(f"Initial prompt: {args.initial_prompt}")
+        print("="*30)
+        
         while True:
             print(f"\n--- Iteration {iteration}: Generating new theories ---")
             new_theories = generate_new_theories(history, args.initial_prompt)
@@ -1197,7 +1371,7 @@ def main() -> None:
             print(f"Testing {len(new_theories)} new models: {[m[0].name for m in new_theories]}")
 
             for idx, (model, summary, gen_content, category, prompt) in enumerate(new_theories, 1):
-                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp)
+                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp, theory_base_dir="theories/self_discovery", is_generated=True)
                 results.append(res)
                 history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": summary})
 
@@ -1240,13 +1414,123 @@ def main() -> None:
 # <reason>chain: Main function updated with per-model initial conditions to fix RN generation, increased r0, manual theories loading, and breakthrough tightening.</reason>
 
     if args.validate_observations:
-        from validate_observations import validate_against_observations
-        from linear_signal_loss import LinearSignalLoss_gamma_1_00, QuantumLinearSignalLoss
+        # Import validation functions from theory directories
+        from theories.linear_signal_loss.validations.pulsar_timing_validation import validate_linear_signal_loss_pulsar
         print("\n--- Running Observational Validation ---")
-        models_to_validate = [LinearSignalLoss_gamma_1_00(), QuantumLinearSignalLoss()]
-        for model in models_to_validate:
-            res = validate_against_observations(model, r0, N_STEPS, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
-            print(f"{res['model']}: Simulated Advance = {res['sim_advance']:.6f} deg/yr, Obs Loss = {res['loss']:.6f}")
+        
+        # Run Linear Signal Loss validation
+        result = validate_linear_signal_loss_pulsar(gamma=1.0)
+        print(f"Linear Signal Loss (γ=1.0):")
+        print(f"  Simulated Advance: {result['sim_advance']:.6f} deg/yr")
+        print(f"  Observed Advance: {result['real_advance']:.6f} deg/yr")
+        print(f"  Loss: {result['loss']:.6f} deg/yr")
+        print(f"  Pass: {result['pass']}")
+
+def load_theories_from_dirs(theory_dirs: list[str]) -> dict[str, list[GravitationalTheory]]:
+    """
+    Load theories from the new directory structure.
+    Each theory_dir should have a source/ subdirectory with theory.py or multiple .py files.
+    Returns dict mapping theory_dir to list of instantiated models.
+    """
+    all_theories = {}
+    
+    for theory_dir in theory_dirs:
+        if not os.path.exists(theory_dir):
+            print(f"Theory directory not found: {theory_dir}")
+            continue
+            
+        source_dir = os.path.join(theory_dir, "source")
+        if not os.path.exists(source_dir):
+            print(f"No source/ directory in: {theory_dir}")
+            continue
+        
+        theories = []
+        
+        # Look for all .py files in source/
+        for filename in os.listdir(source_dir):
+            if filename.endswith('.py') and filename != '__init__.py':
+                filepath = os.path.join(source_dir, filename)
+                
+                # Read and execute the file
+                with open(filepath, 'r') as f:
+                    code = f.read()
+                
+                # Create a clean namespace with required imports
+                namespace = {
+                    'GravitationalTheory': GravitationalTheory,
+                    'Tensor': torch.Tensor,
+                    'torch': torch,
+                    'np': np,
+                    'numpy': np,
+                    'math': math,
+                    'device': device,
+                    'DTYPE': DTYPE,
+                    'EPSILON': EPSILON,
+                    'epsilon_0': epsilon_0,
+                    'G': G,
+                    'c': c,
+                    'hbar': hbar,
+                    'Q_PARAM': Q_PARAM,
+                    'TORCH_PI': TORCH_PI,
+                    'EPS0_T': EPS0_T,
+                    'LP': LP,
+                    'STOCHASTIC_STRENGTH': STOCHASTIC_STRENGTH,
+                }
+                
+                try:
+                    exec(code, namespace)
+                except Exception as e:
+                    print(f"Error loading {filepath}: {e}")
+                    continue
+                
+                # Find all GravitationalTheory subclasses
+                for name, obj in namespace.items():
+                    if isinstance(obj, type) and issubclass(obj, GravitationalTheory) and obj != GravitationalTheory:
+                        # Check for parameter sweeps
+                        sweep = getattr(obj, 'sweep', None)
+                        if sweep and isinstance(sweep, dict):
+                            # Handle both single and multi-parameter sweeps
+                            if len(sweep) == 1:
+                                # Single parameter sweep
+                                for param, values in sweep.items():
+                                    for v in values:
+                                        try:
+                                            instance = obj(**{param: float(v)})
+                                            instance._theory_dir = theory_dir  # Store source dir
+                                            instance._source_code = code  # Store source code
+                                            theories.append(instance)
+                                        except Exception as e:
+                                            print(f"Error instantiating {name} with {param}={v}: {e}")
+                            else:
+                                # Multi-parameter sweep - create cartesian product
+                                import itertools
+                                param_names = list(sweep.keys())
+                                param_values = [sweep[p] for p in param_names]
+                                for value_combo in itertools.product(*param_values):
+                                    kwargs = {param_names[i]: float(value_combo[i]) for i in range(len(param_names))}
+                                    try:
+                                        instance = obj(**kwargs)
+                                        instance._theory_dir = theory_dir
+                                        instance._source_code = code  # Store source code
+                                        theories.append(instance)
+                                    except Exception as e:
+                                        print(f"Error instantiating {name} with {kwargs}: {e}")
+                        else:
+                            # Try to instantiate with defaults
+                            try:
+                                instance = _instantiate_theory(obj)
+                                if instance:
+                                    instance._theory_dir = theory_dir
+                                    instance._source_code = code  # Store source code
+                                    theories.append(instance)
+                            except Exception as e:
+                                print(f"Error instantiating {name}: {e}")
+        
+        if theories:
+            all_theories[theory_dir] = theories
+            print(f"Loaded {len(theories)} theories from {theory_dir}")
+    
+    return all_theories
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)

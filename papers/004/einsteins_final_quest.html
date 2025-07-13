@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Einstein's Final Quest: A Self-Improving Computational Framework for Physics Discovery</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        'physics-blue': '#1a0dab',
+                        'physics-light-blue': '#4285f4',
+                        'physics-dark': '#202124',
+                        'physics-gray': '#5f6368',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom Aeonik Font */
+        @font-face {
+            font-family: 'Aeonik';
+            src: url('https://cdn.jsdelivr.net/gh/juliusgarbe/aeonik-fonts@main/Aeonik-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Aeonik';
+            src: url('https://cdn.jsdelivr.net/gh/juliusgarbe/aeonik-fonts@main/Aeonik-Medium.woff2') format('woff2');
+            font-weight: 500;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Aeonik';
+            src: url('https://cdn.jsdelivr.net/gh/juliusgarbe/aeonik-fonts@main/Aeonik-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+        }
+        
+        /* Use Aeonik for headings */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Aeonik', 'Inter', sans-serif;
+        }
+        
+        /* Smooth scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Math variables styling */
+        .math-var {
+            font-family: 'Times New Roman', 'Georgia', serif;
+            font-style: italic;
+            color: #1a0dab;
+            font-size: 1.05em;
+        }
+        
+        /* Formula display */
+        .formula-display {
+            @apply text-center text-physics-blue bg-blue-50 py-6 px-8 rounded-xl my-6 mx-auto;
+            font-family: 'Times New Roman', 'Georgia', serif;
+            font-size: 1.4rem;
+            width: fit-content;
+            min-width: 300px;
+            box-shadow: 0 2px 8px rgba(26, 13, 171, 0.08);
+            border: 1px solid #e0e7ff;
+            position: relative;
+        }
+        
+        .formula-display:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #1a0dab, #4285f4);
+            border-radius: 12px 12px 0 0;
+        }
+        
+        /* Story blockquote */
+        .story-blockquote {
+            @apply border-l-4 border-physics-light-blue pl-6 my-8 text-lg italic text-gray-700;
+            font-family: 'Aeonik', 'Inter', sans-serif;
+            line-height: 1.8;
+        }
+        
+        /* Responsive canvas */
+        @media (max-width: 768px) {
+            canvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            
+            .formula-display {
+                font-size: 1.1rem;
+                padding: 1.5rem 1rem;
+                min-width: auto;
+                width: 100%;
+            }
+        }
+        
+        /* Iframe container styling */
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 75%; /* 4:3 aspect ratio for better visualization */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            min-height: 700px;
+        }
+        
+        .iframe-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            min-height: 700px;
+        }
+        
+        @media (max-width: 768px) {
+            .iframe-container {
+                padding-bottom: 100%; /* Square on mobile */
+                min-height: 500px;
+            }
+            .iframe-container iframe {
+                min-height: 500px;
+            }
+        }
+        
+        /* Table improvements */
+        .responsive-table {
+            @apply w-full overflow-x-auto;
+        }
+        
+        .responsive-table table {
+            @apply min-w-full;
+        }
+        
+        /* Mobile-first approach for tables */
+        @media (max-width: 640px) {
+            .responsive-table table {
+                @apply text-sm;
+            }
+            
+            .responsive-table th,
+            .responsive-table td {
+                @apply px-2 py-1;
+            }
+        }
+        
+        /* Animation classes */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        /* Collapsible table styling */
+        .collapsible-table .collapsible-row {
+            display: none;
+        }
+        .collapsible-table.expanded .collapsible-row {
+            display: table-row;
+        }
+        
+        /* Lightbox removed - images open in new tabs */
+        
+        /* Print styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            body {
+                font-size: 12pt;
+            }
+            
+            h1 { font-size: 24pt; }
+            h2 { font-size: 20pt; }
+            h3 { font-size: 16pt; }
+        }
+    </style>
+</head>
+<body class="bg-white text-physics-dark antialiased">
+
+    <!-- Mobile Navigation -->
+    <nav class="lg:hidden fixed top-0 left-0 right-0 bg-white shadow-md z-40 no-print">
+        <div class="flex items-center justify-between px-4 py-3">
+            <h2 class="text-lg font-semibold text-physics-blue">Einstein's Final Quest</h2>
+            <button id="mobile-menu-toggle" class="p-2 rounded-md hover:bg-gray-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="lg:hidden fixed inset-0 bg-white z-50 transform translate-x-full transition-transform duration-300 no-print">
+        <div class="p-4">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold">Navigation</h3>
+                <button id="mobile-menu-close" class="p-2 rounded-md hover:bg-gray-100">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <nav class="space-y-2">
+                <a href="#abstract" class="block py-2 px-4 rounded hover:bg-gray-100">Abstract</a>
+                <a href="#einstein-intro" class="block py-2 px-4 rounded hover:bg-gray-100">1. What If Einstein Had Infinite Compute?</a>
+                <a href="#framework" class="block py-2 px-4 rounded hover:bg-gray-100">2. The Computational Framework</a>
+                <a href="#ai-discovery" class="block py-2 px-4 rounded hover:bg-gray-100">3. AI-Assisted Discovery Loop</a>
+                <a href="#tested-theories" class="block py-2 px-4 rounded hover:bg-gray-100">4. Theories We Tested</a>
+                <a href="#compression-hypothesis" class="block py-2 px-4 rounded hover:bg-gray-100">5. Gravity as Compression</a>
+                <a href="#promising-candidates" class="block py-2 px-4 rounded hover:bg-gray-100">6. Promising Candidates</a>
+                <a href="#interactive-viz" class="block py-2 px-4 rounded hover:bg-gray-100">7. Interactive Visualization</a>
+                <a href="#black-hole-visualization" class="block py-2 px-4 rounded hover:bg-gray-100">8. Black Hole Demo</a>
+                <a href="#appendix-e" class="block py-2 px-4 rounded hover:bg-gray-100">9. Contributing</a>
+                <a href="#experimental-validation" class="block py-2 px-4 rounded hover:bg-gray-100">10. Experimental Validation</a>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- Desktop Navigation -->
+    <nav class="hidden lg:block fixed left-0 top-0 h-full w-64 bg-gray-50 border-r border-gray-200 overflow-y-auto no-print">
+        <div class="p-6">
+            <h3 class="text-lg font-semibold text-physics-blue mb-4">Navigation</h3>
+            <nav class="space-y-1">
+                <a href="#abstract" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">Abstract</a>
+                <a href="#einstein-intro" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">1. What If Einstein Had Infinite Compute?</a>
+                <a href="#framework" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">2. The Computational Framework</a>
+                <a href="#ai-discovery" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">3. AI-Assisted Discovery Loop</a>
+                <a href="#tested-theories" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">4. Theories We Tested</a>
+                <a href="#compression-hypothesis" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">5. Gravity as Compression</a>
+                <a href="#promising-candidates" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">6. Promising Candidates</a>
+                <a href="#interactive-viz" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">7. Interactive Visualization</a>
+                <a href="#black-hole-visualization" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">8. Black Hole Demo</a>
+                <a href="#appendix-e" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">9. Contributing</a>
+                <a href="#experimental-validation" class="block py-2 px-3 rounded hover:bg-gray-200 text-sm">10. Experimental Validation</a>
+            </nav>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="lg:ml-64 pt-16 lg:pt-0">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+
+            <!-- Header -->
+            <header class="mb-12 lg:mb-16 fade-in">
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight mb-4 lg:mb-6 text-physics-blue leading-tight">
+                    Completing Einstein's Quest
+                </h1>
+                <p class="text-lg lg:text-xl text-physics-gray leading-relaxed max-w-4xl">
+                    A Self-Improving Computational Framework for Physics Discovery:<br>
+                    How modern AI and computation complete Einstein's unfinished work—and create a new paradigm for automated physics research
+                </p>
+                <div class="mt-6 space-y-1 text-physics-gray">
+                    <p class="font-medium">W.W.A. (Pim) de Witte, General Intuition PBC</p>
+                    <p>pim@generalintuition.ai</p>
+                    <p class="text-sm mt-2">July 10, 2025</p>
+                </div>
+            </header>
+
+            <!-- Abstract -->
+            <div id="abstract" class="bg-blue-50 border-l-4 border-physics-blue p-6 lg:p-8 rounded-r-lg mb-12 fade-in scroll-mt-20">
+                <h2 class="text-2xl lg:text-3xl font-bold text-physics-blue mb-4">Abstract</h2>
+                <div class="space-y-4 text-base lg:text-lg leading-relaxed">
+                    <p>
+                        We present a computational framework that transforms theoretical physics into a high-throughput experimental science. Using PyTorch and AI, our system automatically generates, tests, and validates gravitational theories at unprecedented scale—exploring more possibilities in hours than Einstein could in decades.
+                    </p>
+                    <p>
+                        The framework discovered "Linear Signal Loss" as a promising unification candidate, but more importantly, it establishes a new paradigm: self-improving physics research where every tested theory makes the system smarter. This opens the door to discoveries that would take human physicists centuries to explore manually.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Main Content Continues -->
+            <main class="space-y-12 lg:space-y-16">
+
+                <!-- Section 1: What If Einstein Had Infinite Compute? -->
+                <section class="section scroll-mt-20" id="einstein-intro">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        1. What If Einstein Had Infinite Compute?
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mb-8">
+                        <div class="space-y-6">
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                In 1955, Albert Einstein died with pages of calculations at his bedside—30 years of attempts to unify gravity and electromagnetism through pure geometry. His tools were paper, pencil, and extraordinary intuition. But what if he had access to modern computational power? What theories might he have discovered with the ability to test millions of mathematical structures in seconds?
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                This question drives our work. We've created a computational framework that bridges Einstein's mathematical insights with 21st-century AI and simulation capabilities. Our system doesn't just test theories—it generates them, learning from each attempt to explore the infinite space of possible unified field theories more intelligently.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                At his deathbed, Einstein left behind fragments: non-symmetric metrics, torsion fields, coupling constants like α ≈ 1/137. These weren't random—they were systematic attempts to geometrically encode electromagnetism. Our discovery loop transforms these historical insights into a living research program, using AI to navigate possibilities Einstein could only dream of exploring.
+                            </p>
+                        </div>
+                        
+                        <div class="lg:sticky lg:top-8">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6">
+                                <canvas id="aiDiscoveryVisualization" class="w-full" width="420" height="600"></canvas>
+                                <p class="text-sm text-center text-physics-gray mt-4">The AI Discovery Bridge: From Einstein's deathbed notes to modern computational exploration. Click to animate the discovery process.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Canvas script (same as before) -->
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('aiDiscoveryVisualization');
+                            const ctx = canvas.getContext('2d');
+                            let animationFrame = 0;
+                            let isPaused = false;
+                            let particles = [];
+                            let theoryNodes = [];
+                            let connections = [];
+                            let selectedTheory = null;
+                            let discoveryPhase = 0;
+                            
+                            // Initialize particles for flow effect
+                            for (let i = 0; i < 20; i++) {
+                                particles.push({
+                                    x: Math.random() * canvas.width,
+                                    y: Math.random() * 200,
+                                    vx: (Math.random() - 0.5) * 0.5,
+                                    vy: Math.random() * 0.3 + 0.1,
+                                    size: Math.random() * 2 + 1,
+                                    opacity: Math.random() * 0.5 + 0.3
+                                });
+                            }
+                            
+                            // Theory exploration nodes
+                            const theories = [
+                                { name: "Non-symmetric g_μν", x: 100, y: 450, discovered: false, loss: null },
+                                { name: "Torsion S^λ_μν", x: 200, y: 480, discovered: false, loss: null },
+                                { name: "Kaluza-Klein 5D", x: 300, y: 450, discovered: false, loss: null },
+                                { name: "Teleparallel", x: 150, y: 520, discovered: false, loss: null },
+                                { name: "Linear Signal Loss", x: 250, y: 550, discovered: false, loss: null, breakthrough: true }
+                            ];
+                            
+                            canvas.addEventListener('click', () => {
+                                isPaused = !isPaused;
+                                if (!isPaused) animate();
+                            });
+                            
+                            // Add roundRect polyfill
+                            if (!ctx.roundRect) {
+                                ctx.roundRect = function(x, y, width, height, radius) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(x + radius, y);
+                                    ctx.lineTo(x + width - radius, y);
+                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                                    ctx.lineTo(x + width, y + height - radius);
+                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                                    ctx.lineTo(x + radius, y + height);
+                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                                    ctx.lineTo(x, y + radius);
+                                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                                    ctx.closePath();
+                                };
+                            }
+                            
+                            function drawEinsteinNotes() {
+                                // Draw aged paper background
+                                const gradient = ctx.createLinearGradient(20, 20, 380, 180);
+                                gradient.addColorStop(0, '#fef9e7');
+                                gradient.addColorStop(1, '#f4e7d1');
+                                ctx.fillStyle = gradient;
+                                ctx.beginPath();
+                                ctx.roundRect(20, 20, 360, 160, 10);
+                                ctx.fill();
+                                ctx.strokeStyle = '#8b7355';
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
+                                
+                                // Draw handwritten equations
+                                ctx.font = 'italic 16px Georgia, serif';
+                                ctx.fillStyle = '#2c3e50';
+                                ctx.fillText('g_μν ≠ g_νμ', 50, 60);
+                                ctx.fillText('S^λ_μν = Γ^λ_μν - Γ^λ_νμ', 50, 90);
+                                ctx.fillText('α ≈ 1/137', 50, 120);
+                                ctx.fillText('∂_μ(√-g g^μν) = ?', 50, 150);
+                                
+                                // Date stamp
+                                ctx.font = '11px Aeonik, sans-serif';
+                                ctx.fillStyle = '#7f8c8d';
+                                ctx.fillText('April 1955', 280, 160);
+                                
+                                // Title
+                                ctx.font = 'bold 14px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.textAlign = 'center';
+                                ctx.fillText("Einstein's Final Notes", 200, 200);
+                                ctx.textAlign = 'left';
+                            }
+                            
+                            function drawAIProcessor() {
+                                const centerY = 280;
+                                
+                                // Draw neural network visualization
+                                ctx.strokeStyle = '#4285f4';
+                                ctx.lineWidth = 1;
+                                
+                                // Input layer
+                                for (let i = 0; i < 3; i++) {
+                                    const y = centerY - 30 + i * 30;
+                                    ctx.beginPath();
+                                    ctx.arc(100, y, 5, 0, Math.PI * 2);
+                                    ctx.fillStyle = '#e3f2fd';
+                                    ctx.fill();
+                                    ctx.stroke();
+                                }
+                                
+                                // Hidden layers
+                                for (let layer = 0; layer < 3; layer++) {
+                                    const x = 150 + layer * 50;
+                                    for (let i = 0; i < 4; i++) {
+                                        const y = centerY - 45 + i * 30;
+                                        
+                                        // Draw connections
+                                        ctx.strokeStyle = '#4285f4';
+                                        ctx.globalAlpha = 0.3;
+                                        ctx.lineWidth = 0.5;
+                                        
+                                        // Connect to previous layer
+                                        if (layer > 0) {
+                                            for (let j = 0; j < 4; j++) {
+                                                ctx.beginPath();
+                                                ctx.moveTo(x - 50, centerY - 45 + j * 30);
+                                                ctx.lineTo(x, y);
+                                                ctx.stroke();
+                                            }
+                                        } else {
+                                            // Connect to input
+                                            for (let j = 0; j < 3; j++) {
+                                                ctx.beginPath();
+                                                ctx.moveTo(100, centerY - 30 + j * 30);
+                                                ctx.lineTo(x, y);
+                                                ctx.stroke();
+                                            }
+                                        }
+                                        
+                                        ctx.globalAlpha = 1;
+                                        
+                                        // Draw node
+                                        const activation = Math.sin(animationFrame * 0.02 + layer + i) * 0.5 + 0.5;
+                                        ctx.beginPath();
+                                        ctx.arc(x, y, 6, 0, Math.PI * 2);
+                                        ctx.fillStyle = `rgba(66, 133, 244, ${0.3 + activation * 0.7})`;
+                                        ctx.fill();
+                                        ctx.strokeStyle = '#4285f4';
+                                        ctx.lineWidth = 1;
+                                        ctx.stroke();
+                                    }
+                                }
+                                
+                                // Output layer
+                                for (let i = 0; i < 3; i++) {
+                                    const y = centerY - 30 + i * 30;
+                                    
+                                    // Connect to last hidden layer
+                                    ctx.globalAlpha = 0.3;
+                                    ctx.lineWidth = 0.5;
+                                    for (let j = 0; j < 4; j++) {
+                                        ctx.beginPath();
+                                        ctx.moveTo(250, centerY - 45 + j * 30);
+                                        ctx.lineTo(300, y);
+                                        ctx.stroke();
+                                    }
+                                    ctx.globalAlpha = 1;
+                                    
+                                    ctx.beginPath();
+                                    ctx.arc(300, y, 5, 0, Math.PI * 2);
+                                    ctx.fillStyle = '#e3f2fd';
+                                    ctx.fill();
+                                    ctx.strokeStyle = '#4285f4';
+                                    ctx.lineWidth = 1;
+                                    ctx.stroke();
+                                }
+                                
+                                // Label
+                                ctx.font = 'bold 14px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('AI Theory Generator', 200, 350);
+                                ctx.fillText('(Grok-4)', 200, 365);
+                                ctx.textAlign = 'left';
+                            }
+                            
+                            function drawTheorySpace() {
+                                // Draw exploration space background
+                                const gradient = ctx.createRadialGradient(210, 480, 50, 210, 480, 150);
+                                gradient.addColorStop(0, 'rgba(232, 234, 246, 0.3)');
+                                gradient.addColorStop(1, 'rgba(232, 234, 246, 0)');
+                                ctx.fillStyle = gradient;
+                                ctx.fillRect(0, 380, canvas.width, 220);
+                                
+                                // Draw theory nodes
+                                theories.forEach((theory, index) => {
+                                    const isActive = discoveryPhase > index * 20;
+                                    
+                                    if (isActive && !theory.discovered) {
+                                        theory.discovered = true;
+                                        theory.loss = theory.breakthrough ? 0.157 : (0.2 + Math.random() * 0.8);
+                                    }
+                                    
+                                    // Draw connections between discovered theories
+                                    if (theory.discovered && index > 0) {
+                                        ctx.strokeStyle = 'rgba(66, 133, 244, 0.2)';
+                                        ctx.lineWidth = 1;
+                                        ctx.beginPath();
+                                        ctx.moveTo(theories[index - 1].x, theories[index - 1].y);
+                                        ctx.lineTo(theory.x, theory.y);
+                                        ctx.stroke();
+                                    }
+                                    
+                                    // Draw node
+                                    ctx.beginPath();
+                                    ctx.arc(theory.x, theory.y, theory.discovered ? 12 : 8, 0, Math.PI * 2);
+                                    
+                                    if (theory.discovered) {
+                                        if (theory.breakthrough) {
+                                            // Pulsing effect for breakthrough
+                                            const pulse = Math.sin(animationFrame * 0.05) * 0.3 + 0.7;
+                                            ctx.fillStyle = `rgba(76, 175, 80, ${pulse})`;
+                                            ctx.strokeStyle = '#4caf50';
+                                            ctx.lineWidth = 3;
+                                        } else {
+                                            const quality = 1 - theory.loss;
+                                            const r = Math.floor(255 * theory.loss);
+                                            const g = Math.floor(255 * quality);
+                                            ctx.fillStyle = `rgba(${r}, ${g}, 80, 0.7)`;
+                                            ctx.strokeStyle = `rgb(${r}, ${g}, 80)`;
+                                            ctx.lineWidth = 2;
+                                        }
+                                    } else {
+                                        ctx.fillStyle = 'rgba(189, 189, 189, 0.3)';
+                                        ctx.strokeStyle = '#bdbdbd';
+                                        ctx.lineWidth = 1;
+                                    }
+                                    
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    
+                                    // Draw label
+                                    if (theory.discovered) {
+                                        ctx.font = '11px Aeonik, sans-serif';
+                                        ctx.fillStyle = '#202124';
+                                        ctx.textAlign = 'center';
+                                        ctx.fillText(theory.name, theory.x, theory.y + 25);
+                                        
+                                        // Draw loss value
+                                        ctx.font = '10px monospace';
+                                        ctx.fillStyle = theory.breakthrough ? '#4caf50' : '#5f6368';
+                                        ctx.fillText(`Loss: ${theory.loss.toFixed(3)}`, theory.x, theory.y + 38);
+                                    }
+                                });
+                                
+                                // Title
+                                ctx.font = 'bold 14px Aeonik, sans-serif';
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Theory Discovery Space', 200, 400);
+                                ctx.textAlign = 'left';
+                            }
+                            
+                            function drawFlowParticles() {
+                                particles.forEach(particle => {
+                                    // Update position
+                                    particle.x += particle.vx;
+                                    particle.y += particle.vy;
+                                    
+                                    // Reset if out of bounds
+                                    if (particle.y > 380) {
+                                        particle.y = 180;
+                                        particle.x = 100 + Math.random() * 200;
+                                    }
+                                    
+                                    // Draw particle
+                                    ctx.beginPath();
+                                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                                    ctx.fillStyle = `rgba(66, 133, 244, ${particle.opacity})`;
+                                    ctx.fill();
+                                });
+                            }
+                            
+                            function drawStats() {
+                                // Draw stats box
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                                ctx.strokeStyle = '#dadce0';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.roundRect(280, 420, 120, 80, 5);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                const theoriesGenerated = Math.floor(discoveryPhase / 10);
+                                const breakthroughsFound = discoveryPhase > 100 ? 1 : 0;
+                                
+                                ctx.font = '12px Aeonik, sans-serif';
+                                ctx.fillStyle = '#202124';
+                                ctx.fillText('Theories: ' + theoriesGenerated, 290, 440);
+                                ctx.fillText('Tested: ' + theoriesGenerated, 290, 455);
+                                ctx.fillText('Promising: ' + Math.floor(theoriesGenerated / 20), 290, 470);
+                                ctx.fillStyle = '#4caf50';
+                                ctx.font = 'bold 12px Aeonik, sans-serif';
+                                ctx.fillText('Breakthroughs: ' + breakthroughsFound, 290, 490);
+                            }
+                            
+                            function animate() {
+                                if (isPaused) return;
+                                
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Draw components
+                                drawEinsteinNotes();
+                                drawFlowParticles();
+                                drawAIProcessor();
+                                drawTheorySpace();
+                                drawStats();
+                                
+                                // Update animation state
+                                animationFrame++;
+                                discoveryPhase = (discoveryPhase + 0.5) % 150;
+                                
+                                requestAnimationFrame(animate);
+                            }
+                            
+                            // Start animation
+                            animate();
+                        })();
+                    </script>
+                </section>
+
+                <!-- Section 2: The Computational Framework -->
+                <section class="section scroll-mt-20" id="framework">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        2. The Computational Framework: Physics as High-Throughput Science
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        <div class="space-y-6">
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                Traditional theoretical physics proceeds at the pace of human insight—months or years per theory. We've transformed this into a high-throughput computational science where hundreds of theories can be generated, tested, and validated per hour. Our framework treats physical theories not as abstract mathematics, but as executable models that make concrete predictions.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                Built entirely in <strong>PyTorch</strong>, the system leverages modern deep learning infrastructure for physics. Each theory is represented as a metric tensor function <span class="math-var">g<sub>μν</sub>(r, θ, φ, t; α<sub>i</sub>)</span> that generates spacetime geometry. We then simulate test particles orbiting black holes, computing full trajectories and extracting any physical observable.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                The framework computes fundamental quantities like energy, angular momentum, orbital precession, and 4-velocities. From these, we can evaluate theories using <strong>any metric</strong>: conservation laws, stability analysis, chaos indicators, quantum decoherence rates, or information-theoretic measures. The dual-baseline methodology tests against both pure gravity (Schwarzschild) and gravity plus electromagnetism (Reissner-Nordström).
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                <strong>Anyone can set up and replicate our results</strong> by running the open-source simulation at
+                                <a href="https://github.com/PimDeWitte/gravity-compression" class="text-physics-blue underline break-all" target="_blank" rel="noopener">github.com/PimDeWitte/gravity-compression</a>.
+                            </p>
+                        </div>
+                        
+                        <div class="lg:sticky lg:top-8">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6">
+                                <canvas id="generalFrameworkCanvas" class="w-full" width="420" height="500"></canvas>
+                                <p class="text-sm text-center text-physics-gray mt-4">General computational pipeline for testing ANY physical theory. Click to see the full capabilities.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- New general framework canvas -->
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('generalFrameworkCanvas');
+                            const ctx = canvas.getContext('2d');
+                            let animationFrame = 0;
+                            let isPaused = false;
+                            let dataFlowProgress = 0;
+                            let currentStage = 0;
+                            let selectedMetric = 0;
+                            
+                            // Pipeline stages
+                            const stages = [
+                                { name: 'Physical Theory', y: 30, color: '#1a73e8', icon: 'g_μν' },
+                                { name: 'Metric Tensor', y: 80, color: '#2196f3', icon: 'M' },
+                                { name: 'Geodesic Integration', y: 130, color: '#03a9f4', icon: '∫' },
+                                { name: 'Physical Observables', y: 180, color: '#00bcd4', icon: 'Obs' },
+                                { name: 'Evaluation Metrics', y: 280, color: '#4caf50', icon: '?' }
+                            ];
+                            
+                            // Physical observables computed
+                            const observables = [
+                                { name: 'Energy E', x: 60 },
+                                { name: 'Angular L', x: 140 },
+                                { name: 'Trajectory r(t)', x: 220 },
+                                { name: '4-velocity', x: 300 },
+                                { name: 'Torsion', x: 360 }
+                            ];
+                            
+                            // Possible evaluation metrics
+                            const metrics = [
+                                { name: 'Frequency Analysis (FFT)', desc: 'Compare orbital frequencies' },
+                                { name: 'Precession Rate', desc: 'Perihelion advance per orbit' },
+                                { name: 'Conservation Laws', desc: 'dE/dt, dL/dt violations' },
+                                { name: 'Lyapunov Exponents', desc: 'Chaos and stability' },
+                                { name: 'GW Emission', desc: 'Gravitational radiation' },
+                                { name: 'Quantum Decoherence', desc: 'Wavefunction collapse rate' },
+                                { name: 'Information Entropy', desc: 'S = -Σp log p' },
+                                { name: 'Horizon Structure', desc: 'Event horizon properties' },
+                                { name: 'Tidal Forces', desc: 'Spacetime curvature gradients' }
+                            ];
+                            
+                            canvas.addEventListener('click', () => {
+                                selectedMetric = (selectedMetric + 1) % metrics.length;
+                            });
+                            
+                            canvas.addEventListener('mousemove', (e) => {
+                                const rect = canvas.getBoundingClientRect();
+                                const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+                                const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+                                
+                                // Change cursor if over metrics area
+                                if (y >= 250 && y <= 350) {
+                                    canvas.style.cursor = 'pointer';
+                                } else {
+                                    canvas.style.cursor = 'default';
+                                }
+                            });
+                            
+                            function drawStage(stage, index) {
+                                const x = canvas.width / 2;
+                                const isActive = Math.floor(dataFlowProgress) === index;
+                                const isPast = dataFlowProgress > index;
+                                
+                                // Draw box
+                                ctx.fillStyle = isActive ? stage.color : (isPast ? stage.color + '40' : '#f8f9fa');
+                                ctx.strokeStyle = stage.color;
+                                ctx.lineWidth = isActive ? 3 : 1;
+                                
+                                const boxWidth = 200;
+                                const boxHeight = 35;
+                                
+                                ctx.beginPath();
+                                ctx.roundRect(x - boxWidth/2, stage.y - boxHeight/2, boxWidth, boxHeight, 5);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                // Draw icon
+                                ctx.fillStyle = isActive ? '#ffffff' : stage.color;
+                                ctx.font = 'bold 15px Georgia, serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(stage.icon, x - boxWidth/2 + 30, stage.y + 4);
+                                
+                                // Draw label
+                                ctx.fillStyle = isActive ? '#ffffff' : '#202124';
+                                ctx.font = '13px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(stage.name, x + 20, stage.y + 3);
+                                
+                                // Draw arrow to next stage
+                                if (index < stages.length - 1) {
+                                    const nextStage = stages[index + 1];
+                                    const arrowProgress = Math.max(0, Math.min(1, dataFlowProgress - index));
+                                    
+                                    if (arrowProgress > 0) {
+                                        const startY = stage.y + boxHeight/2;
+                                        const endY = nextStage.y - boxHeight/2;
+                                        const currentY = startY + (endY - startY) * arrowProgress;
+                                        
+                                        ctx.strokeStyle = stage.color;
+                                        ctx.lineWidth = 2;
+                                        ctx.beginPath();
+                                        ctx.moveTo(x, startY);
+                                        ctx.lineTo(x, currentY);
+                                        ctx.stroke();
+                                        
+                                        // Arrowhead
+                                        if (arrowProgress > 0.8) {
+                                            ctx.fillStyle = stage.color;
+                                            ctx.beginPath();
+                                            ctx.moveTo(x, currentY);
+                                            ctx.lineTo(x - 5, currentY - 8);
+                                            ctx.lineTo(x + 5, currentY - 8);
+                                            ctx.closePath();
+                                            ctx.fill();
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            function drawObservables() {
+                                if (dataFlowProgress >= 3) {
+                                    const y = 220;
+                                    const opacity = Math.min(1, (dataFlowProgress - 3) * 2);
+                                    ctx.globalAlpha = opacity;
+                                    
+                                    observables.forEach(obs => {
+                                        ctx.fillStyle = '#e8f5e9';
+                                        ctx.strokeStyle = '#4caf50';
+                                        ctx.lineWidth = 1;
+                                        ctx.beginPath();
+                                        ctx.roundRect(obs.x - 35, y - 15, 70, 30, 3);
+                                        ctx.fill();
+                                        ctx.stroke();
+                                        
+                                        ctx.fillStyle = '#2e7d32';
+                                        ctx.font = '11px Aeonik, -apple-system, sans-serif';
+                                        ctx.textAlign = 'center';
+                                        ctx.fillText(obs.name, obs.x, y + 3);
+                                    });
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            function drawMetrics() {
+                                if (dataFlowProgress >= 4) {
+                                    const baseY = 300;
+                                    const opacity = Math.min(1, (dataFlowProgress - 4) * 2);
+                                    ctx.globalAlpha = opacity;
+                                    
+                                    // Draw metrics box
+                                    ctx.fillStyle = '#fff3e0';
+                                    ctx.strokeStyle = '#ff9800';
+                                    ctx.lineWidth = 2;
+                                    ctx.beginPath();
+                                    ctx.roundRect(60, baseY - 20, 300, 100, 5);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    
+                                    // Title
+                                    ctx.fillStyle = '#e65100';
+                                    ctx.font = 'bold 13px Aeonik, -apple-system, sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('Evaluation Options:', 210, baseY);
+                                    
+                                    // Show current metric
+                                    const metric = metrics[selectedMetric];
+                                    ctx.fillStyle = '#f57c00';
+                                    ctx.font = 'bold 14px Aeonik, -apple-system, sans-serif';
+                                    ctx.fillText(metric.name, 210, baseY + 25);
+                                    
+                                    ctx.fillStyle = '#bf360c';
+                                    ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                    ctx.fillText(metric.desc, 210, baseY + 45);
+                                    
+                                    // Click hint
+                                    ctx.fillStyle = '#5f6368';
+                                    ctx.font = 'italic 11px Aeonik, -apple-system, sans-serif';
+                                    ctx.fillText('Click to see other metrics', 210, baseY + 65);
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            function drawDualBaseline() {
+                                if (dataFlowProgress >= 4.5) {
+                                    const y = 410;
+                                    const opacity = Math.min(1, (dataFlowProgress - 4.5) * 2);
+                                    ctx.globalAlpha = opacity;
+                                    
+                                    // Schwarzschild baseline
+                                    ctx.fillStyle = '#e3f2fd';
+                                    ctx.strokeStyle = '#1976d2';
+                                    ctx.lineWidth = 1;
+                                    ctx.beginPath();
+                                    ctx.roundRect(90, y - 15, 100, 30, 3);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    ctx.fillStyle = '#1976d2';
+                                    ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('vs Schwarzschild', 140, y + 3);
+                                    
+                                    // Reissner-Nordström baseline
+                                    ctx.fillStyle = '#fff3e0';
+                                    ctx.strokeStyle = '#f57c00';
+                                    ctx.beginPath();
+                                    ctx.roundRect(230, y - 15, 100, 30, 3);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    ctx.fillStyle = '#f57c00';
+                                    ctx.fillText('vs Reissner-N', 280, y + 3);
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            function animate() {
+                                if (isPaused) return;
+                                
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Draw stages
+                                stages.forEach((stage, index) => {
+                                    drawStage(stage, index);
+                                });
+                                
+                                // Draw observables
+                                drawObservables();
+                                
+                                // Draw metrics
+                                drawMetrics();
+                                
+                                // Draw dual baseline
+                                drawDualBaseline();
+                                
+                                // Update data flow
+                                dataFlowProgress += 0.02;
+                                if (dataFlowProgress > stages.length + 1) {
+                                    dataFlowProgress = 0;
+                                }
+                                
+                                animationFrame++;
+                                requestAnimationFrame(animate);
+                            }
+                            
+                            // Add roundRect polyfill for older browsers
+                            if (!ctx.roundRect) {
+                                ctx.roundRect = function(x, y, width, height, radius) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(x + radius, y);
+                                    ctx.lineTo(x + width - radius, y);
+                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                                    ctx.lineTo(x + width, y + height - radius);
+                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                                    ctx.lineTo(x + radius, y + height);
+                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                                    ctx.lineTo(x, y + radius);
+                                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                                    ctx.closePath();
+                                };
+                            }
+                            
+                            // Start animation
+                            animate();
+                        })();
+                    </script>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">2.1 What the Framework Actually Computes</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">📊 Physical Observables</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• <strong>Conserved Quantities:</strong> Energy E, Angular momentum L<sub>z</sub></li>
+                                <li>• <strong>Trajectories:</strong> Full spacetime paths r(τ), φ(τ), t(τ)</li>
+                                <li>• <strong>4-Velocities:</strong> u<sup>μ</sup> = dx<sup>μ</sup>/dτ components</li>
+                                <li>• <strong>Metric Components:</strong> g<sub>μν</sub> including torsion (g<sub>tφ</sub> ≠ 0)</li>
+                                <li>• <strong>Christoffel Symbols:</strong> Γ<sup>λ</sup><sub>μν</sub> via automatic differentiation</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">🔬 Evaluation Capabilities</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• <strong>Orbital Dynamics:</strong> Precession rates, perihelion advance</li>
+                                <li>• <strong>Stability Analysis:</strong> Lyapunov exponents, chaos indicators</li>
+                                <li>• <strong>Conservation Tests:</strong> dE/dt, dL/dt for violations</li>
+                                <li>• <strong>Quantum Effects:</strong> Decoherence rates, stochastic noise</li>
+                                <li>• <strong>Information Theory:</strong> Entropy, compression ratios</li>
+                                <li>• <strong>Extreme Regime:</strong> Horizon structure, ergosphere boundaries</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed">
+                        This generality means researchers can test theories against <strong>any physical criterion</strong>—not just one specific metric. Whether you're interested in quantum gravity effects, chaotic dynamics, or information-theoretic properties, the framework provides the computational infrastructure to explore it all.
+                    </p>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">2.2 Why This Changes Everything</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">🚀 Speed</h4>
+                            <p class="text-sm lg:text-base">
+                                Test hundreds of theories per hour instead of one per year. GPU acceleration enables exploration at unprecedented scale.
+                            </p>
+                        </div>
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">🤖 Intelligence</h4>
+                            <p class="text-sm lg:text-base">
+                                AI learns from each test, generating increasingly sophisticated theories based on what works and what doesn't.
+                            </p>
+                        </div>
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">✅ Flexibility</h4>
+                            <p class="text-sm lg:text-base">
+                                Evaluate theories using ANY metric: dynamics, stability, quantum effects, or custom criteria for your research.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 3: AI-Assisted Discovery Loop -->
+                <section class="section scroll-mt-20" id="ai-discovery">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        3. The AI-Assisted Discovery Loop
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <p class="text-base lg:text-lg leading-relaxed">
+                            The heart of our system is a self-improving discovery loop that combines AI creativity with rigorous physics validation. Here's how it works:
+                        </p>
+                        
+                        <div class="bg-blue-50 border-l-4 border-physics-blue p-6 rounded-r-lg">
+                            <ol class="list-decimal list-inside space-y-3 text-base lg:text-lg">
+                                <li><strong>Historical Context:</strong> We seed the AI with Einstein's final notes—non-symmetric metrics, torsion fields, and coupling constants.</li>
+                                <li><strong>Theory Generation:</strong> The AI (Grok-4) generates new Python classes implementing gravitational theories, inspired by both physics and modern deep learning architectures.</li>
+                                <li><strong>Simulation:</strong> Each theory is tested by simulating particle orbits around black holes for up to 5 million time steps.</li>
+                                <li><strong>Evaluation:</strong> We measure how well each theory matches known physics using Fourier analysis of orbital trajectories.</li>
+                                <li><strong>Learning:</strong> Results feed back to the AI, which learns what mathematical structures show promise.</li>
+                                <li><strong>Iteration:</strong> The cycle repeats indefinitely, exploring an ever-expanding space of possibilities.</li>
+                            </ol>
+                        </div>
+                        
+                        <p class="text-base lg:text-lg leading-relaxed">
+                            This isn't just automation—it's a new form of scientific discovery where human intuition guides AI exploration, and computational validation ensures rigor. In 24 hours, we can explore more theories than a human physicist could in a lifetime.
+                        </p>
+                        
+                        <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg">
+                            <p class="mb-0"><strong>📊 Deep Dive Available:</strong> For a comprehensive technical exploration of the AI discovery loop including system architecture, prompt evolution, and example outputs, see <a href="https://www.pimdewitte.com/gravity-compression/papers/003/ai_discovery_diagram.html" target="_blank" class="text-physics-blue hover:underline font-medium">The Discovery Loop Technical Details →</a></p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 4: Theories We Tested -->
+                <section class="section scroll-mt-20" id="tested-theories">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        4. Theories We Tested: From Einstein to AI
+                    </h2>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mb-8">
+                        Our framework has tested hundreds of theories across three categories:
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">Classical Extensions</h4>
+                            <ul class="text-sm lg:text-base space-y-1">
+                                <li>• PPN modifications</li>
+                                <li>• Variable G theories</li>
+                                <li>• Higher-order corrections</li>
+                                <li>• Yukawa potentials</li>
+                            </ul>
+                        </div>
+                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-purple-700 mb-3">Quantum-Inspired</h4>
+                            <ul class="text-sm lg:text-base space-y-1">
+                                <li>• Loop quantum corrections</li>
+                                <li>• Planck-scale modifications</li>
+                                <li>• Stochastic metrics</li>
+                                <li>• Information-theoretic models</li>
+                            </ul>
+                        </div>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-green-700 mb-3">Einstein's Legacy</h4>
+                            <ul class="text-sm lg:text-base space-y-1">
+                                <li>• Non-symmetric metrics</li>
+                                <li>• Torsion fields</li>
+                                <li>• Kaluza-Klein 5D</li>
+                                <li>• Teleparallel gravity</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed">
+                        Among all these approaches, one novel theory emerged as particularly promising: the idea that gravity might be understood as an information compression process. This wasn't in Einstein's toolkit, but represents the kind of creative leap that our AI-human collaboration enables.
+                    </p>
+                </section>
+
+                <!-- Section 5: Gravity as Compression (moved from introduction) -->
+                <section class="section scroll-mt-20" id="compression-hypothesis">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        5. One Promising Theory: Gravity as Information Compression
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        <div class="space-y-6">
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                Among the hundreds of theories tested, one stood out for its conceptual elegance and computational performance: the hypothesis that gravity is an emergent phenomenon rooted in information compression.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                This theory posits that physical laws are algorithms mapping high-dimensional quantum states onto low-dimensional classical spacetime. The universe acts as a vast compression engine, with gravity emerging as the process that maintains this dimensional reduction. Black holes exemplify this: an entire star's information compressed to just mass, charge, and spin.
+                            </p>
+                            <p class="text-base lg:text-lg leading-relaxed">
+                                We formalized this as the "Linear Signal Loss" model, which degrades gravitational information systematically. Remarkably, when we degrade the gravitational "signal," both gravity and electromagnetic effects degrade proportionally—suggesting they share a common information-theoretic substrate.
+                            </p>
+                        </div>
+                        
+                        <div class="lg:sticky lg:top-8">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6">
+                                <canvas id="compressionHypothesisCanvas" class="w-full" width="420" height="420"></canvas>
+                                <p class="text-sm text-center text-physics-gray mt-4">The Compression Hypothesis: Physical laws as information codecs. Click to animate.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Canvas script (same as before) -->
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('compressionHypothesisCanvas');
+                            const ctx = canvas.getContext('2d');
+                            let animationFrame = 0;
+                            let isPaused = false;
+                            let compressionProgress = 0;
+                            let waveOffset = 0;
+                            
+                            canvas.addEventListener('click', () => {
+                                isPaused = !isPaused;
+                                if (!isPaused) animate();
+                            });
+                            
+                            // Add roundRect polyfill
+                            if (!ctx.roundRect) {
+                                ctx.roundRect = function(x, y, width, height, radius) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(x + radius, y);
+                                    ctx.lineTo(x + width - radius, y);
+                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                                    ctx.lineTo(x + width, y + height - radius);
+                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                                    ctx.lineTo(x + radius, y + height);
+                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                                    ctx.lineTo(x, y + radius);
+                                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                                    ctx.closePath();
+                                };
+                            }
+                            
+                            function drawQuantumState(x, y, size) {
+                                // Draw complex quantum wavefunction
+                                ctx.save();
+                                ctx.translate(x, y);
+                                
+                                // Background circle
+                                ctx.fillStyle = '#e8eaf6';
+                                ctx.beginPath();
+                                ctx.arc(0, 0, size, 0, Math.PI * 2);
+                                ctx.fill();
+                                
+                                // Quantum waves
+                                ctx.strokeStyle = '#3f51b5';
+                                ctx.lineWidth = 1.5;
+                                for (let i = 0; i < 5; i++) {
+                                    ctx.beginPath();
+                                    for (let angle = 0; angle < Math.PI * 2; angle += 0.1) {
+                                        const r = size * 0.5 + 10 * Math.sin(angle * 3 + waveOffset + i);
+                                        const x = r * Math.cos(angle);
+                                        const y = r * Math.sin(angle);
+                                        if (angle === 0) ctx.moveTo(x, y);
+                                        else ctx.lineTo(x, y);
+                                    }
+                                    ctx.closePath();
+                                    ctx.globalAlpha = 0.3 - i * 0.05;
+                                    ctx.stroke();
+                                }
+                                ctx.globalAlpha = 1;
+                                
+                                // Label
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.font = 'bold 15px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Quantum State', 0, size + 25);
+                                ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                ctx.fillStyle = '#5f6368';
+                                ctx.fillText('(High-dimensional)', 0, size + 40);
+                                
+                                ctx.restore();
+                            }
+                            
+                            function drawClassicalSpacetime(x, y, size) {
+                                ctx.save();
+                                ctx.translate(x, y);
+                                
+                                // Draw grid representing spacetime
+                                ctx.strokeStyle = '#757575';
+                                ctx.lineWidth = 1;
+                                const gridSize = 15;
+                                const halfSize = size;
+                                
+                                // Grid lines
+                                for (let i = -halfSize; i <= halfSize; i += gridSize) {
+                                    // Curved grid to show spacetime curvature
+                                    ctx.beginPath();
+                                    for (let j = -halfSize; j <= halfSize; j += 5) {
+                                        const curvature = 20 * Math.exp(-((i*i + j*j) / (halfSize*halfSize)));
+                                        if (j === -halfSize) ctx.moveTo(j, i - curvature);
+                                        else ctx.lineTo(j, i - curvature);
+                                    }
+                                    ctx.stroke();
+                                    
+                                    ctx.beginPath();
+                                    for (let j = -halfSize; j <= halfSize; j += 5) {
+                                        const curvature = 20 * Math.exp(-((i*i + j*j) / (halfSize*halfSize)));
+                                        if (j === -halfSize) ctx.moveTo(i, j - curvature);
+                                        else ctx.lineTo(i, j - curvature);
+                                    }
+                                    ctx.stroke();
+                                }
+                                
+                                // Central mass
+                                const gradient = ctx.createRadialGradient(0, -10, 0, 0, -10, 30);
+                                gradient.addColorStop(0, '#37474f');
+                                gradient.addColorStop(1, '#90a4ae');
+                                ctx.fillStyle = gradient;
+                                ctx.beginPath();
+                                ctx.arc(0, -10, 15, 0, Math.PI * 2);
+                                ctx.fill();
+                                
+                                // Label
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.font = 'bold 15px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Classical Spacetime', 0, size + 25);
+                                ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                ctx.fillStyle = '#5f6368';
+                                ctx.fillText('(4D Observable)', 0, size + 40);
+                                
+                                ctx.restore();
+                            }
+                            
+                            function drawCompressionArrow(x1, y1, x2, y2, progress) {
+                                const dx = x2 - x1;
+                                const dy = y2 - y1;
+                                const angle = Math.atan2(dy, dx);
+                                
+                                // Draw wavy arrow representing compression
+                                ctx.save();
+                                ctx.strokeStyle = '#4caf50';
+                                ctx.lineWidth = 3;
+                                ctx.setLineDash([5, 5]);
+                                ctx.lineDashOffset = -animationFrame * 0.5;
+                                
+                                ctx.beginPath();
+                                for (let t = 0; t <= progress; t += 0.02) {
+                                    const x = x1 + dx * t;
+                                    const y = y1 + dy * t + 10 * Math.sin(t * 10 + waveOffset);
+                                    if (t === 0) ctx.moveTo(x, y);
+                                    else ctx.lineTo(x, y);
+                                }
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                                
+                                // Arrowhead
+                                if (progress > 0.9) {
+                                    const endX = x1 + dx * progress;
+                                    const endY = y1 + dy * progress;
+                                    ctx.translate(endX, endY);
+                                    ctx.rotate(angle);
+                                    ctx.fillStyle = '#4caf50';
+                                    ctx.beginPath();
+                                    ctx.moveTo(0, 0);
+                                    ctx.lineTo(-15, -8);
+                                    ctx.lineTo(-15, 8);
+                                    ctx.closePath();
+                                    ctx.fill();
+                                }
+                                ctx.restore();
+                                
+                                // Label
+                                const midX = x1 + dx * 0.5;
+                                const midY = y1 + dy * 0.5 - 20;
+                                ctx.fillStyle = '#2e7d32';
+                                ctx.font = 'bold 13px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('GRAVITY', midX, midY);
+                                ctx.font = '11px Aeonik, -apple-system, sans-serif';
+                                ctx.fillText('(Compression)', midX, midY + 12);
+                            }
+                            
+                            function drawTheoryBox(x, y) {
+                                // Draw theory evaluation box
+                                ctx.fillStyle = '#fff3e0';
+                                ctx.strokeStyle = '#f57c00';
+                                ctx.lineWidth = 2;
+                                ctx.beginPath();
+                                ctx.roundRect(x - 60, y - 25, 120, 50, 5);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                ctx.fillStyle = '#e65100';
+                                ctx.font = 'bold 13px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Theory g_μν', x, y);
+                                ctx.font = '11px Aeonik, -apple-system, sans-serif';
+                                ctx.fillText('Decoder', x, y + 12);
+                            }
+                            
+                            function drawLossIndicator(x, y, loss) {
+                                // Draw loss meter
+                                const width = 100;
+                                const height = 20;
+                                
+                                ctx.fillStyle = '#f5f5f5';
+                                ctx.strokeStyle = '#9e9e9e';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.roundRect(x - width/2, y - height/2, width, height, 3);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                // Fill based on loss
+                                const fillWidth = width * (1 - loss);
+                                const color = loss < 0.1 ? '#4caf50' : loss < 0.5 ? '#ff9800' : '#f44336';
+                                ctx.fillStyle = color;
+                                ctx.beginPath();
+                                ctx.roundRect(x - width/2, y - height/2, fillWidth, height, 3);
+                                ctx.fill();
+                                
+                                // Label
+                                ctx.fillStyle = '#202124';
+                                ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Decoding Loss', x, y + 25);
+                            }
+                            
+                            function animate() {
+                                if (isPaused) return;
+                                
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Title
+                                ctx.fillStyle = '#1a0dab';
+                                ctx.font = 'bold 18px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('The Compression Hypothesis', canvas.width / 2, 30);
+                                
+                                // Update animation states
+                                waveOffset += 0.05;
+                                compressionProgress = (Math.sin(animationFrame * 0.02) + 1) * 0.5;
+                                
+                                // Draw components
+                                drawQuantumState(100, 100, 50);
+                                drawClassicalSpacetime(280, 100, 50);
+                                drawCompressionArrow(150, 100, 230, 100, compressionProgress);
+                                
+                                // Draw theory evaluation
+                                drawTheoryBox(190, 220);
+                                
+                                // Draw loss indicator
+                                const loss = 0.1 + 0.4 * (1 - compressionProgress);
+                                drawLossIndicator(190, 280, loss);
+                                
+                                // Information text
+                                ctx.fillStyle = '#5f6368';
+                                ctx.font = '11px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Physical laws = Information codecs', canvas.width / 2, 365);
+                                ctx.fillText('Better theory = Lower decoding loss', canvas.width / 2, 380);
+                                
+                                animationFrame++;
+                                requestAnimationFrame(animate);
+                            }
+                            
+                            // Start animation
+                            animate();
+                        })();
+                    </script>
+                    
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">5.1 How We Test the Compression Hypothesis</h3>
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        For this specific theory, we developed a specialized evaluation methodology using <strong>information loss</strong> as the key metric. The idea: if gravity is compression, then theories can be evaluated by how well they preserve information when "decoding" particle trajectories.
+                    </p>
+                    
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 lg:p-6 mb-8">
+                        <canvas id="compressionPipelineCanvas" class="w-full" width="420" height="500"></canvas>
+                        <p class="text-sm text-center text-physics-gray mt-4">Computational pipeline for testing compression theories using FFT loss. Click to see data flow.</p>
+                    </div>
+                    
+                    <!-- Original computational framework canvas adapted for compression -->
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('compressionPipelineCanvas');
+                            const ctx = canvas.getContext('2d');
+                            let animationFrame = 0;
+                            let isPaused = false;
+                            let dataFlowProgress = 0;
+                            let currentStage = 0;
+                            
+                            // Pipeline stages
+                            const stages = [
+                                { name: 'Compression Theory', y: 30, color: '#1a73e8', icon: 'g_μν' },
+                                { name: 'Metric Tensor', y: 80, color: '#2196f3', icon: 'M' },
+                                { name: 'Christoffel Symbols', y: 130, color: '#03a9f4', icon: 'Γ' },
+                                { name: 'Geodesic Integration', y: 180, color: '#00bcd4', icon: '∫' },
+                                { name: 'Trajectory r(t)', y: 230, color: '#009688', icon: 'r(t)' },
+                                { name: 'Fourier Transform', y: 280, color: '#4caf50', icon: 'FFT' },
+                                { name: 'Dual Baseline', y: 330, color: '#ff9800', icon: '⟷' },
+                                { name: 'Loss Computation', y: 380, color: '#f44336', icon: 'L' }
+                            ];
+                            
+                            // Validation tiers
+                            const tiers = [
+                                { name: 'TEST\n1K steps', x: 50, color: '#fdd835' },
+                                { name: 'VALIDATION\n100K steps', x: 190, color: '#ff9800' },
+                                { name: 'FINAL\n5M steps', x: 330, color: '#f44336' }
+                            ];
+                            
+                            canvas.addEventListener('click', () => {
+                                isPaused = !isPaused;
+                                if (!isPaused) animate();
+                            });
+                            
+                            function drawStage(stage, index) {
+                                const x = canvas.width / 2;
+                                const isActive = Math.floor(dataFlowProgress) === index;
+                                const isPast = dataFlowProgress > index;
+                                
+                                // Draw box
+                                ctx.fillStyle = isActive ? stage.color : (isPast ? stage.color + '40' : '#f8f9fa');
+                                ctx.strokeStyle = stage.color;
+                                ctx.lineWidth = isActive ? 3 : 1;
+                                
+                                const boxWidth = 200;
+                                const boxHeight = 35;
+                                
+                                ctx.beginPath();
+                                ctx.roundRect(x - boxWidth/2, stage.y - boxHeight/2, boxWidth, boxHeight, 5);
+                                ctx.fill();
+                                ctx.stroke();
+                                
+                                // Draw icon
+                                ctx.fillStyle = isActive ? '#ffffff' : stage.color;
+                                ctx.font = 'bold 15px Georgia, serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(stage.icon, x - boxWidth/2 + 30, stage.y + 4);
+                                
+                                // Draw label
+                                ctx.fillStyle = isActive ? '#ffffff' : '#202124';
+                                ctx.font = '13px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(stage.name, x + 20, stage.y + 3);
+                                
+                                // Draw arrow to next stage
+                                if (index < stages.length - 1) {
+                                    const nextStage = stages[index + 1];
+                                    const arrowProgress = Math.max(0, Math.min(1, dataFlowProgress - index));
+                                    
+                                    if (arrowProgress > 0) {
+                                        const startY = stage.y + boxHeight/2;
+                                        const endY = nextStage.y - boxHeight/2;
+                                        const currentY = startY + (endY - startY) * arrowProgress;
+                                        
+                                        ctx.strokeStyle = stage.color;
+                                        ctx.lineWidth = 2;
+                                        ctx.beginPath();
+                                        ctx.moveTo(x, startY);
+                                        ctx.lineTo(x, currentY);
+                                        ctx.stroke();
+                                        
+                                        // Arrowhead
+                                        if (arrowProgress > 0.8) {
+                                            ctx.fillStyle = stage.color;
+                                            ctx.beginPath();
+                                            ctx.moveTo(x, currentY);
+                                            ctx.lineTo(x - 5, currentY - 8);
+                                            ctx.lineTo(x + 5, currentY - 8);
+                                            ctx.closePath();
+                                            ctx.fill();
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            function drawDualBaseline() {
+                                const baselineY = stages[6].y;
+                                const x = canvas.width / 2;
+                                const isActive = Math.floor(dataFlowProgress) === 6;
+                                
+                                if (dataFlowProgress >= 6) {
+                                    // Draw baseline boxes
+                                    const baselineWidth = 85;
+                                    const spacing = 65;
+                                    
+                                    // Schwarzschild baseline
+                                    ctx.fillStyle = isActive ? '#e3f2fd' : '#f8f9fa';
+                                    ctx.strokeStyle = '#1976d2';
+                                    ctx.lineWidth = 1;
+                                    ctx.beginPath();
+                                    ctx.roundRect(x - spacing - baselineWidth, baselineY - 15, baselineWidth, 30, 3);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    ctx.fillStyle = '#1976d2';
+                                    ctx.font = '11px Aeonik, -apple-system, sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('Schwarzschild', x - spacing - baselineWidth/2, baselineY + 3);
+                                    
+                                    // Reissner-Nordström baseline
+                                    ctx.fillStyle = isActive ? '#fff3e0' : '#f8f9fa';
+                                    ctx.strokeStyle = '#f57c00';
+                                    ctx.beginPath();
+                                    ctx.roundRect(x + spacing, baselineY - 15, baselineWidth, 30, 3);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    ctx.fillStyle = '#f57c00';
+                                    ctx.fillText('Reissner-N', x + spacing + baselineWidth/2, baselineY + 3);
+                                }
+                            }
+                            
+                            function drawValidationTiers() {
+                                const tierY = 415;
+                                
+                                ctx.fillStyle = '#5f6368';
+                                ctx.font = '12px Aeonik, -apple-system, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Validation Tiers:', canvas.width / 2, tierY);
+                                
+                                tiers.forEach(tier => {
+                                    const isActive = dataFlowProgress >= stages.length - 1;
+                                    
+                                    ctx.fillStyle = isActive ? tier.color + '20' : '#f8f9fa';
+                                    ctx.strokeStyle = tier.color;
+                                    ctx.lineWidth = 1;
+                                    ctx.beginPath();
+                                    ctx.roundRect(tier.x - 30, tierY + 8, 60, 32, 3);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                    
+                                    ctx.fillStyle = tier.color;
+                                    ctx.font = '10px Aeonik, -apple-system, sans-serif';
+                                    const lines = tier.name.split('\n');
+                                    lines.forEach((line, i) => {
+                                        ctx.fillText(line, tier.x, tierY + 20 + i * 11);
+                                    });
+                                });
+                            }
+                            
+                            function animate() {
+                                if (isPaused) return;
+                                
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Draw stages
+                                stages.forEach((stage, index) => {
+                                    drawStage(stage, index);
+                                });
+                                
+                                // Draw dual baseline comparison
+                                drawDualBaseline();
+                                
+                                // Draw validation tiers at bottom
+                                drawValidationTiers();
+                                
+                                // Update data flow
+                                dataFlowProgress += 0.02;
+                                if (dataFlowProgress > stages.length) {
+                                    dataFlowProgress = 0;
+                                }
+                                
+                                animationFrame++;
+                                requestAnimationFrame(animate);
+                            }
+                            
+                            // Add roundRect polyfill for older browsers
+                            if (!ctx.roundRect) {
+                                ctx.roundRect = function(x, y, width, height, radius) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(x + radius, y);
+                                    ctx.lineTo(x + width - radius, y);
+                                    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                                    ctx.lineTo(x + width, y + height - radius);
+                                    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                                    ctx.lineTo(x + radius, y + height);
+                                    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                                    ctx.lineTo(x, y + radius);
+                                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                                    ctx.closePath();
+                                };
+                            }
+                            
+                            // Start animation
+                            animate();
+                        })();
+                    </script>
+                    
+                    <div class="bg-blue-50 border-l-4 border-physics-blue p-6 rounded-r-lg">
+                        <h4 class="text-lg font-semibold text-physics-blue mb-3">The FFT Loss Metric</h4>
+                        <p class="text-sm lg:text-base mb-3">
+                            We use Fourier Transform analysis to compare the frequency spectra of orbital trajectories. This captures subtle differences in precession rates and periodic effects that simple position comparisons would miss.
+                        </p>
+                        <div class="formula-display">
+                            L<sub>FFT</sub> = ||FFT(r<sup>candidate</sup>(t)) - FFT(r<sup>truth</sup>(t))||²
+                        </div>
+                        <p class="text-sm lg:text-base">
+                            A theory with lower "loss" better preserves the information content of gravitational dynamics—supporting the compression hypothesis.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Section 6: Promising Candidates -->
+                <section class="section scroll-mt-20" id="promising-candidates">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        6. Promising Candidates for Unification
+                    </h2>
+                    <p class="text-base lg:text-lg leading-relaxed mb-8">
+                        Our dual-baseline methodology revealed several theories that demonstrate exceptional promise for unifying gravity and electromagnetism. These candidates maintain low loss values against both baselines, indicating potential unified structures.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <!-- Linear Signal Loss (γ=+0.75) -->
+                        <div class="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-physics-blue">Linear Signal Loss (γ=+0.75)</h3>
+                            </div>
+                            <div class="flex gap-2 p-4 bg-gray-50 justify-center">
+                                <a href="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+0_75/plot.png" target="_blank" class="w-1/2">
+                                    <img src="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+0_75/plot.png" 
+                                         alt="Trajectory" 
+                                         class="w-full h-auto rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+                                </a>
+                                <a href="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+0_75/metric_plot.png" target="_blank" class="w-1/2">
+                                    <img src="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+0_75/metric_plot.png" 
+                                         alt="Metric" 
+                                         class="w-full h-auto rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+                                </a>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <p class="text-sm font-medium text-physics-blue">
+                                    Performance: Loss_GR: 0.153, Loss_RN: 0.161
+                                </p>
+                                <div class="bg-blue-50 p-3 rounded-lg">
+                                    <p class="text-sm font-mono text-center">
+                                        <span class="math-var">m = (1 - γ (r_s / r)) × (1 - r_s / r)</span>
+                                    </p>
+                                </div>
+                                <p class="text-sm text-physics-gray italic">
+                                    Balanced losses suggest unification through information degradation.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Linear Signal Loss (γ=+1.00) -->
+                        <div class="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-physics-blue">Linear Signal Loss (γ=+1.00)</h3>
+                            </div>
+                            <div class="flex gap-2 p-4 bg-gray-50 justify-center">
+                                <a href="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+1_00/plot.png" target="_blank" class="w-1/2">
+                                    <img src="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+1_00/plot.png" 
+                                         alt="Trajectory" 
+                                         class="w-full h-auto rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+                                </a>
+                                <a href="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+1_00/metric_plot.png" target="_blank" class="w-1/2">
+                                    <img src="../../runs/20250710_193244/classical_predefined/promising/20250710_193246_Linear_Signal_Loss_γ_+1_00/metric_plot.png" 
+                                         alt="Metric" 
+                                         class="w-full h-auto rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+                                </a>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <p class="text-sm font-medium text-physics-blue">
+                                    Performance: Loss_GR: 0.133, Loss_RN: 0.133
+                                </p>
+                                <div class="bg-blue-50 p-3 rounded-lg">
+                                    <p class="text-sm font-mono text-center">
+                                        <span class="math-var">m = (1 - γ (r_s / r)) × (1 - r_s / r)</span>
+                                    </p>
+                                </div>
+                                <p class="text-sm text-physics-gray italic">
+                                    Perfect balance at full degradation indicates robust unification.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Other candidates... (kept but abbreviated for space) -->
+                        
+                        <!-- AI-Generated Theory Example -->
+                        <div class="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                            <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-purple-700">AI: Asymmetric Torsion Theory</h3>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <p class="text-sm font-medium text-purple-700">
+                                    Generated by Grok-4 after analyzing Einstein's notes
+                                </p>
+                                <div class="bg-purple-50 p-3 rounded-lg">
+                                    <p class="text-sm font-mono text-center">
+                                        <span class="math-var">g_tφ = α(r_s/r)² sin²θ</span>
+                                    </p>
+                                </div>
+                                <p class="text-sm text-physics-gray italic">
+                                    Non-symmetric metric inspired by Einstein's final calculations, showing how AI extends historical insights.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Interactive Visualization Section (kept as is) -->
+                <section class="section scroll-mt-20" id="interactive-viz">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        7. Interactive Visualization System
+                    </h2>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        To facilitate deeper exploration and understanding of the generated theories, we have developed an interactive, browser-based 3D visualization system. This tool allows researchers to simulate particle trajectories in real-time under different metrics, adjust parameters on-the-fly, and observe quantum-like effects, all powered by WebGL for GPU acceleration.
+                    </p>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-8 mb-4">Key Features</h3>
+                    <ul class="list-disc list-inside space-y-3 text-base lg:text-lg mb-8">
+                        <li><strong>Real-time Trajectory Simulation:</strong> Visualize multiple particles orbiting a central black hole with dynamic trails showing paths.</li>
+                        <li><strong>Parameter Adjustment:</strong> Interactive sliders for theory parameters (e.g., α, γ) and quantum variables (e.g., noise strength for stochastic fluctuations).</li>
+                        <li><strong>Quantum Effects:</strong> Simulate energy-based tests with random perturbations to velocities, colored by kinetic energy.</li>
+                        <li><strong>Accessibility:</strong> Runs entirely in the browser—no installation required. Supports desktop and mobile devices.</li>
+                    </ul>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-8 mb-4">How It Works</h3>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        For each evaluated theory, an interactive <code>viz.html</code> file is automatically generated in the theory's run directory. This file loads the central visualization engine and embeds the theory's metric function converted to JavaScript.
+                    </p>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        An example visualization for the 'Linear Signal Loss (γ=+1.00)' theory is available at: <a href="../../../viz/example_viz.html" target="_blank" class="text-physics-blue hover:underline font-medium">viz/example_viz.html</a>. Open it in a browser to interact with the simulation.
+                    </p>
+
+                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-r-lg mb-6">
+                        <p class="mb-0"><strong>📊 Getting Started:</strong> See the project README.md for detailed instructions on generating and using these visualizations. The source code is in <code>viz/visualization_enhanced.js</code>.</p>
+                    </div>
+                </section>
+
+                <!-- Black Hole Visualization (kept as is) -->
+                <section class="section scroll-mt-20" id="black-hole-visualization">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        8. Interactive Black Hole Demonstration
+                    </h2>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        To provide an intuitive understanding of how information compression manifests near extreme gravitational fields, we've developed an interactive 3D visualization of a black hole. This demonstration shows how reality's information compression intensifies as you approach the event horizon.
+                    </p>
+
+                    <div class="bg-blue-50 border-l-4 border-physics-blue p-6 rounded-r-lg mb-8">
+                        <h3 class="text-lg font-semibold text-physics-blue mb-3">Key Features of the Visualization:</h3>
+                        <ul class="list-disc list-inside space-y-2 text-sm lg:text-base">
+                            <li><strong>Dynamic Distance Indicator:</strong> Shows your position in Schwarzschild radii (Rs) with real-time explanations</li>
+                            <li><strong>Interactive Elements:</strong> Click on glowing indicators to explore particle, time, gravity, and space behavior</li>
+                            <li><strong>Event Horizon Approach:</strong> Navigate to where 3D visualization fails—demonstrating ultimate compression</li>
+                            <li><strong>Visual Effects:</strong> Experience increasing distortion as information compression intensifies</li>
+                        </ul>
+                    </div>
+
+                    <div class="relative w-full" style="padding-bottom: 75%; height: 0; min-height: 700px;">
+                        <iframe 
+                            src="interactive_black_hole.html" 
+                            class="absolute top-0 left-0 w-full h-full border-2 border-gray-300 rounded-lg shadow-lg"
+                            style="min-height: 700px;"
+                            allow="fullscreen"
+                            title="Interactive Black Hole Compression Demonstration">
+                        </iframe>
+                    </div>
+                    
+                    <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-physics-dark mb-3">Navigation Instructions:</h3>
+                        <ul class="list-disc list-inside space-y-2 text-sm lg:text-base">
+                            <li><strong>Rotate:</strong> Click and drag to orbit around the black hole</li>
+                            <li><strong>Zoom:</strong> Scroll to approach or retreat from the event horizon</li>
+                            <li><strong>Explore:</strong> Click interactive elements for detailed physics explanations</li>
+                        </ul>
+                    </div>
+
+                    <p class="text-base lg:text-lg leading-relaxed mt-6">
+                        For the full immersive experience, <a href="interactive_black_hole.html" target="_blank" class="text-physics-blue hover:underline font-medium">open the visualization in a new tab</a>.
+                    </p>
+                </section>
+
+                <!-- Contributing Section (kept as is) -->
+                <section class="section scroll-mt-20 no-print" id="appendix-e">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        9. Contributing to the Project
+                    </h2>
+                    
+                    <div class="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-r-lg mb-8 flex items-center gap-6">
+                        <div>
+                            <svg class="w-10 h-10 text-blue-500 inline-block mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-semibold text-blue-800 mb-1 flex items-center gap-2">
+                                <a href="https://github.com/pimdewitte/gravity-compression/" target="_blank" rel="noopener" class="inline-block text-physics-blue hover:underline font-medium">
+                                    <svg class="w-5 h-5 inline-block" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.75.41-1.27.74-1.56-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .98-.31 3.2 1.18a11.1 11.1 0 0 1 2.92-.39c.99.01 1.99.13 2.92.39 2.22-1.49 3.2-1.18 3.2-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.41-5.27 5.7.42.36.79 1.09.79 2.2 0 1.59-.01 2.87-.01 3.26 0 .31.21.68.8.56C20.71 21.39 24 17.08 24 12c0-6.27-5.23-11.5-12-11.5z"/>
+                                    </svg>
+                                </a>
+                            </h4>
+                            <p class="text-sm text-blue-700">
+                                The Gravity Compression codebase is <a href="https://github.com/pimdewitte/gravity-compression/" target="_blank" rel="noopener" class="text-physics-blue hover:underline font-medium">available on GitHub</a>.<br>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">🔬 Theory Development</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• Propose new metric modifications</li>
+                                <li>• Implement theories from literature</li>
+                                <li>• Explore parameter spaces</li>
+                                <li>• Validate physical constraints</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">💻 Code Improvements</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• Optimize geodesic integration</li>
+                                <li>• Add new loss metrics</li>
+                                <li>• Improve caching system</li>
+                                <li>• Enhance visualization tools</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">🤖 AI Enhancement</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• Refine discovery prompts</li>
+                                <li>• Add new LLM integrations</li>
+                                <li>• Improve theory validation</li>
+                                <li>• Develop learning algorithms</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-semibold text-physics-blue mb-3">📚 Documentation</h4>
+                            <ul class="text-sm lg:text-base space-y-2">
+                                <li>• Write tutorials</li>
+                                <li>• Document discoveries</li>
+                                <li>• Create visualizations</li>
+                                <li>• Translate content</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Experimental Validation (kept as is) -->
+                <section class="section scroll-mt-20" id="experimental-validation">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        10. Proposed Experimental Validation
+                    </h2>
+                    
+                    <p class="text-base lg:text-lg leading-relaxed mb-6">
+                        While our computational framework can test millions of theories, real validation requires comparison with astronomical observations. We propose the following experimental tests:
+                    </p>
+                    
+                    <div class="responsive-table">
+                        <table class="w-full border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Test ID</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Scientific goal</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Primary datasets</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-physics-blue border-b">Pass / fail criterion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">S-1</td>
+                                    <td class="px-4 py-3 border-b">Validate PPN-γ parameter in Linear Signal Loss vs Cassini data</td>
+                                    <td class="px-4 py-3 border-b">Cassini radio science</td>
+                                    <td class="px-4 py-3 border-b">|γ-1| < 10^{-5} and balanced GR/RN residuals</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">P-1</td>
+                                    <td class="px-4 py-3 border-b">Test post-Keplerian parameters in binary pulsar timing</td>
+                                    <td class="px-4 py-3 border-b">Hulse-Taylor pulsar</td>
+                                    <td class="px-4 py-3 border-b">Energy loss within 0.1% of GR; loss ratio GR/RN >0.9</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 border-b font-medium">P-5</td>
+                                    <td class="px-4 py-3 border-b">Analyze GW ringdown for information loss signatures</td>
+                                    <td class="px-4 py-3 border-b">LIGO O3 events</td>
+                                    <td class="px-4 py-3 border-b">Evidence for γ>0 at >3σ; consistent across events</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Conclusion -->
+                <section class="section scroll-mt-20" id="conclusion">
+                    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-physics-blue mb-8 pb-4 border-b-2 border-gray-200">
+                        11. Conclusion: A New Era of Physics Research
+                    </h2>
+                    
+                    <div class="space-y-6 text-base lg:text-lg leading-relaxed">
+                        <p>
+                            We have demonstrated that computational power and AI can transform theoretical physics from a field limited by human insight to one accelerated by machine exploration. Our framework doesn't replace physicists—it amplifies their capabilities by orders of magnitude.
+                        </p>
+                        
+                        <p>
+                            The discovery of promising unification candidates like Linear Signal Loss shows the potential of this approach. But more importantly, we've established a new paradigm: self-improving physics research where every theory tested makes the system smarter, and centuries of exploration can happen in days.
+                        </p>
+                        
+                        <p>
+                            Einstein spent 30 years searching for a unified field theory with paper and pencil. With modern computation, we can explore more possibilities in a weekend than he could in a lifetime. This isn't just about speed—it's about expanding the frontier of what's possible in fundamental physics.
+                        </p>
+                        
+                        <div class="bg-blue-50 border-l-4 border-physics-blue p-6 rounded-r-lg mt-8">
+                            <p class="font-semibold text-physics-blue mb-2">The Future</p>
+                            <p>
+                                As AI systems become more sophisticated and computational power grows, this framework will only become more powerful. We envision a future where theoretical physics progresses not through rare flashes of genius, but through systematic computational exploration guided by human insight—completing Einstein's quest not through a single breakthrough, but through the relentless march of silicon and algorithms.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+                
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts (kept as is) -->
+    <script>
+        // Mobile menu functionality
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileMenuClose = document.getElementById('mobile-menu-close');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        if (mobileMenuToggle) {
+            mobileMenuToggle.addEventListener('click', () => {
+                mobileMenu.classList.remove('translate-x-full');
+            });
+        }
+        
+        if (mobileMenuClose) {
+            mobileMenuClose.addEventListener('click', () => {
+                mobileMenu.classList.add('translate-x-full');
+            });
+        }
+        
+        // Close mobile menu when clicking a link
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('translate-x-full');
+            });
+        });
+        
+        // Smooth scroll offset for fixed header
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const offset = window.innerWidth < 1024 ? 80 : 20; // Different offset for mobile vs desktop
+                    const targetPosition = target.offsetTop - offset;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // Active section highlighting in navigation
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('nav a[href^="#"]');
+        
+        function highlightActiveSection() {
+            const scrollY = window.pageYOffset;
+            
+            sections.forEach(section => {
+                const sectionHeight = section.offsetHeight;
+                const sectionTop = section.offsetTop - 100;
+                const sectionId = section.getAttribute('id');
+                
+                if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('bg-blue-100', 'text-physics-blue', 'font-medium');
+                        if (link.getAttribute('href') === `#${sectionId}`) {
+                            link.classList.add('bg-blue-100', 'text-physics-blue', 'font-medium');
+                        }
+                    });
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', highlightActiveSection);
+        highlightActiveSection(); // Initial check
+        
+        // Responsive table wrapper
+        document.querySelectorAll('table').forEach(table => {
+            if (!table.closest('.responsive-table')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'responsive-table overflow-x-auto';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
+                table.className = 'min-w-full border-collapse text-sm lg:text-base';
+            }
+        });
+    </script>
+</body>
+</html>
+</html>
