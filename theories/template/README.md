@@ -28,7 +28,7 @@ This is a template directory for creating new gravitational theories.
            return -m, 1/m, r**2, torch.zeros_like(r)
    ```
 
-3. **Add theoretical grounding** in `grounding/`:
+3. **Add theoretical baselines** in `baselines/`:
    - Mathematical derivations
    - Physical motivations
    - References to papers
@@ -41,7 +41,7 @@ This is a template directory for creating new gravitational theories.
 ## Directory Structure
 
 - **source/**: Your theory implementation (required)
-- **grounding/**: Theoretical foundations and derivations
+- **baselines/**: Theoretical foundations and derivations
 - **validations/**: Custom validation tests (optional, defaults are run automatically)
 - **papers/**: Related research and publications
 - **results/**: Simulation outputs (created automatically)
@@ -53,7 +53,7 @@ This is a template directory for creating new gravitational theories.
 1. Your theory is automatically compared against:
    - Schwarzschild (GR) - pure gravity baseline
    - Reissner-Nordström - gravity + electromagnetism baseline
-   - Any grounding theories in your theory's directory
+   - Any baseline theories in your theory's directory
 
 2. Standard validations are run:
    - PSR B1913+16 pulsar timing

@@ -62,8 +62,9 @@ class PulsarTimingValidation(ObservationalValidation):
         
         # Run simulation
         try:
+            # Pass M_tensor as override to use correct mass
             traj = self.run_trajectory_for_validation(
-                theory, r0, N_STEPS, DTau, device, dtype
+                theory, r0, N_STEPS, DTau, device, dtype, M_override=M_tensor
             )
             
             # Compute periastron advance

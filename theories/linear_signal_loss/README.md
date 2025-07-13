@@ -4,7 +4,7 @@ This directory contains resources for the Linear Signal Loss gravitational theor
 
 ## Structure
 - **source/**: Core implementation code
-- **grounding/**: Theoretical foundations and derivations
+- **baselines/**: Theoretical foundations and derivations
 - **validations/**: Computational and observational tests
 - **papers/**: Related publications and analyses
 - **results/**: Simulation outputs and data

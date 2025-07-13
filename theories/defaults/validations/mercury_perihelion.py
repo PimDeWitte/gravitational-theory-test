@@ -55,17 +55,10 @@ class MercuryPerihelionValidation(ObservationalValidation):
         
         # Run simulation
         try:
-            # Need to temporarily override M in the validation
-            import self_discovery
-            old_M = self_discovery.M
-            self_discovery.M = M_sun
-            
+            # Pass M_sun as override to avoid issues with global M
             traj = self.run_trajectory_for_validation(
-                theory, r0, N_STEPS, DTau, device, dtype
+                theory, r0, N_STEPS, DTau, device, dtype, M_override=M_sun
             )
-            
-            # Restore original M
-            self_discovery.M = old_M
             
             # Find perihelion points (local minima in r)
             r_values = traj[:, 1].cpu().numpy()

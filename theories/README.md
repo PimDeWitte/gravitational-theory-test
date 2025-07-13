@@ -7,7 +7,7 @@ This directory contains all gravitational theories organized by their specific i
 Each theory has its own directory with the following subdirectories:
 
 - **source/**: Theory implementation code (theory.py and run.py)
-- **grounding/**: Theoretical foundations, derivations, and mathematical background
+- **baselines/**: Theoretical foundations, derivations, and mathematical background
 - **validations/**: Test results against observations and benchmarks
 - **papers/**: Related publications and research
 - **results/**: Simulation outputs and analysis
@@ -16,7 +16,7 @@ Each theory has its own directory with the following subdirectories:
 
 ## Special Directories
 
-- **defaults/**: Contains baseline theories (GR, RN) and all standard test theories. These serve as grounding for all other explorations.
+- **defaults/**: Contains baseline theories (GR, RN) and all standard test theories. These serve as baselines for all other explorations.
 
 ## Usage
 
@@ -38,7 +38,7 @@ python self_discovery.py --theory-dirs theories/defaults
 ## Adding New Theories
 
 1. Create a new directory: `theories/your_theory_name/`
-2. Add subdirectories: `source/`, `grounding/`, etc.
+2. Add subdirectories: `source/`, `baselines/`, etc.
 3. Create `source/theory.py` with your GravitationalTheory subclass
 4. Optionally add `source/run.py` for standalone testing
-5. Document in `grounding/` and add validations 
+5. Document in `baselines/` and add validations 

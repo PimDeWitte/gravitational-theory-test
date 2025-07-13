@@ -141,85 +141,146 @@ if [[ "$SKIP_VALIDATIONS" == "false" ]]; then
     echo "=================================="
     
     # Use the existing Python runner to run validations
-    $PYTHON -c "
+    $PYTHON -u -c "
 import sys
 import os
 import importlib.util
+import traceback
+
+# Add current directory to Python path for imports
+sys.path.insert(0, os.getcwd())
 
 # Get theory directories from command line
 theory_dirs = '$THEORY_DIRS'.split()
+print(f'Theory directories to validate: {theory_dirs}')
 
 # Import base_theory
-spec = importlib.util.spec_from_file_location('base_theory', 'base_theory.py')
-base_theory = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(base_theory)
+try:
+    import base_theory
+    print('Successfully loaded base_theory.py')
+except Exception as e:
+    print(f'ERROR loading base_theory.py: {e}')
+    traceback.print_exc()
+    sys.exit(1)
 
 # Load validation classes
 validation_modules = {}
 for validation_file in ['base_validation', 'pulsar_timing', 'mercury_perihelion', 'cassini_ppn']:
-    spec = importlib.util.spec_from_file_location(
-        validation_file, 
-        f'theories/defaults/validations/{validation_file}.py'
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    validation_modules[validation_file] = module
-
-# Load theories from directories
-def load_theories_from_dir(theory_dir):
-    theories = []
-    init_file = os.path.join(theory_dir, '__init__.py')
-    if os.path.exists(init_file):
-        spec = importlib.util.spec_from_file_location('theory_module', init_file)
+    try:
+        spec = importlib.util.spec_from_file_location(
+            validation_file, 
+            f'theories/defaults/validations/{validation_file}.py'
+        )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        validation_modules[validation_file] = module
+        print(f'Loaded validation module: {validation_file}')
+    except Exception as e:
+        print(f'ERROR loading {validation_file}: {e}')
+        traceback.print_exc()
+
+# Load theories from directories (excluding baseline theories)
+def load_theories_from_dir(theory_dir):
+    theories = []
+    source_dir = os.path.join(theory_dir, 'source')
+    print(f'Looking for theories in: {source_dir}')
+    
+    if os.path.exists(source_dir):
+        # Get all .py files in the source directory
+        theory_files = [f for f in os.listdir(source_dir) if f.endswith('.py') and not f.startswith('__')]
         
-        # Get all classes that inherit from GravitationalTheory
-        for attr_name in dir(module):
-            attr = getattr(module, attr_name)
-            if isinstance(attr, type) and issubclass(attr, base_theory.GravitationalTheory) and attr != base_theory.GravitationalTheory:
-                try:
-                    instance = attr()
-                    theories.append(instance)
-                except:
-                    pass
+        if not theory_files:
+            print(f'  No theory files found in source directory')
+        
+        for filename in theory_files:
+            filepath = os.path.join(source_dir, filename)
+            print(f'  Checking file: {filename}')
+            
+            try:
+                # Use unique module names to avoid conflicts
+                module_name = f'theory_module_{theory_dir.replace(\"/\", \"_\")}_{filename[:-3]}'
+                spec = importlib.util.spec_from_file_location(module_name, filepath)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                
+                # Get all classes that inherit from GravitationalTheory
+                for attr_name in dir(module):
+                    attr = getattr(module, attr_name)
+                    if isinstance(attr, type) and issubclass(attr, base_theory.GravitationalTheory) and attr != base_theory.GravitationalTheory:
+                        try:
+                            instance = attr()
+                            theories.append(instance)
+                            print(f'    Found theory: {attr.__name__}')
+                        except Exception as e:
+                            print(f'    ERROR instantiating {attr.__name__}: {e}')
+            except Exception as e:
+                print(f'  ERROR loading {filename}: {e}')
+                traceback.print_exc()
+    else:
+        print(f'  No source directory found in {theory_dir}')
+    
+    # Note about baseline theories
+    baseline_dir = os.path.join(theory_dir, 'baselines')
+    if os.path.exists(baseline_dir):
+        baseline_files = [f for f in os.listdir(baseline_dir) if f.endswith('.py') and not f.startswith('__')]
+        if baseline_files:
+            print(f'  Note: Found {len(baseline_files)} baseline theories (not validated):')
+            for f in baseline_files:
+                print(f'    - {f}')
+    
     return theories
 
 # Load all theories
 all_theories = {}
 for theory_dir in theory_dirs:
+    print(f'\nLoading theories from: {theory_dir}')
     theories = load_theories_from_dir(theory_dir)
     if theories:
         all_theories[theory_dir] = theories
+        print(f'  Total theories loaded: {len(theories)}')
+    else:
+        print(f'  No theories found in {theory_dir}')
+
+print(f'\nTotal theory directories with theories: {len(all_theories)}')
 
 # Initialize validators
-validators = [
-    validation_modules['pulsar_timing'].PulsarTimingValidation(),
-    validation_modules['mercury_perihelion'].MercuryPerihelionValidation(),
-    validation_modules['cassini_ppn'].CassiniPPNValidation(),
-]
+try:
+    validators = [
+        validation_modules['pulsar_timing'].PulsarTimingValidation(),
+        validation_modules['mercury_perihelion'].MercuryPerihelionValidation(),
+        validation_modules['cassini_ppn'].CassiniPPNValidation(),
+    ]
+    print(f'Initialized {len(validators)} validators')
+except Exception as e:
+    print(f'ERROR initializing validators: {e}')
+    traceback.print_exc()
+    validators = []
 
 # Run validations
-for theory_dir, theories in all_theories.items():
-    print(f'\nValidating theories from: {theory_dir}')
-    print('-' * 50)
-    
-    for theory in theories:
-        print(f'\nTheory: {theory.name}')
+if not all_theories:
+    print('\nNo theories found to validate!')
+else:
+    for theory_dir, theories in all_theories.items():
+        print(f'\nValidating theories from: {theory_dir}')
+        print('-' * 50)
         
-        for validator in validators:
-            try:
-                result = validator.validate(theory)
-                status = 'PASS' if result['pass'] else 'FAIL'
-                print(f'  {validator.name}: {status}')
-                print(f'    Observed: {result[\"observed\"]:.6f}')
-                print(f'    Predicted: {result[\"predicted\"]:.6f}')
-                print(f'    Error: {result[\"error\"]:.6f}')
-                
-                if 'details' in result and 'error' in result['details']:
-                    print(f'    Error: {result[\"details\"][\"error\"]}')
-            except Exception as e:
-                print(f'  {validator.name}: ERROR - {str(e)}')
+        for theory in theories:
+            print(f'\nTheory: {theory.name}')
+            
+            for validator in validators:
+                try:
+                    result = validator.validate(theory)
+                    status = 'PASS' if result['pass'] else 'FAIL'
+                    print(f'  {validator.name}: {status}')
+                    print(f'    Observed: {result[\"observed\"]:.6f}')
+                    print(f'    Predicted: {result[\"predicted\"]:.6f}')
+                    print(f'    Error: {result[\"error\"]:.6f}')
+                    
+                    if 'details' in result and 'error' in result['details']:
+                        print(f'    Error: {result[\"details\"][\"error\"]}')
+                except Exception as e:
+                    print(f'  {validator.name}: ERROR - {str(e)}')
+                    traceback.print_exc()
 "
 fi
 

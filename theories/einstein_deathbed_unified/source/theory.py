@@ -12,15 +12,18 @@ class EinsteinDeathbedUnified(GravitationalTheory):
 
     def __init__(self, alpha: float = 1/137):
         super().__init__(f"Deathbed Unified (α={alpha:.4f})")
-        self.alpha = torch.as_tensor(alpha, device=torch.device('cpu'), dtype=torch.float32)
+        # Don't force device - let the framework handle it
+        self.alpha = alpha
 
     def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         rs = 2 * G_param * M_param / C_param**2
         u_g = rs / r
-        log_mod = self.alpha * torch.log1p(u_g)
-        torsion_em = self.alpha * u_g
+        # Ensure alpha is on same device as r
+        alpha = torch.tensor(self.alpha, device=r.device, dtype=r.dtype)
+        log_mod = alpha * torch.log1p(u_g)
+        torsion_em = alpha * u_g
         m_sym = 1 - u_g + log_mod
-        m_asym = -self.alpha * u_g**2
+        m_asym = -alpha * u_g**2
         g_tt = - (m_sym + m_asym)
         g_rr = 1 / (m_sym - m_asym + 1e-10)
         g_pp = r**2

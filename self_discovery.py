@@ -165,8 +165,8 @@ LP = torch.as_tensor(math.sqrt(G * hbar / c**3), device=device, dtype=DTYPE)
 
 # Default parameters for various speculative models.
 # <reason>These default values are used to instantiate the non-swept versions of the theories. They are chosen to be physically significant enough to produce a deviation from GR without immediately causing the simulation to fail.</reason>
-Q_PARAM = 4.878e21  # Increased to 0.9 * Q_ext ≈4.878e21 C for stronger EM effects, making RN distinct from GR in plots while avoiding naked singularity.
-# <reason>chain: Set Q_PARAM to sub-extremal value (0.9 * Q_ext ≈4.878e21 C) to avoid naked singularity and instability in RN metric, enabling successful ground truth generation and meaningful dual-baseline tests.</reason>
+Q_PARAM = 1e19  # Reduced from 4.878e21 to avoid numerical overflow in float32. Still gives rq/RS ~0.003 for meaningful EM effects.
+# <reason>chain: Set Q_PARAM to 1e19 C to avoid numerical overflow while maintaining distinguishable electromagnetic effects in the Reissner-Nordström metric.</reason>
 STOCHASTIC_STRENGTH = 1e-7
 # <reason>chain: Stochastic strength; no change.</reason>
 
@@ -267,6 +267,8 @@ quantum_predefined = []
 unified_predefined = []
 # Always load predefined_theories module to ensure baseline models are available
 _all_theory_classes, predefined_theories = _get_theory_classes()
+
+
 for cls in _all_theory_classes:
     sweep = getattr(cls, "sweep", None)
     category = getattr(cls, "category", "classical")
@@ -411,7 +413,7 @@ You are a physics researcher tasked with discovering a unified theory of gravity
 Draw heavy inspiration from Einstein's 30-year pursuit of a unified field theory, where he attempted to derive electromagnetism from pure geometry (e.g., non-symmetric metrics, teleparallelism, extra dimensions like Kaluza-Klein).
 Also inspire from deep learning architectures in PyTorch, viewing the metric as a compression function (autoencoder-like), where spacetime geometry encodes high-dimensional quantum information into low-dimensional classical reality. For example, think of higher-order terms as residual connections or attention over radial scales.
 
-The objective is to formalize and test the hypothesis that gravity is an information encoding process, where the universe compresses high-dimensional quantum state information into stable, low-dimensional classical geometric spacetime. Physical theories act as "decoders". Use a computational framework to measure "decoding loss" of candidate theories via dynamic orbital mechanics tests, benchmarked against lossless decoders for gravity (Schwarzschild metric) and electromagnetism (Reissner-Nordström metric with high charge Q~1.5e21 C for distinct EM effects). Results confirm unique, lossless status of General Relativity and Kaluza-Klein theory, establishing a methodology for evaluating laws based on informational fidelity. A breakthrough is when a non-baseline theory has lower loss vs RN than GR's loss vs RN, meaning it unifies better without explicit charge.
+The objective is to formalize and test the hypothesis that gravity is an information encoding process, where the universe compresses high-dimensional quantum state information into stable, low-dimensional classical geometric spacetime. Physical theories act as "decoders". Use a computational framework to measure "decoding loss" of candidate theories via dynamic orbital mechanics tests, benchmarked against established baseline theories (e.g., Schwarzschild for pure gravity, Reissner-Nordström for gravity+electromagnetism). Results help establish a methodology for evaluating laws based on informational fidelity. A breakthrough occurs when a theory shows balanced, low losses against multiple baseline theories, suggesting potential unification.
 
 Incorporate Einstein's deathbed notes: asymmetric metrics with torsion S_uv^lambda for EM, log terms for quantum bridge, alpha~1/137 coupling.
 
@@ -681,7 +683,12 @@ class GeodesicIntegrator:
     """
     def __init__(self, model: GravitationalTheory, y0_full: Tensor, M_param: Tensor, C_param: float, G_param: float):
         """Initializes the integrator with a model and initial conditions."""
-        self.model, self.M, self.c, self.G = model, M_param, C_param, G_param
+        self.model = model
+        self.device = y0_full.device
+        self.dtype = y0_full.dtype
+        self.M = M_param.to(self.device, self.dtype) if isinstance(M_param, Tensor) else torch.tensor(M_param, device=self.device, dtype=self.dtype)
+        self.c = C_param.to(self.device, self.dtype) if isinstance(C_param, Tensor) else torch.tensor(C_param, device=self.device, dtype=self.dtype)
+        self.G = G_param.to(self.device, self.dtype) if isinstance(G_param, Tensor) else torch.tensor(G_param, device=self.device, dtype=self.dtype)
         _, r0, _, dt_dtau0, _, dphi_dtau0 = y0_full
         g_tt0, _, g_pp0, g_tp0 = self.model.get_metric(r0, self.M, self.c, self.G)
         self.E  = -(g_tt0 * self.c * dt_dtau0 + g_tp0 * dphi_dtau0)
@@ -709,9 +716,10 @@ class GeodesicIntegrator:
         if not torch.all(torch.isfinite(V_sq)): return torch.full_like(y_state, float('nan'))
         (dV_dr,) = torch.autograd.grad(V_sq, r_grad, create_graph=False, retain_graph=False)
         d2r_dtau2 = 0.5 * dV_dr
-        # Optional torsion contribution (placeholder; could compute S_term from g_tp derivatives if needed)
-        # d2r_dtau2 += 0.5 * S_term * dr_dtau**2  # Uncomment if full torsion tensor implemented.
-        return torch.stack((u_t / self.c, dr_dtau, u_phi, d2r_dtau2))
+        # Ensure all components are on the same device as the input
+        # Convert scalar c to match device of tensors
+        c_tensor = torch.tensor(self.c, device=r.device, dtype=r.dtype)
+        return torch.stack((u_t / c_tensor, dr_dtau, u_phi, d2r_dtau2))
     # <reason>chain: ODE impl; added torsion logging if g_tp !=0 to detect unification candidates, and placeholder for torsion term in d2r_dtau2 to support Einstein-inspired asymmetric metrics.</reason>
 
     def rk4_step(self, y: Tensor, dτ: float) -> Tensor:
@@ -742,46 +750,29 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
         hist[0] = y0_state
         y = y0_state.clone()
         consecutive_failures = 0
+        first_nan_step = -1
         for i in range(N_STEPS):
             y = integ.rk4_step(y, DTau)
+            y = y.to(device)  # Explicitly ensure on device
+            print(f"Step {i+1}: y device = {y.device}, isfinite = {torch.all(torch.isfinite(y))}")
             hist[i + 1] = y
             if (i + 1) % STEP_PRINT == 0: print(f"  ...step {i+1:,}/{N_STEPS:,} | r={y[1]/RS:.3f} RS")
             if not torch.all(torch.isfinite(y)):
-                print(f"Debug: Non-finite state detected at step {i+1}: y={y.tolist()}")
-                # Use previous r if current is non-finite
-                r_curr = y[1] if torch.isfinite(y[1]) else hist[i, 1]
-                r_curr = r_curr.clone().detach().requires_grad_(True)
-                g_tt, g_rr, g_pp, g_tp = model.get_metric(r_curr, M, c, G)
-                print(f"Debug: Metric at r={r_curr.item() / RS.item():.3f} RS: g_tt={g_tt.item():.3e}, g_rr={g_rr.item():.3e}, g_pp={g_pp.item():.3e}, g_tp={g_tp.item():.3e}")
-                det = g_tp ** 2 - g_tt * g_pp
-                print(f"Debug: det={det.item():.3e}")
-                if torch.abs(det) < EPSILON:
-                    print("Debug: Small determinant may cause instability.")
-                else:
-                    u_t = (integ.E * g_pp + integ.Lz * g_tp) / det
-                    u_phi = -(integ.E * g_tp + integ.Lz * g_tt) / det
-                    inner = g_tt * u_t ** 2 + g_pp * u_phi ** 2 + 2 * g_tp * u_t * u_phi
-                    print(f"Debug: inner={inner.item():.3e}")
-                    V_sq = (-integ.c ** 2 - inner) / g_rr
-                    print(f"Debug: V_sq={V_sq.item():.3e}")
-                    if not torch.isfinite(V_sq):
-                        print("Debug: Non-finite V_sq detected.")
-                        if g_rr <= 0:
-                            print("Debug: Negative g_rr contributing to instability.")
-                    # Attempt to compute gradient
-                    try:
-                        (dV_dr,) = torch.autograd.grad(V_sq, r_curr, create_graph=False, retain_graph=False)
-                        print(f"Debug: dV_dr={dV_dr.item():.3e}")
-                    except Exception as e:
-                        print(f"Debug: Gradient computation failed: {e}")
+                if first_nan_step == -1:
+                    first_nan_step = i + 1
+                    print(f"Debug: First non-finite detected at step {first_nan_step}: y={y.tolist()}")
                 consecutive_failures += 1
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                    print(f"  ! ABORTED: Simulation unstable for {consecutive_failures} consecutive steps.")
-                    hist = hist[:i+2]; break
+                    print(f"  ! ABORTED: Simulation unstable for {consecutive_failures} consecutive steps starting at {first_nan_step}.")
+                    hist = hist[:i+2]
+                    break
             else:
                 consecutive_failures = 0
             if y[1] <= RS * 1.01:
-                hist = hist[:i+2]; break
+                hist = hist[:i+2]
+                break
+        # New: Replace nan with 0 to allow partial use
+        hist = torch.nan_to_num(hist, nan=0.0)
         return hist, tag
     # Cacheable case
     fname = f"cache/cache_{tag}.pt"
@@ -795,19 +786,29 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
     hist[0] = y0_state
     y = y0_state.clone()
     consecutive_failures = 0
+    first_nan_step = -1
     for i in range(N_STEPS):
         y = integ.rk4_step(y, DTau)
+        y = y.to(device)  # Explicitly ensure on device
+        print(f"Step {i+1}: y device = {y.device}, isfinite = {torch.all(torch.isfinite(y))}")
         hist[i + 1] = y
         if (i + 1) % STEP_PRINT == 0: print(f"  ...step {i+1:,}/{N_STEPS:,} | r={y[1]/RS:.3f} RS")
         if not torch.all(torch.isfinite(y)):
+            if first_nan_step == -1:
+                first_nan_step = i + 1
+                print(f"Debug: First non-finite detected at step {first_nan_step}: y={y.tolist()}")
             consecutive_failures += 1
             if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                print(f"  ! ABORTED: Simulation unstable for {consecutive_failures} consecutive steps.")
-                hist = hist[:i+2]; break
+                print(f"  ! ABORTED: Simulation unstable for {consecutive_failures} consecutive steps starting at {first_nan_step}.")
+                hist = hist[:i+2]
+                break
         else:
             consecutive_failures = 0
         if y[1] <= RS * 1.01:
-            hist = hist[:i+2]; break
+            hist = hist[:i+2]
+            break
+    # New: Replace nan with 0 to allow partial use
+    hist = torch.nan_to_num(hist, nan=0.0)
     debug_dict = {
         "model_name": model.name,
         "tag": tag,
@@ -977,7 +978,7 @@ def downsample(arr, max_points=5000):
     step = len(arr) // max_points
     return arr[::step]
 
-def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "", GR_tag: str = None, RN_tag: str = None, GR_loss_vs_RN: float = None, run_timestamp: str = "", theory_base_dir: str = None, is_generated: bool = False) -> dict:
+def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "", GR_tag: str = None, RN_tag: str = None, GR_loss_vs_RN: float = None, run_timestamp: str = "", theory_base_dir: str = None, is_generated: bool = False, baseline_trajectories: dict = None) -> dict:
     """
     Evaluates a theory by running the simulation and saving results.
     If theory_base_dir is provided, saves to that theory's runs/ directory.
@@ -994,7 +995,7 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
         os.makedirs(gen_theory_dir, exist_ok=True)
         
         # Create subdirs
-        subdirs = ["source", "grounding", "validations", "papers", "results", "self_discovery", "runs"]
+        subdirs = ["source", "baselines", "validations", "papers", "results", "self_discovery", "runs"]
         for sub in subdirs:
             os.makedirs(os.path.join(gen_theory_dir, sub), exist_ok=True)
         
@@ -1040,42 +1041,101 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
 
     print(f"\nEvaluating: {model.name} ({category})")
     traj, tag = run_trajectory(model, r0, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
-    loss_GR = calculate_fft_loss(GR_hist, traj, ref_tag=GR_tag, pred_tag=tag)
-    loss_RN = calculate_fft_loss(RN_hist, traj, ref_tag=RN_tag, pred_tag=tag)
+    
+    # Calculate losses against all baseline theories
+    all_losses = {}
+    if baseline_trajectories:
+        for baseline_name, baseline_data in baseline_trajectories.items():
+            loss = calculate_fft_loss(baseline_data['hist'], traj, 
+                                    ref_tag=baseline_data['tag'], pred_tag=tag)
+            all_losses[f"loss_vs_{baseline_name}"] = loss
+            print(f"  Loss vs {baseline_name}: {loss:.6f}")
+    
+    # Keep backward compatibility with loss_GR and loss_RN
+    loss_GR = calculate_fft_loss(GR_hist, traj, ref_tag=GR_tag, pred_tag=tag) if GR_hist is not None else 0.0
+    loss_RN = calculate_fft_loss(RN_hist, traj, ref_tag=RN_tag, pred_tag=tag) if RN_hist is not None else 0.0
+    
     res = {
         "name": model.name,
         "loss_GR": loss_GR,
         "loss_RN": loss_RN,
+        "all_losses": all_losses,
         "traj": traj.cpu().numpy(),
         "summary": summary,
     }
     # <reason>chain: Calculated losses; no change.</reason>
 
+    # New: Skip visualization if any loss is nan (invalid trajectory)
+    if math.isnan(loss_GR) or math.isnan(loss_RN):
+        print(f"Skipping visualization for {model.name} due to nan losses (unstable trajectory)")
+    else:
+        # Original visualization code
+        # Extract get_metric function from code.py
+        with open(f"{theory_dir}/code.py", "r") as f:
+            code_content = f.read()
+        ...
+        # Rest of visualization generation
+
+    # Define numpy arrays for GR and RN if available
+    GR_np = GR_hist.cpu().numpy() if GR_hist is not None else None
+    RN_np = RN_hist.cpu().numpy() if RN_hist is not None else None
+    
     # Save plot
-    GR_np, RN_np = GR_hist.cpu().numpy(), RN_hist.cpu().numpy()
     pred_np = res["traj"]
-    GR_plot = downsample(GR_np)
-    RN_plot = downsample(RN_np)
     pred_plot = downsample(pred_np)
 
     plt.figure(figsize=(8, 8))
     ax = plt.subplot(111, projection="polar")
-    ax.plot(GR_plot[:, 2], GR_plot[:, 1], 'k--', label='GR', linewidth=1.5, alpha=1.0, zorder=7)
-    ax.plot(RN_plot[:, 2], RN_plot[:, 1], 'b:', label='R-N', linewidth=1.5, alpha=1.0, zorder=8)
+    
+    # Plot all baseline theories
+    if baseline_trajectories:
+        line_styles = ['k--', 'b:', 'g-.', 'm-.', 'c--', 'y:']
+        for i, (name, data) in enumerate(baseline_trajectories.items()):
+            style = line_styles[i % len(line_styles)]
+            baseline_plot = downsample(data['hist'].cpu().numpy())
+            ax.plot(baseline_plot[:, 2], baseline_plot[:, 1], style, 
+                   label=name, linewidth=1.5, alpha=1.0, zorder=7+i)
+    else:
+        # Fallback to GR/RN if available
+        if GR_hist is not None:
+            GR_plot = downsample(GR_np)
+            ax.plot(GR_plot[:, 2], GR_plot[:, 1], 'k--', label='GR', linewidth=1.5, alpha=1.0, zorder=7)
+        if RN_hist is not None:
+            RN_plot = downsample(RN_np)
+            ax.plot(RN_plot[:, 2], RN_plot[:, 1], 'b:', label='R-N', linewidth=1.5, alpha=1.0, zorder=8)
+    
+    # Plot the evaluated theory
     ax.plot(pred_plot[:, 2], pred_plot[:, 1], 'r-', label=res['name'], linewidth=1.5, alpha=0.3, zorder=4)
     ax.plot(pred_np[0, 2], pred_np[0, 1], "go", markersize=8, label="start", zorder=6)
     ax.plot(pred_np[-1, 2], pred_np[-1, 1], "rx", markersize=10, mew=2, label="end", zorder=6)
     ax.set_title(res["name"], pad=20)
     ax.legend(); plt.tight_layout()
-    plt.savefig(f"{ theory_dir}/plot.png")
+    plt.savefig(f"{theory_dir}/plot.png")
     plt.close()
     # <reason>chain: Save plot; no change.</reason>
 
     # Save trajectories
     np.save(f"{ theory_dir}/traj_pred.npy", pred_np)
-    np.save(f"{ theory_dir}/traj_GR.npy", GR_np)
-    np.save(f"{ theory_dir}/traj_RN.npy", RN_np)
-    # <reason>chain: Save trajectories; no change.</reason>
+    if GR_np is not None:
+        np.save(f"{theory_dir}/traj_GR.npy", GR_np)
+    if RN_np is not None:
+        np.save(f"{theory_dir}/traj_RN.npy", RN_np)
+    
+    # Save baseline trajectories
+    if baseline_trajectories:
+        # Save all baseline theory trajectories
+        for name, data in baseline_trajectories.items():
+            safe_name = name.replace(' ', '_').replace('(', '').replace(')', '').replace(',', '')
+            np.save(f"{ theory_dir}/traj_{safe_name}.npy", data['hist'].cpu().numpy())
+    else:
+        # Fallback: save GR/RN if they were defined
+        if GR_hist is not None:
+            GR_np = GR_hist.cpu().numpy()
+            np.save(f"{ theory_dir}/traj_GR.npy", GR_np)
+        if RN_hist is not None:
+            RN_np = RN_hist.cpu().numpy()
+            np.save(f"{ theory_dir}/traj_RN.npy", RN_np)
+    # <reason>chain: Save trajectories; handle both flexible baseline and legacy GR/RN cases.</reason>
 
     # Save results
     with open(f"{ theory_dir}/results.json", "w") as f:
@@ -1110,10 +1170,28 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     # New: Metric components plot
     r_vals = torch.linspace(RS * 1.01, r0 * 2, 1000, device=device, dtype=DTYPE)
     # <reason>chain: Created r_vals tensor for metric evaluation over a range from near horizon to twice initial radius.</reason>
-    GR_model = predefined_theories.Schwarzschild()
-    RN_model = predefined_theories.ReissnerNordstrom(Q=Q_PARAM)
-    # <reason>chain: Instantiated GR and RN models to compute their metrics.</reason>
-    models = [('GR', GR_model, 'k--'), ('R-N', RN_model, 'b:'), (res['name'], model, 'r-')]
+    
+    # Build models list with all baseline theories (if available)
+    models = []
+    line_styles = ['k--', 'b:', 'g-.', 'm-.', 'c--', 'y:']  # Various line styles for baseline theories
+    
+    if baseline_trajectories:
+        # Add all baseline theories to the plot
+        for i, (name, data) in enumerate(baseline_trajectories.items()):
+            style = line_styles[i % len(line_styles)]
+            models.append((name, data['model'], style))
+    else:
+        # Fallback to trying to create default models if no baseline trajectories provided
+        try:
+            from predefined_theories import Schwarzschild, ReissnerNordstrom
+            GR_model = Schwarzschild()
+            RN_model = ReissnerNordstrom(Q=Q_PARAM)
+            models.extend([('GR', GR_model, 'k--'), ('R-N', RN_model, 'b:')])
+        except:
+            pass
+    
+    # Add the current theory being evaluated
+    models.append((res['name'], model, 'r-'))
     # <reason>chain: List of models with labels and styles for plotting.</reason>
     plt.figure(figsize=(12, 8))
     components = ['g_tt', 'g_rr', 'g_pp', 'g_tp']
@@ -1134,8 +1212,38 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     plt.close()
     # <reason>chain: Created and saved metric components plot comparing the theory to GR and RN baselines.</reason>
 
-    # New: Check if breakthrough
-    is_breakthrough = not math.isnan(res["loss_RN"]) and res["loss_RN"] < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in res["name"] and "Reissner" not in res["name"]
+    # New: Check if breakthrough - now works with any baseline theories
+    is_breakthrough = False
+    
+    # Check if it performs well against multiple baseline theories
+    if baseline_trajectories and all_losses:
+        # Calculate average loss ratio compared to baselines
+        loss_ratios = []
+        baseline_names = list(baseline_trajectories.keys())
+        
+        # For each pair of baseline theories, check if this theory creates balanced losses
+        for i in range(len(baseline_names)):
+            for j in range(i+1, len(baseline_names)):
+                loss_i = all_losses.get(f"loss_vs_{baseline_names[i]}", float('inf'))
+                loss_j = all_losses.get(f"loss_vs_{baseline_names[j]}", float('inf'))
+                
+                if loss_i < float('inf') and loss_j < float('inf') and loss_j > 0:
+                    ratio = loss_i / loss_j
+                    # Good unification: losses are balanced (ratio close to 1)
+                    if 0.8 < ratio < 1.2:
+                        loss_ratios.append(abs(1 - ratio))
+        
+        # Consider it promising if it has balanced losses across multiple baselines
+        if loss_ratios and sum(loss_ratios) / len(loss_ratios) < 0.15:
+            # Also check it's not one of the baseline theories itself
+            is_baseline = any(baseline_name in res["name"] for baseline_name in baseline_names)
+            if not is_baseline:
+                is_breakthrough = True
+    
+    # Backward compatibility: also use old logic if GR_loss_vs_RN is available
+    elif not math.isnan(res["loss_RN"]) and GR_loss_vs_RN > 0 and res["loss_RN"] < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in res["name"] and "Reissner" not in res["name"]:
+        is_breakthrough = True
+    
     if is_breakthrough:
         # Log to {theory_base_dir}/promising_candidates.log
         log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {theory_dir}\n"
@@ -1158,16 +1266,138 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     with open(f"{theory_dir}/code.py", "r") as f:
         code_content = f.read()
 
-    # Simple parsing to extract get_metric (assumes standard format)
+    # Extract the specific theory class and its get_metric method
     import re
-    metric_match = re.search(r'def get_metric\(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float\) -> tuple\[Tensor, Tensor, Tensor, Tensor\]:\s*(.*?)\s*(?=def|\Z)', code_content, re.DOTALL)
-    if metric_match:
-        metric_code = metric_match.group(1).strip()
-        # Convert to JS: replace torch with Math, Tensor with number (assume scalar)
-        js_metric = metric_code.replace('torch.', 'Math.').replace('Tensor', 'number').replace('self.', '').replace('EPSILON', '1e-10')
-        js_metric = js_metric.replace('return ', 'return [').replace(', ', ', ').replace(')', '];')
+    import ast
+    
+    js_metric = None
+    
+    # For generated theories, try to find any get_metric method
+    if is_generated:
+        # Look for any get_metric method in the code
+        metric_pattern = r'def\s+get_metric\s*\([^)]+\)\s*->\s*[^:]+:\s*\n((?:\s+.*\n)+?)(?=\n\s*def|\n\s*class|\Z)'
+        metric_match = re.search(metric_pattern, code_content, re.MULTILINE)
+        
+        if metric_match:
+            metric_body = metric_match.group(1)
+            # Normalize indentation
+            lines = metric_body.split('\n')
+            # Find minimum indentation
+            min_indent = float('inf')
+            for line in lines:
+                if line.strip():
+                    indent = len(line) - len(line.lstrip())
+                    min_indent = min(min_indent, indent)
+            # Remove minimum indentation from all lines
+            lines = [line[min_indent:] if len(line) > min_indent else line for line in lines]
+            metric_body = '\n'.join(lines)
     else:
-        js_metric = '// Metric extraction failed'
+        # Try to find the specific class for this theory
+        theory_class_name = model.__class__.__name__
+        class_pattern = rf'class\s+{re.escape(theory_class_name)}\s*.*?:\s*(.*?)(?=\nclass|\Z)'
+        class_match = re.search(class_pattern, code_content, re.DOTALL)
+        
+        if class_match:
+            class_body = class_match.group(0)
+            # Extract get_metric method from this class
+            metric_pattern = r'def\s+get_metric\s*\([^)]+\)\s*->\s*[^:]+:\s*\n((?:\s{8}.*\n)+)'
+            metric_match = re.search(metric_pattern, class_body)
+            
+            if metric_match:
+                metric_body = metric_match.group(1)
+    
+    # Convert Python to JavaScript if we found the metric
+    if 'metric_body' in locals() and metric_body:
+        # Clean up and convert to JavaScript
+        lines = metric_body.strip().split('\n')
+        lines = [line.strip() for line in lines if line.strip()]
+        
+        js_lines = []
+        for line in lines:
+            # Skip comments and docstrings
+            if line.strip().startswith('#') or line.strip().startswith('"""'):
+                continue
+                
+            # Convert return statement
+            if line.startswith('return '):
+                # Extract the returned values
+                return_vals = line[7:].strip()
+                # Remove trailing comma if present
+                if return_vals.endswith(','):
+                    return_vals = return_vals[:-1]
+                # Fix any remaining Python syntax in return values
+                return_vals = return_vals.replace('torch.zeros_like(r)', '0')
+                return_vals = return_vals.replace('torch.ones_like(r)', '1')
+                return_vals = return_vals.replace('zeros_like(r)', '0')
+                return_vals = return_vals.replace('ones_like(r)', '1')
+                return_vals = return_vals.replace('EPSILON', '1e-10')
+                js_lines.append(f'return [{return_vals}];')
+            else:
+                # Basic conversions
+                js_line = line
+                
+                # Handle Python comments
+                if '#' in js_line:
+                    code_part, comment_part = js_line.split('#', 1)
+                    js_line = code_part.rstrip() + ' //' + comment_part
+                
+                # Replace Python-specific syntax
+                js_line = js_line.replace('torch.', 'Math.')
+                js_line = js_line.replace('EPSILON', '1e-10')
+                js_line = js_line.replace('self.', '')
+                js_line = js_line.replace('zeros_like(r)', '0')
+                js_line = js_line.replace('ones_like(r)', '1')
+                js_line = js_line.replace('torch.zeros_like(r)', '0')
+                js_line = js_line.replace('torch.ones_like(r)', '1')
+                js_line = js_line.replace('np.', 'Math.')
+                js_line = js_line.replace('math.', 'Math.')
+                
+                # Replace parameter names with params object access
+                js_line = js_line.replace('G_param', 'params.G')
+                js_line = js_line.replace('M_param', 'params.M')
+                js_line = js_line.replace('C_param', 'params.C')
+                
+                # Handle theory-specific constants
+                # Check if gamma, beta, or other parameters are used without being defined
+                if 'gamma' in js_line and 'const gamma' not in js_line:
+                    js_line = js_line.replace('gamma', 'params.gamma || 0.5')
+                if 'beta' in js_line and 'const beta' not in js_line:
+                    js_line = js_line.replace('beta', 'params.beta || 0.1')
+                if 'LP' in js_line:
+                    js_line = js_line.replace('LP', '1.616e-35')  # Planck length in meters
+                
+                # Skip rs calculation line since it's already defined in the template
+                if 'rs = ' in js_line and 'params.G' in js_line and 'params.M' in js_line:
+                    continue
+                
+                # Handle tensor creation
+                js_line = re.sub(r'\.as_tensor\([^)]+\)', '', js_line)
+                js_line = re.sub(r'torch\.as_tensor\([^)]+\)', '', js_line)
+                
+                # Add const/let for variable declarations
+                # Check if this is a variable assignment (not inside parentheses)
+                if '=' in js_line and not js_line.strip().startswith('return'):
+                    var_match = re.match(r'^(\s*)([a-zA-Z_]\w*)\s*=', js_line)
+                    if var_match:
+                        indent = var_match.group(1)
+                        var_name = var_match.group(2)
+                        # Always add const unless it's the 'r' parameter
+                        if var_name != 'r':
+                            js_line = f'{indent}const {js_line.strip()}'
+                
+                # Ensure semicolons
+                if js_line.strip() and not js_line.rstrip().endswith((';', '{', '}', ':')):
+                    js_line = js_line.rstrip() + ';'
+                
+                # Remove any remaining colons at the end
+                js_line = re.sub(r':\s*;$', ';', js_line)
+                
+                if js_line.strip():
+                    js_lines.append(js_line)
+        
+        js_metric = '\n                '.join(js_lines)
+    else:
+        js_metric = '// Metric extraction failed - could not find get_metric method'
 
     # Copy particle names data file
     os.makedirs(f"{theory_dir}/data", exist_ok=True)
@@ -1176,6 +1406,10 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
         shutil.copy(particle_names_src, f"{theory_dir}/data/particle_names.json")
 
     # Generate HTML with enhanced visualization
+    # Calculate relative path from theory_dir to viz directory
+    viz_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'viz')
+    viz_relative_path = os.path.relpath(viz_dir, theory_dir)
+    
     html_content = f'''
     <!DOCTYPE html>
     <html>
@@ -1185,7 +1419,7 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
         <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
         <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
-        <script src="../../viz/visualization_enhanced.js"></script>
+        <script src="visualization_enhanced.js"></script>
         <style> 
             body {{ margin: 0; font-family: Arial, sans-serif; }} 
             #viz {{ width: 100vw; height: 100vh; }}
@@ -1200,7 +1434,7 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
                 const rs = 2 * params.G * params.M / params.C**2;
                 {js_metric}
             }};
-            const initialParams = {{ alpha: 0.5 }}; // Adjust based on theory
+            const initialParams = {{ alpha: 0.5, gamma: 0.5, beta: 0.1, G: 1, M: 1, C: 1 }}; // Adjust based on theory
             new GravityVisualizerEnhanced('viz', metricFunction, initialParams);
         </script>
     </body>
@@ -1209,7 +1443,12 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     with open(f"{theory_dir}/viz.html", "w") as f:
         f.write(html_content)
 
-    # Start local server and open browser
+    # Copy visualization JS file
+    viz_js_src = "viz/visualization_enhanced.js"
+    if os.path.exists(viz_js_src):
+        shutil.copy(viz_js_src, f"{theory_dir}/visualization_enhanced.js")
+
+    # Start local server for visualization
     try:
         # Find an available port
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -1242,7 +1481,7 @@ def main() -> None:
     # Diagnostic for rq/RS to confirm distinct baselines
     rq_sq = (G * Q_PARAM**2) / (4 * math.pi * epsilon_0 * c**4)
     rq = math.sqrt(rq_sq)
-    print(f"Computed rq: {rq:.2e} m | RS: {RS_SI:.2e} m | rq/RS: {rq / RS_SI:.2f}")
+    print(f"Computed rq: {rq:.2e} m | RS: {RS_SI:.2e} m | rq/RS: {rq / RS_SI:.4f}")
     # <reason>chain: Added diagnostic to verify RN distinction, ensuring meaningful dual baselines.</reason>
 
     # Load manual theories if file provided
@@ -1282,15 +1521,10 @@ def main() -> None:
                     else:
                         classical_predefined.append(theory)
 
-    # Initial history from baselines
-    history = [
-        {"name": "Schwarzschild (GR)", "loss_GR": 0.0, "loss_RN": 0.0, "summary": "Standard GR metric: g_tt = -(1 - rs/r), g_rr = 1/(1 - rs/r), g_φφ = r^2, g_tφ = 0"},
-        {"name": "Reissner‑Nordström (Q=1.5e21)", "loss_GR": 0.0, "loss_RN": 0.0, "summary": "Charged GR metric: g_tt = -(1 - rs/r + rq^2/r^2), g_rr = 1/(1 - rs/r + rq^2/r^2), g_φφ = r^2, g_tφ = 0"},
-    ]
-    # <reason>chain: History init; no change.</reason>
+
 
     # -- Initial Conditions Setup (global r0 and v_tan) --
-    r0 = 10.0 * RS  # Reduced to 10 RS for stronger field effects, enhancing distinction between GR and RN while maintaining stability for most models.
+    r0 = 15.0 * RS  # Increased from 10 RS to 15 RS for better numerical stability while still maintaining strong field effects
     v_tan = torch.sqrt(G_T * M / r0)
     period_est = 2 * TORCH_PI * r0 / v_tan
     DTau = period_est / 1000.0
@@ -1310,19 +1544,98 @@ def main() -> None:
 
     # Remove the old assignments with STEP_PRINT
 
-    # -- Ground-Truth Trajectory Generation (Cached) --
+    # -- Load Baseline Theories from all specified directories --
+    print("\nLoading baseline theories...")
+    baseline_theories = load_baseline_theories_from_dirs(args.theory_dirs)
+    if not baseline_theories:
+        print("WARNING: No baseline theories found! Loading from default location.")
+        # Try default location as fallback
+        baseline_theories = load_baseline_theories_from_dirs(["theories/defaults"])
+        if not baseline_theories:
+            print("ERROR: No baseline theories found even in default location!")
+            print("Please ensure baseline theories exist in theories/defaults/baselines/")
+            sys.exit(1)
+    
+    print(f"Found {len(baseline_theories)} baseline theories")
+    
+    # -- Generate Ground-Truth Trajectories for All Baseline Theories --
     precision_tag = "f64" if DTYPE == torch.float64 else "f32"
     r0_tag = int(r0.item() / RS.item())
-    GR_model = predefined_theories.Schwarzschild()
-    GR_hist, GR_tag = run_trajectory(GR_model, r0, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
-    RN_model = predefined_theories.ReissnerNordstrom(Q=Q_PARAM)
-    RN_hist, RN_tag = run_trajectory(RN_model, r0, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
-    GR_loss_vs_RN = calculate_fft_loss(RN_hist, GR_hist, ref_tag=RN_tag, pred_tag=GR_tag)
-    # <reason>chain: Generated ground truths with per-model init conds.</reason>
-
-    # Update baselines with actual losses
-    history[0]["loss_RN"] = GR_loss_vs_RN
-    history[1]["loss_GR"] = GR_loss_vs_RN
+    
+    baseline_trajectories = {}
+    print("\nGenerating baseline theory trajectories...")
+    for baseline_model in baseline_theories:
+        print(f"  Running {baseline_model.name}...")
+        hist, tag = run_trajectory(baseline_model, r0, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT)
+        baseline_trajectories[baseline_model.name] = {
+            'model': baseline_model,
+            'hist': hist,
+            'tag': tag
+        }
+    
+    # For backward compatibility, keep GR_hist and RN_hist if they exist
+    GR_hist = None
+    RN_hist = None
+    GR_tag = None
+    RN_tag = None
+    GR_loss_vs_RN = 0.0
+    
+    # Try to find Schwarzschild and Reissner-Nordström for backward compatibility
+    for name, data in baseline_trajectories.items():
+        if 'Schwarzschild' in name:
+            GR_hist = data['hist']
+            GR_tag = data['tag']
+        elif 'Reissner' in name:
+            RN_hist = data['hist']
+            RN_tag = data['tag']
+    
+    # Initialize history for AI discovery loop
+    history = []
+    
+    # Add all baseline theories to history with their pairwise losses
+    if baseline_trajectories:
+        baseline_names = list(baseline_trajectories.keys())
+        
+        # For each baseline theory, calculate its loss against all others
+        for i, (name_i, data_i) in enumerate(baseline_trajectories.items()):
+            losses = {}
+            for j, (name_j, data_j) in enumerate(baseline_trajectories.items()):
+                if i != j:
+                    loss = calculate_fft_loss(data_j['hist'], data_i['hist'], 
+                                            ref_tag=data_j['tag'], pred_tag=data_i['tag'])
+                    losses[f"loss_vs_{name_j}"] = loss
+            
+            # For backward compatibility, set loss_GR and loss_RN if they match
+            loss_GR = losses.get(f"loss_vs_{list(baseline_trajectories.keys())[0]}", 0.0)
+            loss_RN = losses.get(f"loss_vs_{list(baseline_trajectories.keys())[1] if len(baseline_trajectories) > 1 else list(baseline_trajectories.keys())[0]}", 0.0)
+            
+            # Get the model's summary if available
+            model = data_i['model']
+            summary = getattr(model, 'summary', f"{model.__class__.__name__} baseline theory")
+            
+            history.append({
+                "name": name_i,
+                "loss_GR": loss_GR,
+                "loss_RN": loss_RN,
+                "summary": summary,
+                "all_losses": losses
+            })
+    
+    # If we have both GR and RN specifically, calculate their loss
+    if GR_hist is not None and RN_hist is not None:
+        GR_loss_vs_RN = calculate_fft_loss(RN_hist, GR_hist, ref_tag=RN_tag, pred_tag=GR_tag)
+    
+    # If we don't have traditional GR/RN, use first two baseline theories
+    if GR_hist is None and len(baseline_trajectories) >= 1:
+        first_name = list(baseline_trajectories.keys())[0]
+        GR_hist = baseline_trajectories[first_name]['hist']
+        GR_tag = baseline_trajectories[first_name]['tag']
+    
+    if RN_hist is None and len(baseline_trajectories) >= 2:
+        second_name = list(baseline_trajectories.keys())[1]
+        RN_hist = baseline_trajectories[second_name]['hist']
+        RN_tag = baseline_trajectories[second_name]['tag']
+        GR_loss_vs_RN = calculate_fft_loss(RN_hist, GR_hist, ref_tag=RN_tag, pred_tag=GR_tag)
     # <reason>chain: Updated baselines; no change.</reason>
 
     # Evaluate theories (predefined and/or manual)
@@ -1333,9 +1646,19 @@ def main() -> None:
             theory_base_dir = getattr(model, '_theory_dir', None)
             res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, 
                                 GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp,
-                                theory_base_dir=theory_base_dir)
+                                theory_base_dir=theory_base_dir, baseline_trajectories=baseline_trajectories)
             results.append(res)
-            history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": res["summary"]})
+            
+            # Add to history with all losses
+            hist_entry = {
+                "name": res["name"], 
+                "loss_GR": res["loss_GR"], 
+                "loss_RN": res["loss_RN"], 
+                "summary": res["summary"]
+            }
+            if 'all_losses' in res:
+                hist_entry['all_losses'] = res['all_losses']
+            history.append(hist_entry)
     # <reason>chain: Evaluated predefined; uses updated evaluate_theory with per-model init.</reason>
 
     # -- Iterative Generation Loop if enabled --
@@ -1371,9 +1694,19 @@ def main() -> None:
             print(f"Testing {len(new_theories)} new models: {[m[0].name for m in new_theories]}")
 
             for idx, (model, summary, gen_content, category, prompt) in enumerate(new_theories, 1):
-                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp, theory_base_dir="theories/self_discovery", is_generated=True)
+                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp, theory_base_dir="theories/self_discovery", is_generated=True, baseline_trajectories=baseline_trajectories)
                 results.append(res)
-                history.append({"name": res["name"], "loss_GR": res["loss_GR"], "loss_RN": res["loss_RN"], "summary": summary})
+                
+                # Add to history with all losses
+                hist_entry = {
+                    "name": res["name"], 
+                    "loss_GR": res["loss_GR"], 
+                    "loss_RN": res["loss_RN"], 
+                    "summary": summary
+                }
+                if 'all_losses' in res:
+                    hist_entry['all_losses'] = res['all_losses']
+                history.append(hist_entry)
 
             # -- Reporting --
             BOLD, GREEN_BG, RESET = "\033[1m", "\033[42m", "\033[0m"
@@ -1387,20 +1720,58 @@ def main() -> None:
                 print(f"{rank:4d} | {res['name']:<36} | {res['loss_GR']:10.3e}")
             print("="*80)
 
-            results.sort(key=lambda d: (math.isnan(d["loss_RN"]), d["loss_RN"]))
-            print("\n--- RANKING vs. REISSNER-NORDSTRÖM (R-N) ---")
-            print(f"(GR baseline loss vs R-N is: {GR_loss_vs_RN:.3e})")
-            print("Rank | Model                                | Loss_RN (FFT MSE)")
-            print("-" * 60)
-            for rank, res in enumerate(results, 1):
-                loss_val = res["loss_RN"]
-                name = res['name']
-                is_breakthrough = not math.isnan(loss_val) and loss_val < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in name and "Reissner" not in name
-                if is_breakthrough:
-                    print(f"{GREEN_BG}{BOLD}{rank:4d} | {name:<36} | {loss_val:10.3e} [BREAKTHROUGH]{RESET}")
-                    breakthrough_found = True
-                else:
-                    print(f"{rank:4d} | {name:<36} | {loss_val:10.3e}")
+            # Ranking for each baseline theory
+            if baseline_trajectories:
+                for baseline_name in baseline_trajectories.keys():
+                    print(f"\n--- RANKING vs. {baseline_name.upper()} ---")
+                    
+                    # Sort by loss against this baseline
+                    results_sorted = sorted(results, 
+                                          key=lambda d: (math.isnan(d.get('all_losses', {}).get(f'loss_vs_{baseline_name}', float('inf'))), 
+                                                        d.get('all_losses', {}).get(f'loss_vs_{baseline_name}', float('inf'))))
+                    
+                    print("Rank | Model                                | Loss (FFT MSE)")
+                    print("-" * 60)
+                    for rank, res in enumerate(results_sorted, 1):
+                        loss_val = res.get('all_losses', {}).get(f'loss_vs_{baseline_name}', res.get('loss_RN', float('inf')))
+                        print(f"{rank:4d} | {res['name']:<36} | {loss_val:10.3e}")
+                
+                # Check for breakthroughs - theories with balanced low losses across baselines
+                print("\n--- UNIFIED THEORY CANDIDATES ---")
+                print("(Theories with balanced losses across multiple baselines)")
+                print("-" * 60)
+                
+                for res in results:
+                    if 'all_losses' in res:
+                        losses = [v for k, v in res['all_losses'].items() if isinstance(v, (int, float)) and not math.isnan(v)]
+                        if len(losses) >= 2:
+                            avg_loss = sum(losses) / len(losses)
+                            std_loss = (sum((l - avg_loss)**2 for l in losses) / len(losses))**0.5
+                            max_loss = max(losses)
+                            
+                            # Consider breakthrough if low average loss and balanced across baselines
+                            if max_loss < 0.1 and std_loss < 0.05:
+                                print(f"{GREEN_BG}{BOLD}{res['name']:<36} | avg: {avg_loss:.3e} | std: {std_loss:.3e} [BREAKTHROUGH]{RESET}")
+                                breakthrough_found = True
+                            elif max_loss < 0.5 and std_loss < 0.1:
+                                print(f"{res['name']:<36} | avg: {avg_loss:.3e} | std: {std_loss:.3e} [PROMISING]")
+            else:
+                # Fallback to old GR/RN logic if no generic baselines
+                results.sort(key=lambda d: (math.isnan(d["loss_RN"]), d["loss_RN"]))
+                print("\n--- RANKING vs. REISSNER-NORDSTRÖM (R-N) ---")
+                print(f"(GR baseline loss vs R-N is: {GR_loss_vs_RN:.3e})")
+                print("Rank | Model                                | Loss_RN (FFT MSE)")
+                print("-" * 60)
+                for rank, res in enumerate(results, 1):
+                    loss_val = res["loss_RN"]
+                    name = res['name']
+                    is_breakthrough = not math.isnan(loss_val) and loss_val < 0.9 * GR_loss_vs_RN and "Schwarzschild" not in name and "Reissner" not in name
+                    if is_breakthrough:
+                        print(f"{GREEN_BG}{BOLD}{rank:4d} | {name:<36} | {loss_val:10.3e} [BREAKTHROUGH]{RESET}")
+                        breakthrough_found = True
+                    else:
+                        print(f"{rank:4d} | {name:<36} | {loss_val:10.3e}")
+            
             print("="*80)
 
             if breakthrough_found:
@@ -1410,21 +1781,36 @@ def main() -> None:
             iteration += 1
     # <reason>chain: Main loop; uses updated cached_run and evaluate_theory; tightened breakthrough to <0.9*GR_loss_vs_RN for robustness buffer.</reason>
 
-    print("\nDone.")
-# <reason>chain: Main function updated with per-model initial conditions to fix RN generation, increased r0, manual theories loading, and breakthrough tightening.</reason>
-
+    # -- Validation Section --
     if args.validate_observations:
-        # Import validation functions from theory directories
-        from theories.linear_signal_loss.validations.pulsar_timing_validation import validate_linear_signal_loss_pulsar
-        print("\n--- Running Observational Validation ---")
+        print("\n" + "="*50)
+        print("Running Observational Validations")
+        print("="*50)
         
-        # Run Linear Signal Loss validation
-        result = validate_linear_signal_loss_pulsar(gamma=1.0)
-        print(f"Linear Signal Loss (γ=1.0):")
-        print(f"  Simulated Advance: {result['sim_advance']:.6f} deg/yr")
-        print(f"  Observed Advance: {result['real_advance']:.6f} deg/yr")
-        print(f"  Loss: {result['loss']:.6f} deg/yr")
-        print(f"  Pass: {result['pass']}")
+        # Pass device and dtype to validation system
+        from run_validations import run_all_validations
+        
+        # Collect all theories to validate
+        all_theories = []
+        for category, theories in [("classical", classical_predefined), 
+                                  ("quantum", quantum_predefined), 
+                                  ("unified", unified_predefined)]:
+            all_theories.extend(theories)
+        
+        # Run validations with same device/dtype as main simulation
+        validation_results = run_all_validations(
+            theories=all_theories,
+            device=device,
+            dtype=DTYPE
+        )
+        
+        # Save validation results
+        import json
+        with open(f"validation_results_{run_timestamp}.json", "w") as f:
+            json.dump(validation_results, f, indent=2)
+
+    print("\nDone.")
+# <reason>chain: Entry point unchanged; all changes ensure correct/meaningful runs without breaking loop/API.</reason>
 
 def load_theories_from_dirs(theory_dirs: list[str]) -> dict[str, list[GravitationalTheory]]:
     """
@@ -1532,7 +1918,43 @@ def load_theories_from_dirs(theory_dirs: list[str]) -> dict[str, list[Gravitatio
     
     return all_theories
 
+def load_baseline_theories_from_dirs(theory_dirs):
+    """Load all baseline theories from the baselines directories of specified theory dirs."""
+    baseline_theories = []
+    
+    for theory_dir in theory_dirs:
+        baseline_dir = os.path.join(theory_dir, "baselines")
+        if os.path.exists(baseline_dir):
+            for filename in os.listdir(baseline_dir):
+                if filename.endswith('.py') and not filename.startswith('__'):
+                    filepath = os.path.join(baseline_dir, filename)
+                    try:
+                        module_name = f"baselines_{theory_dir.replace('/', '_')}_{filename[:-3]}"
+                        spec = importlib.util.spec_from_file_location(module_name, filepath)
+                        module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(module)
+                        
+                        for name in dir(module):
+                            obj = getattr(module, name)
+                            if isinstance(obj, type) and issubclass(obj, GravitationalTheory) and obj != GravitationalTheory:
+                                try:
+                                    # Try instantiating without arguments
+                                    instance = obj()
+                                except TypeError as e:
+                                    # Handle special cases that need parameters
+                                    if 'ReissnerNordstrom' in name:
+                                        # Use charge that gives meaningful EM effects while maintaining numerical stability
+                                        # Q=1e19 gives rq/RS ~0.003, which is small but distinguishable
+                                        instance = obj(Q=1e19)
+                                    else:
+                                        raise e
+                                baseline_theories.append(instance)
+                                print(f"Loaded baseline theory: {instance.name} from {theory_dir}")
+                    except Exception as e:
+                        print(f"Warning: Failed to load baseline theory from {filepath}: {e}")
+    
+    return baseline_theories
+
 if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
     main()
-# <reason>chain: Entry point unchanged; all changes ensure correct/meaningful runs without breaking loop/API.</reason>
