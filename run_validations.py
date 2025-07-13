@@ -13,15 +13,17 @@ def run_all_validations(theories: List, device=None, dtype=None):
     """
     # Set up device/dtype (same logic as self_discovery.py)
     if device is None:
-        if 'device' in globals():
-            device = globals()['device']
-        else:
+        try:
+            from self_discovery import device as global_device
+            device = global_device
+        except ImportError:
             device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     
     if dtype is None:
-        if 'DTYPE' in globals():
-            dtype = globals()['DTYPE']
-        else:
+        try:
+            from self_discovery import DTYPE as global_dtype
+            dtype = global_dtype
+        except ImportError:
             dtype = torch.float32
     
     print(f"\nRunning validations on device: {device}, dtype: {dtype}")

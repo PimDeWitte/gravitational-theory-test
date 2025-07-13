@@ -1379,6 +1379,23 @@
                             </p>
                         </div>
                     </div>
+
+                    <h3 class="text-xl lg:text-2xl font-semibold text-physics-blue mt-12 mb-6">2.3 Loss Metrics for Theory Evaluation</h3>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        To measure how well a theory "preserves information" when decoding trajectories, we use multiple loss metrics. Each captures different aspects of similarity to baseline theories, helping identify true unification signals:
+                    </p>
+                    <ul class="list-disc list-inside space-y-3 text-base lg:text-lg mb-8">
+                        <li><strong>fft:</strong> Fourier spectrum MSE - Captures frequency differences in orbital dynamics (precession, periodicity)</li>
+                        <li><strong>endpoint_mse:</strong> Endpoint Cartesian MSE - Measures final position deviation</li>
+                        <li><strong>cosine:</strong> Average (1 - cosine similarity) - Scale-invariant angular matching of paths</li>
+                        <li><strong>trajectory_mse:</strong> Average positional MSE over all points - Overall path fidelity</li>
+                        <li><strong>hausdorff:</strong> Maximum deviation between path point sets - Worst-case shape difference</li>
+                        <li><strong>frechet:</strong> Path-aware distance considering ordering - Continuous trajectory matching</li>
+                        <li><strong>trajectory_dot:</strong> Average normalized dot product - Representation similarity (DL-inspired)</li>
+                    </ul>
+                    <p class="text-base lg:text-lg leading-relaxed mb-4">
+                        Run with <code>--loss-type=[type]</code> to select (default: fft). Use <code>--multi-loss</code> to compute all in one run. Add <code>--no-cache</code> to force fresh computations.
+                    </p>
                 </section>
 
                 <!-- Section 3: AI-Assisted Discovery Loop -->

@@ -410,3 +410,29 @@ it's in the marriage of human creativity and computational power.*
 🌟 **Star the repo to stay updated!** 🌟
 
 </div>
+
+## 🔧 Advanced Usage
+
+### Loss Calculation Types
+The framework supports multiple ways to compare theory predictions:
+
+- **fft** (default): Fourier spectrum MSE - Best for dynamic similarity
+- **endpoint_mse**: Final position distance - Simple endpoint check
+- **cosine**: Average angular similarity - Scale-invariant matching
+- **trajectory_mse**: Full path position error - Overall accuracy
+- **hausdorff**: Maximum deviation - Shape differences
+- **frechet**: Path distance with ordering - Continuous matching
+- **trajectory_dot**: Average dot product - Representation similarity
+
+These metrics help prove unification by showing balanced performance across baselines in different aspects (e.g., frechet for path continuity).
+
+### New Flags
+- `--loss-type=[type]`: Choose specific loss metric (see above)
+- `--multi-loss`: Compute ALL loss types in one run (stored in results.json) - Useful for comparisons
+- `--no-cache`: Force recompute everything (ignores existing caches)
+
+Example:
+```bash
+# Compare all losses for a theory
+./run_theory.sh theories/linear_signal_loss --multi-loss --final
+```

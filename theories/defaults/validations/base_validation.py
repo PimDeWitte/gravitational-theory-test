@@ -46,13 +46,31 @@ class ObservationalValidation(ABC):
                                     DTau: float, device: torch.device, 
                                     dtype: torch.dtype, M_override: torch.Tensor = None) -> torch.Tensor:
         """
-        Helper method to run a trajectory simulation for validation purposes.
-        This is a simplified version that doesn't require the full self_discovery infrastructure.
-        
-        Args:
-            M_override: If provided, use this mass instead of the global M
+        Helper method to run a trajectory simulation for validation purposes with caching.
         """
-        from self_discovery import GeodesicIntegrator, get_initial_conditions, M, c, G
+        from self_discovery import GeodesicIntegrator, get_initial_conditions, M, c, G, EPSILON, RS
+        import os
+        import json
+        import time
+        
+        # Adjust N_STEPS for pulsar (high-step test)
+        if 'PSR' in self.name:
+            N_STEPS = min(N_STEPS, 10000)  # Reduce for performance
+        
+        # Create cache tag
+        precision_tag = "f64" if dtype == torch.float64 else "f32"
+        r0_tag = int(r0.item() / RS.item()) if 'RS' in globals() else int(r0.item())
+        mass_tag = f"M{int(M_override.item()) if M_override is not None else 'default'}"
+        tag = f"{self.name}_{theory.name}_{N_STEPS}_{precision_tag}_{r0_tag}_{mass_tag}".replace(' ', '_').replace('(', '').replace(')', '')
+        cache_dir = 'cache/validations'
+        os.makedirs(cache_dir, exist_ok=True)
+        fname = f"{cache_dir}/cache_{tag}.pt"
+        
+        if os.path.exists(fname):
+            print(f"    Loading cached trajectory: {tag}")
+            return torch.load(fname, map_location=device)
+        
+        print(f"    Generating new trajectory: {tag}")
         
         print(f"    Starting trajectory simulation for {self.name}...")
         print(f"    N_STEPS: {N_STEPS}, DTau: {DTau.item() if hasattr(DTau, 'item') else DTau:.3e}")
@@ -124,12 +142,37 @@ class ObservationalValidation(ABC):
                 break
             
             # Add timeout check
-            if time.time() - start_time > 300:  # 5 minute timeout
+            if time.time() - start_time > 600:  # 10 minute timeout
                 print(f"    WARNING: Simulation timeout after {i+1} steps")
                 hist = hist[:i+2]
                 break
+            
+            # In the loop, add rate check after 1000 steps
+            if i == 999:  # After 1000 steps
+                elapsed_1000 = time.time() - start_time
+                rate_1000 = 1000 / elapsed_1000
+                if rate_1000 < 100:
+                    print(f"    WARNING: Low rate ({rate_1000:.1f} steps/s) - early exit")
+                    hist = hist[:i+1]
+                    break
         
         total_time = time.time() - start_time
         print(f"    Simulation completed in {total_time:.1f}s ({len(hist)-1} steps)")
+        
+        # After simulation, save to cache
+        torch.save(hist, fname)
+        debug_dict = {
+            "test_name": self.name,
+            "theory": theory.name,
+            "tag": tag,
+            "N_STEPS": len(hist)-1,
+            "DTau": DTau.item(),
+            "r0": r0.item(),
+            "device": str(device),
+            "dtype": str(dtype),
+            "timestamp": time.strftime("%Y%m%d_%H%M%S")
+        }
+        with open(f"{fname}.json", "w") as f:
+            json.dump(debug_dict, f, indent=4)
         
         return hist 

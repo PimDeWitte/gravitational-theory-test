@@ -103,6 +103,11 @@ def parse_cli() -> argparse.Namespace:
     # <reason>Added --theory-dirs to specify which theory directories to load from the new structure.</reason>
     p.add_argument("--test", action="store_true", help="Run in test mode with reduced steps for quick benchmarking.")
     p.add_argument("--validate-observations", action="store_true", help="Run validation against real astronomical observations.")
+    p.add_argument("--loss-type", type=str, default="fft", choices=["fft", "endpoint_mse", "cosine", "trajectory_mse", "hausdorff", "frechet", "trajectory_dot", "raw_dot"], help="Loss calculation type to use (or 'all' with --multi-loss).")  # <reason>chain: Added raw_dot to choices for custom loss implementation.&lt;/reason&gt;
+    p.add_argument("--multi-loss", action="store_true", help="Compute all available loss types in one run and store in results.json.")
+    # <reason>chain: Added --multi-loss flag to compute all loss types at once for comprehensive comparison in unification tests.&lt;/reason&gt;
+    p.add_argument("--no-cache", action="store_true", help="Force recomputation by ignoring existing cache files.")
+    # <reason>chain: Added --no-cache flag to purge/invalidate caches and force fresh computations for testing.&lt;/reason&gt;
     return p.parse_args()
 # <reason>chain: Defined parse_cli with arguments; added manual file arg for new feature.</reason>
 
@@ -718,8 +723,12 @@ class GeodesicIntegrator:
         d2r_dtau2 = 0.5 * dV_dr
         # Ensure all components are on the same device as the input
         # Convert scalar c to match device of tensors
-        c_tensor = torch.tensor(self.c, device=r.device, dtype=r.dtype)
-        return torch.stack((u_t / c_tensor, dr_dtau, u_phi, d2r_dtau2))
+        c_tensor = self.c.clone().detach().to(device=r.device, dtype=r.dtype)
+        ut_comp = (u_t / c_tensor).to(r.device)
+        dr_comp = dr_dtau.to(r.device)
+        uphi_comp = u_phi.to(r.device)
+        d2r_comp = d2r_dtau2.to(r.device)
+        return torch.stack((ut_comp, dr_comp, uphi_comp, d2r_comp))
     # <reason>chain: ODE impl; added torsion logging if g_tp !=0 to detect unification candidates, and placeholder for torsion term in d2r_dtau2 to support Einstein-inspired asymmetric metrics.</reason>
 
     def rk4_step(self, y: Tensor, dτ: float) -> Tensor:
@@ -776,7 +785,7 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
         return hist, tag
     # Cacheable case
     fname = f"cache/cache_{tag}.pt"
-    if os.path.exists(fname): 
+    if not args.no_cache and os.path.exists(fname):  # <reason>chain: Skip cache load if --no-cache is set to force recomputation.&lt;/reason&gt;
         return torch.load(fname, map_location=device), tag
     print(f"\n--- Generating and Caching: {model.name} ({tag}) ---")
     y0_full = get_initial_conditions(model, r0)
@@ -831,38 +840,143 @@ def run_trajectory(model: GravitationalTheory, r0: Tensor, N_STEPS: int, DTau: f
 # 4.  ANALYSIS & MAIN DRIVER
 # ---------------------------------------------------------------------------
 
-def calculate_fft_loss(traj_ref: Tensor, traj_pred: Tensor, ref_tag: str = None, pred_tag: str = None) -> float:
+def calculate_loss(traj_ref: Tensor, traj_pred: Tensor, ref_tag: str = None, pred_tag: str = None, loss_type: str = 'fft') -> float:
     """
-    Calculates the informational loss between two trajectories using FFT MSE.
-    <reason>This function is the core of the paper's methodology. It compares the full frequency spectrum of orbital dynamics, capturing subtle differences in precession and shape that a simple endpoint comparison would miss. It is a direct, quantitative measure of a theory's informational fidelity.</reason>
+    Calculates the loss between two trajectories using the specified method.
+    <reason>chain: Generalized the loss function to support multiple types for comparison, allowing us to test if FFT specifically influences results like gamma=0.75.&lt;/reason&gt;
     """
     if ref_tag and pred_tag:
-        cache_file = f"cache/cache_loss_{ref_tag}_vs_{pred_tag}.pt"
-        if os.path.exists(cache_file):
+        cache_file = f"cache/cache_loss_{loss_type}_{ref_tag}_vs_{pred_tag}.pt"
+        if not args.no_cache and os.path.exists(cache_file):  # <reason>chain: Skip cache load if --no-cache is set.&lt;/reason&gt;
             return torch.load(cache_file).item()
+    
     min_len = min(len(traj_ref), len(traj_pred))
     if min_len < 2: return float("inf")
-    r_ref, r_pred = traj_ref[:min_len, 1], traj_pred[:min_len, 1]
-    if not (torch.all(torch.isfinite(r_ref)) and torch.all(torch.isfinite(r_pred))):
-        return float('nan')
-    fft_ref, fft_pred = torch.fft.fft(r_ref), torch.fft.fft(r_pred)
-    mse = torch.mean((torch.abs(fft_ref) - torch.abs(fft_pred)) ** 2).item()
-    norm_factor = torch.mean(torch.abs(fft_ref)**2).item()  # Normalize for unitless comparability
-    # <reason>chain: Added normalization to make losses scale-invariant and comparable, addressing huge raw values and enabling meaningful comparisons/breakthroughs.</reason>
-    loss = mse / (norm_factor + EPSILON) if norm_factor > 0 else mse
+    
+    if loss_type == 'fft':
+        # Existing FFT implementation
+        # <reason>chain: Retained original FFT loss as default for continuity with previous results.&lt;/reason&gt;
+        r_ref, r_pred = traj_ref[:min_len, 1], traj_pred[:min_len, 1]
+        if not (torch.all(torch.isfinite(r_ref)) and torch.all(torch.isfinite(r_pred))):
+            return float('nan')
+        fft_ref, fft_pred = torch.fft.fft(r_ref), torch.fft.fft(r_pred)
+        mse = torch.mean((torch.abs(fft_ref) - torch.abs(fft_pred)) ** 2).item()
+        norm_factor = torch.mean(torch.abs(fft_ref)**2).item()  # Normalize for unitless comparability
+        loss = mse / (norm_factor + EPSILON) if norm_factor > 0 else mse
+    
+    elif loss_type == 'endpoint_mse':
+        # Squared Euclidean distance between final points in Cartesian coordinates
+        # <reason>chain: Implemented endpoint MSE as the previous method mentioned in header, converting polar to Cartesian for physical distance.&lt;/reason&gt;
+        if min_len < 1: return float('inf')
+        ref_end = traj_ref[-1, 1:3]  # r, phi
+        pred_end = traj_pred[-1, 1:3]
+        x_ref = ref_end[0] * torch.cos(ref_end[1])
+        y_ref = ref_end[0] * torch.sin(ref_end[1])
+        x_pred = pred_end[0] * torch.cos(pred_end[1])
+        y_pred = pred_end[0] * torch.sin(pred_end[1])
+        loss = torch.mean((torch.stack([x_ref, y_ref]) - torch.stack([x_pred, y_pred])) ** 2).item()
+    
+    elif loss_type == 'cosine':
+        # Average cosine distance (1 - cos similarity) over all trajectory points
+        # <reason>chain: Implemented cosine distance based on dot product as requested, averaging over all steps for full trajectory comparison; used 1 - cos for loss metric.&lt;/reason&gt;
+        losses = []
+        for i in range(min_len):
+            ref = traj_ref[i, 1:3]
+            pred = traj_pred[i, 1:3]
+            ref_vec = torch.tensor([ref[0] * torch.cos(ref[1]), ref[0] * torch.sin(ref[1])], device=ref.device, dtype=ref.dtype)
+            pred_vec = torch.tensor([pred[0] * torch.cos(pred[1]), pred[0] * torch.sin(pred[1])], device=pred.device, dtype=pred.dtype)
+            cos = torch.dot(ref_vec, pred_vec) / (torch.norm(ref_vec) * torch.norm(pred_vec) + EPSILON)
+            losses.append((1 - cos).item())
+        loss = sum(losses) / len(losses) if losses else float('inf')
+    
+    elif loss_type == 'trajectory_mse':
+        # MSE over all position points in Cartesian coordinates
+        # <reason>chain: Added full-trajectory MSE to capture average positional deviation across the entire path, useful for overall fidelity in unification tests.&lt;/reason&gt;
+        losses = []
+        for i in range(min_len):
+            ref = traj_ref[i, 1:3]
+            pred = traj_pred[i, 1:3]
+            ref_vec = torch.tensor([ref[0] * torch.cos(ref[1]), ref[0] * torch.sin(ref[1])], device=ref.device, dtype=ref.dtype)
+            pred_vec = torch.tensor([pred[0] * torch.cos(pred[1]), pred[0] * torch.sin(pred[1])], device=pred.device, dtype=pred.dtype)
+            losses.append(torch.mean((ref_vec - pred_vec) ** 2).item())
+        loss = sum(losses) / len(losses) if losses else float('inf')
+    
+    elif loss_type == 'hausdorff':
+        # Simplified Hausdorff distance between point sets
+        # <reason>chain: Added Hausdorff for measuring maximum deviation between trajectory shapes, helpful for proving geometric unification across baselines.&lt;/reason&gt;
+        def to_cartesian(traj):
+            r, phi = traj[:, 1], traj[:, 2]
+            return torch.stack([r * torch.cos(phi), r * torch.sin(phi)], dim=1)
+        ref_points = to_cartesian(traj_ref[:min_len])
+        pred_points = to_cartesian(traj_pred[:min_len])
+        dists_ref_to_pred = torch.cdist(ref_points, pred_points).min(dim=1)[0]
+        dists_pred_to_ref = torch.cdist(pred_points, ref_points).min(dim=1)[0]
+        loss = max(dists_ref_to_pred.max().item(), dists_pred_to_ref.max().item())
+    
+    elif loss_type == 'frechet':
+        # Discrete Frechet distance
+        # <reason>chain: Added Frechet as it considers path ordering and continuity, potentially best for unification proof by showing balanced matching to both smooth GR and perturbed RN paths. Picked as the most promising additional metric.&lt;/reason&gt;
+        def to_cartesian(traj):
+            r, phi = traj[:, 1], traj[:, 2]
+            return torch.stack([r * torch.cos(phi), r * torch.sin(phi)], dim=1)
+        ref_points = to_cartesian(traj_ref[:min_len])
+        pred_points = to_cartesian(traj_pred[:min_len])
+        n, m = ref_points.shape[0], pred_points.shape[0]
+        ca = torch.full((n, m), float('inf'), device=ref_points.device)
+        ca[0, 0] = torch.dist(ref_points[0], pred_points[0])
+        for i in range(1, n):
+            ca[i, 0] = max(ca[i-1, 0], torch.dist(ref_points[i], pred_points[0]))
+        for j in range(1, m):
+            ca[0, j] = max(ca[0, j-1], torch.dist(ref_points[0], pred_points[j]))
+        for i in range(1, n):
+            for j in range(1, m):
+                ca[i, j] = max(min(ca[i-1, j], ca[i, j-1], ca[i-1, j-1]), torch.dist(ref_points[i], pred_points[j]))
+        loss = ca[-1, -1].item()
+    
+    elif loss_type == 'trajectory_dot':
+        # Average normalized dot product (cosine similarity) over trajectory
+        # <reason>chain: Added trajectory_dot as raw normalized dot product average, directly responding to user request for dot product; similar to cosine but without 1- for similarity score.&lt;/reason&gt;
+        dots = []
+        for i in range(min_len):
+            ref = traj_ref[i, 1:3]
+            pred = traj_pred[i, 1:3]
+            ref_vec = torch.tensor([ref[0] * torch.cos(ref[1]), ref[0] * torch.sin(ref[1])], device=ref.device, dtype=ref.dtype)
+            pred_vec = torch.tensor([pred[0] * torch.cos(pred[1]), pred[0] * torch.sin(pred[1])], device=pred.device, dtype=pred.dtype)
+            dot = torch.dot(ref_vec, pred_vec) / (torch.norm(ref_vec) * torch.norm(pred_vec) + EPSILON)
+            dots.append(dot.item())
+        loss = - (sum(dots) / len(dots)) if dots else float('inf')  # Negative for loss (lower better)
+    
+    elif loss_type == 'raw_dot':
+        # Average unnormalized dot product of position vectors
+        # <reason>chain: Added raw_dot as custom loss: average unnormalized dot product of Cartesian position vectors over all steps, providing a direct 'dot product' metric as per user's vision; useful for magnitude-sensitive similarity in unification tests.&lt;/reason&gt;
+        dots = []
+        for i in range(min_len):
+            ref = traj_ref[i, 1:3]
+            pred = traj_pred[i, 1:3]
+            ref_vec = torch.tensor([ref[0] * torch.cos(ref[1]), ref[0] * torch.sin(ref[1])], device=ref.device, dtype=ref.dtype)
+            pred_vec = torch.tensor([pred[0] * torch.cos(pred[1]), pred[0] * torch.sin(pred[1])], device=pred.device, dtype=pred.dtype)
+            dot = torch.dot(ref_vec, pred_vec).item()
+            dots.append(dot)
+        loss = - (sum(dots) / len(dots)) if dots else float('inf')  # Negative average for loss (higher dot better)
+    
+    else:
+        raise ValueError(f"Unknown loss_type: {loss_type}")
+    
     if ref_tag and pred_tag:
         debug_dict = {
             "ref_tag": ref_tag,
             "pred_tag": pred_tag,
+            "loss_type": loss_type,
             "loss": loss,
             "timestamp": time.strftime("%Y%m%d_%H%M%S")
         }
+        cache_file = f"cache/cache_loss_{loss_type}_{ref_tag}_vs_{pred_tag}.pt"
         json_fname = f"{cache_file}.json"
         with open(json_fname, "w") as f:
             json.dump(debug_dict, f, indent=4)
         torch.save(torch.tensor(loss), cache_file)
+    
     return loss
-# <reason>chain: FFT loss; added EPSILON to norm_factor to prevent div0 in edge cases like flat metrics.</reason>
 
 def get_initial_conditions(model: GravitationalTheory, r0: Tensor) -> Tensor:
     """
@@ -978,12 +1092,13 @@ def downsample(arr, max_points=5000):
     step = len(arr) // max_points
     return arr[::step]
 
-def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "", GR_tag: str = None, RN_tag: str = None, GR_loss_vs_RN: float = None, run_timestamp: str = "", theory_base_dir: str = None, is_generated: bool = False, baseline_trajectories: dict = None) -> dict:
+def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hist: Tensor, RN_hist: Tensor, N_STEPS: int, DTau: float, MAX_CONSECUTIVE_FAILURES: int, STEP_PRINT: int, gen_content: str = "", summary: str = "", prompt: str = "", response: str = "", GR_tag: str = None, RN_tag: str = None, GR_loss_vs_RN: float = None, run_timestamp: str = "", theory_base_dir: str = None, is_generated: bool = False, baseline_trajectories: dict = None, loss_type: str = 'fft') -> dict:
     """
     Evaluates a theory by running the simulation and saving results.
     If theory_base_dir is provided, saves to that theory's runs/ directory.
     Otherwise uses the old runs/{timestamp}/{category} structure.
     """
+    # <reason>chain: Added loss_type parameter to evaluate_theory, passed from args, to use in loss calculations for modularity.&lt;/reason&gt;
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     safe_name = model.name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "_").replace(".", "_")
     
@@ -1032,10 +1147,10 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
 
     # Save prompt and response if generated
     if prompt:
-        with open(f"{ theory_dir}/input_prompt.txt", "w") as f:
+        with open(f"{theory_dir}/input_prompt.txt", "w") as f:
             f.write(prompt)
     if response:
-        with open(f"{ theory_dir}/api_response.txt", "w") as f:
+        with open(f"{theory_dir}/api_response.txt", "w") as f:
             f.write(response)
     # <reason>chain: Save prompt/response; no change.</reason>
 
@@ -1044,16 +1159,27 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     
     # Calculate losses against all baseline theories
     all_losses = {}
+    all_loss_types = {} if args.multi_loss else None  # <reason>chain: Initialize dict for multi-loss results if flag is set.&lt;/reason&gt;
+    loss_types = ['fft', 'endpoint_mse', 'cosine', 'trajectory_mse', 'hausdorff', 'frechet', 'trajectory_dot', 'raw_dot'] if args.multi_loss else [loss_type]
+    # <reason>chain: If --multi-loss, compute all types; else just the specified one.&lt;/reason&gt;
+    
     if baseline_trajectories:
         for baseline_name, baseline_data in baseline_trajectories.items():
-            loss = calculate_fft_loss(baseline_data['hist'], traj, 
-                                    ref_tag=baseline_data['tag'], pred_tag=tag)
-            all_losses[f"loss_vs_{baseline_name}"] = loss
-            print(f"  Loss vs {baseline_name}: {loss:.6f}")
+            for lt in loss_types:
+                loss = calculate_loss(baseline_data['hist'], traj, 
+                                      ref_tag=baseline_data['tag'], pred_tag=tag, loss_type=lt)
+                if lt == loss_type:
+                    all_losses[f"loss_vs_{baseline_name}"] = loss
+                    print(f"  Loss vs {baseline_name} ({lt}): {loss:.6f}")
+                if args.multi_loss:
+                    if lt not in all_loss_types:
+                        all_loss_types[lt] = {}
+                    all_loss_types[lt][f"loss_vs_{baseline_name}"] = loss
+                    print(f"  Multi-loss {lt} vs {baseline_name}: {loss:.6f}")
     
-    # Keep backward compatibility with loss_GR and loss_RN
-    loss_GR = calculate_fft_loss(GR_hist, traj, ref_tag=GR_tag, pred_tag=tag) if GR_hist is not None else 0.0
-    loss_RN = calculate_fft_loss(RN_hist, traj, ref_tag=RN_tag, pred_tag=tag) if RN_hist is not None else 0.0
+    # Keep backward compatibility with loss_GR and loss_RN using primary loss_type
+    loss_GR = calculate_loss(GR_hist, traj, ref_tag=GR_tag, pred_tag=tag, loss_type=loss_type) if GR_hist is not None else 0.0
+    loss_RN = calculate_loss(RN_hist, traj, ref_tag=RN_tag, pred_tag=tag, loss_type=loss_type) if RN_hist is not None else 0.0
     
     res = {
         "name": model.name,
@@ -1063,6 +1189,8 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
         "traj": traj.cpu().numpy(),
         "summary": summary,
     }
+    if args.multi_loss:
+        res['all_loss_types'] = all_loss_types  # <reason>chain: Store multi-loss results in res for JSON saving.&lt;/reason&gt;
     # <reason>chain: Calculated losses; no change.</reason>
 
     # New: Skip visualization if any loss is nan (invalid trajectory)
@@ -1115,7 +1243,7 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     # <reason>chain: Save plot; no change.</reason>
 
     # Save trajectories
-    np.save(f"{ theory_dir}/traj_pred.npy", pred_np)
+    np.save(f"{theory_dir}/traj_pred.npy", pred_np)
     if GR_np is not None:
         np.save(f"{theory_dir}/traj_GR.npy", GR_np)
     if RN_np is not None:
@@ -1126,24 +1254,26 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
         # Save all baseline theory trajectories
         for name, data in baseline_trajectories.items():
             safe_name = name.replace(' ', '_').replace('(', '').replace(')', '').replace(',', '')
-            np.save(f"{ theory_dir}/traj_{safe_name}.npy", data['hist'].cpu().numpy())
+            np.save(f"{theory_dir}/traj_{safe_name}.npy", data['hist'].cpu().numpy())
     else:
         # Fallback: save GR/RN if they were defined
         if GR_hist is not None:
             GR_np = GR_hist.cpu().numpy()
-            np.save(f"{ theory_dir}/traj_GR.npy", GR_np)
+            np.save(f"{theory_dir}/traj_GR.npy", GR_np)
         if RN_hist is not None:
             RN_np = RN_hist.cpu().numpy()
-            np.save(f"{ theory_dir}/traj_RN.npy", RN_np)
+            np.save(f"{theory_dir}/traj_RN.npy", RN_np)
     # <reason>chain: Save trajectories; handle both flexible baseline and legacy GR/RN cases.</reason>
 
     # Save results
-    with open(f"{ theory_dir}/results.json", "w") as f:
+    with open(f"{theory_dir}/results.json", "w") as f:
         json.dump({
             "name": res["name"],
             "loss_GR": res["loss_GR"],
             "loss_RN": res["loss_RN"],
-        }, f)
+            "loss_type": loss_type,
+            **({k: v for k, v in res.get('all_loss_types', {}).items()} if args.multi_loss else {}),  # <reason>chain: Include all loss types in JSON if multi-loss enabled.&lt;/reason&gt;
+        }, f, indent=4)  # <reason>chain: Updated JSON to include multi-loss data.&lt;/reason&gt;
     # <reason>chain: Save JSON; no change.</reason>
 
     # Copy cache files to theory_dir for debugging
@@ -1160,7 +1290,7 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
             baseline_json = f"{baseline_cache}.json"
             if os.path.exists(baseline_json):
                 shutil.copy(baseline_json, theory_dir)
-        loss_cache = f"cache/cache_loss_{baseline_tag}_vs_{tag}.pt"
+        loss_cache = f"cache/cache_loss_{loss_type}_{baseline_tag}_vs_{tag}.pt"  # <reason>chain: Updated loss_cache filename to include loss_type for distinct caching per method.&lt;/reason&gt;
         if os.path.exists(loss_cache):
             shutil.copy(loss_cache, theory_dir)
             loss_json = f"{loss_cache}.json"
@@ -1208,7 +1338,7 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     # After creating subplots\nis_gr = 'Schwarzschild' in res['name']\nis_rn = 'Reissner' in res['name']\nstatus = ' (GR Baseline)' if is_gr else ' (RN Baseline)' if is_rn else ''\nsteps = len(res['traj'])\nplt.suptitle(f'Metric Components for {res["name"]}{status} (Steps: {steps:,})', y=0.98)\n# <reason>chain: Updated suptitle to include baseline status and step count.</reason>\nfig.text(0.5, 0.01, f"Summary: {res['summary']}\nLoss vs GR: {res['loss_GR']:.3e} | Loss vs RN: {res['loss_RN']:.3e}", ha='center', va='bottom', fontsize=8, wrap=True)\n# <reason>chain: Added text at bottom for summary and losses.</reason>\nplt.tight_layout(rect=[0, 0.03, 1, 0.95])\n# <reason>chain: Adjusted tight_layout to make space for bottom text.</reason>\n# Before saving
     plt.suptitle(f'Metric Components for {res["name"]}', y=0.95)
     plt.tight_layout()
-    plt.savefig(f"{ theory_dir}/metric_plot.png")
+    plt.savefig(f"{theory_dir}/metric_plot.png")
     plt.close()
     # <reason>chain: Created and saved metric components plot comparing the theory to GR and RN baselines.</reason>
 
@@ -1246,7 +1376,7 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     
     if is_breakthrough:
         # Log to {theory_base_dir}/promising_candidates.log
-        log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {theory_dir}\n"
+        log_entry = f"{time.strftime('%Y%m%d_%H%M%S')} | Run: {run_timestamp} | Theory: {res['name']} | Loss_GR: {res['loss_GR']:.3e} | Loss_RN: {res['loss_RN']:.3e} | Summary: {res['summary']} | Dir: {theory_dir} | Loss Type: {loss_type}\n"  # <reason>chain: Added loss_type to log entry for tracking.&lt;/reason&gt;
         
         # Determine log path based on theory_base_dir
         if theory_base_dir:
@@ -1601,8 +1731,8 @@ def main() -> None:
             losses = {}
             for j, (name_j, data_j) in enumerate(baseline_trajectories.items()):
                 if i != j:
-                    loss = calculate_fft_loss(data_j['hist'], data_i['hist'], 
-                                            ref_tag=data_j['tag'], pred_tag=data_i['tag'])
+                    loss = calculate_loss(data_j['hist'], data_i['hist'], 
+                                            ref_tag=data_j['tag'], pred_tag=data_i['tag'], loss_type=args.loss_type)
                     losses[f"loss_vs_{name_j}"] = loss
             
             # For backward compatibility, set loss_GR and loss_RN if they match
@@ -1623,7 +1753,7 @@ def main() -> None:
     
     # If we have both GR and RN specifically, calculate their loss
     if GR_hist is not None and RN_hist is not None:
-        GR_loss_vs_RN = calculate_fft_loss(RN_hist, GR_hist, ref_tag=RN_tag, pred_tag=GR_tag)
+        GR_loss_vs_RN = calculate_loss(RN_hist, GR_hist, ref_tag=RN_tag, pred_tag=GR_tag, loss_type=args.loss_type)
     
     # If we don't have traditional GR/RN, use first two baseline theories
     if GR_hist is None and len(baseline_trajectories) >= 1:
@@ -1635,7 +1765,7 @@ def main() -> None:
         second_name = list(baseline_trajectories.keys())[1]
         RN_hist = baseline_trajectories[second_name]['hist']
         RN_tag = baseline_trajectories[second_name]['tag']
-        GR_loss_vs_RN = calculate_fft_loss(RN_hist, GR_hist, ref_tag=RN_tag, pred_tag=GR_tag)
+        GR_loss_vs_RN = calculate_loss(RN_hist, GR_hist, ref_tag=RN_tag, pred_tag=GR_tag, loss_type=args.loss_type)
     # <reason>chain: Updated baselines; no change.</reason>
 
     # Evaluate theories (predefined and/or manual)
@@ -1646,7 +1776,7 @@ def main() -> None:
             theory_base_dir = getattr(model, '_theory_dir', None)
             res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, 
                                 GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp,
-                                theory_base_dir=theory_base_dir, baseline_trajectories=baseline_trajectories)
+                                theory_base_dir=theory_base_dir, baseline_trajectories=baseline_trajectories, loss_type=args.loss_type)  # <reason>chain: Passed loss_type from args to evaluate_theory for using selected method in calculations.&lt;/reason&gt;
             results.append(res)
             
             # Add to history with all losses
@@ -1694,7 +1824,7 @@ def main() -> None:
             print(f"Testing {len(new_theories)} new models: {[m[0].name for m in new_theories]}")
 
             for idx, (model, summary, gen_content, category, prompt) in enumerate(new_theories, 1):
-                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp, theory_base_dir="theories/self_discovery", is_generated=True, baseline_trajectories=baseline_trajectories)
+                res = evaluate_theory(model, category, r0, GR_hist, RN_hist, N_STEPS, DTau, MAX_CONSECUTIVE_FAILURES, STEP_PRINT, gen_content, summary, prompt=prompt, response=gen_content, GR_tag=GR_tag, RN_tag=RN_tag, GR_loss_vs_RN=GR_loss_vs_RN, run_timestamp=run_timestamp, theory_base_dir="theories/self_discovery", is_generated=True, baseline_trajectories=baseline_trajectories, loss_type=args.loss_type)  # <reason>chain: Passed loss_type to generated theory evaluation for consistency.&lt;/reason&gt;
                 results.append(res)
                 
                 # Add to history with all losses
