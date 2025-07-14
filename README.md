@@ -19,7 +19,7 @@ Think of it like testing video codecs - a good codec reproduces the original per
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/pimdewitte/gravitational-theory-test.git
+git clone https://github.com/pimdewitte/unification-engine.git
 cd gravitational-theory-test
 
 # Run the setup script (creates Python virtual environment)
@@ -97,7 +97,7 @@ A unified theory should perform well against BOTH baselines without explicitly i
 ## 📁 Project Structure
 
 ```
-gravitational-theory-test/
+unification-engine/
 ├── setup_gpu.sh                    # Environment setup script
 ├── run_validation_tests.sh         # Quick validation runner
 ├── final_linear_validation_loss.sh # Linear signal loss experiment
