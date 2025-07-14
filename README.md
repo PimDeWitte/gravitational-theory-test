@@ -1,19 +1,4 @@
-
-# Draft: The Compression Hypothesis
-
-**A computational framework for testing gravitational theories by treating them as information compression algorithms.**
-
-Draft of the formulas and fundamentals of the theory here: https://www.pimdewitte.com/gravity-compression/papers/003/003_not_reviewed.html
-
-If you don't like it, you can plug in another physics engine, no worries! But let us know any feedback. 
-
-Some observational validation data is available on the `increased-validation-scrutiny` branch based on feedback from physicists and mathematicians. Will also be collecting all the big questions there for now until I have a good new baseline with a new paper to check in :)
-
-## 
-
-What if gravity isn't just a force, but the universe's way of compressing information?
-
-This project tests that idea by:
+This project tests gravitational theories by
 1. Treating gravitational theories as "decoders" that reconstruct reality from compressed information
 2. Measuring how well each theory reproduces real physics (their "decoding loss")
 3. Using orbital mechanics as the test - because orbits are extremely sensitive to spacetime geometry
