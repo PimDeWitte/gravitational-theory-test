@@ -78,6 +78,10 @@ import webbrowser
 # <reason>chain: Imports unchanged; foundational for API, tensors, and plotting.</reason>
 import getpass  # For potential secure input if needed, but using input()
 import socket
+import sympy as sp
+from scipy.integrate import solve_bvp
+from scipy.interpolate import interp1d
+from functools import lru_cache
 
 # ---------------------------------------------------------------------------
 # 0.  CLI ARGUMENTS & GLOBAL CONFIG
@@ -190,51 +194,25 @@ C_T = torch.as_tensor(c, device=device, dtype=DTYPE)
 from base_theory import GravitationalTheory, Tensor
 def _get_theory_classes():
     """
-    Dynamically loads predefined_theories.py as a module in a way that ensures
-    GravitationalTheory and all required symbols are available in its namespace,
-    preventing NameError and NameError for type annotations.
+    Load baseline theory classes from theories/defaults/baselines/
     """
-    import types
-
-    module_name = "predefined_theories"
-    module_path = os.path.join(os.path.dirname(__file__), "predefined_theories.py")
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-    predefined_theories = importlib.util.module_from_spec(spec)
-
-    # Inject GravitationalTheory and all required globals into the module's namespace before execution
-    predefined_theories.GravitationalTheory = GravitationalTheory
-    # Also inject all symbols used in type annotations or as globals in predefined_theories.py
-    predefined_theories.torch = torch
-    predefined_theories.math = math
-    predefined_theories.device = device
-    predefined_theories.DTYPE = DTYPE
-    predefined_theories.EPSILON = EPSILON
-    predefined_theories.epsilon_0 = epsilon_0
-    predefined_theories.G = G
-    predefined_theories.c = c
-    predefined_theories.hbar = hbar
-    predefined_theories.Q_PARAM = Q_PARAM
-    predefined_theories.TORCH_PI = TORCH_PI
-    predefined_theories.EPS0_T = EPS0_T
-    predefined_theories.LP = LP
-    predefined_theories.STOCHASTIC_STRENGTH = STOCHASTIC_STRENGTH
-
-    # If Tensor is used as a type annotation, inject it as well
-    predefined_theories.Tensor = torch.Tensor
-
-    # Inject numpy for sweep definitions
-    predefined_theories.np = np
-
-    sys.modules[module_name] = predefined_theories
-    spec.loader.exec_module(predefined_theories)
-
-    # Now, collect all subclasses of GravitationalTheory defined in that file
     theory_classes = []
-    for name in dir(predefined_theories):
-        obj = getattr(predefined_theories, name)
-        if isinstance(obj, type) and issubclass(obj, GravitationalTheory) and obj is not GravitationalTheory:
-            theory_classes.append(obj)
-    return theory_classes, predefined_theories
+    
+    # Add baselines directory to path
+    baselines_dir = os.path.join(os.path.dirname(__file__), 'theories', 'defaults', 'baselines')
+    if baselines_dir not in sys.path:
+        sys.path.insert(0, baselines_dir)
+    
+    # Import baseline theories
+    try:
+        from schwarzschild import Schwarzschild
+        from reissner_nordstrom import ReissnerNordstrom
+        theory_classes.extend([Schwarzschild, ReissnerNordstrom])
+    except ImportError as e:
+        print(f"Warning: Could not load baseline theories: {e}")
+    
+    # Return theory classes and None for the module (no longer needed)
+    return theory_classes, None
 
 # Helper: Try to instantiate with default parameters if possible, else skip
 def _instantiate_theory(cls):
@@ -431,32 +409,28 @@ Incorporate Einstein's deathbed notes: asymmetric metrics with torsion S_uv^lamb
 
 """ + initial_prompt + """
 
-Previous results ( theory name: summary, loss vs GR, loss vs R-N ):
+Previous results (theory name: summary, loss vs GR, loss vs R-N ):
 """
     for h in history:
         summary = h.get('summary', 'No summary available')
         prompt += f"{h['name']}: {summary}, loss_GR={h['loss_GR']:.3e}, loss_RN={h['loss_RN']:.3e}\n"
 
     prompt += """
-Suggest 1 new, unique GravitationalTheory subclass as a complete Python class definition.
+Suggest 1 new Lagrangian L as a sympy expression string, e.g. 'R + alpha * R**2'.
 It must:
-- Inherit from GravitationalTheory.
-- Have a unique name.
-- Implement __init__ with super().__init__(name).
-- Implement get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor] for g_tt, g_rr, g_pp, g_tp.
-- Use only torch operations, no imports in the code.
-- Avoid explicit Q; instead, introduce geometric terms (e.g., alpha * (rs**2 / r**2), non-diagonal g_tp for field-like effects, logarithmic/higher-order corrections inspired by quantum/DL) to mimic EM without charge.
-- Parameterize where useful (e.g., alpha for sweeps), inspired by Einstein's attempts.
-- Add cacheable = True as a class variable to enable trajectory caching.
-- Optionally override get_cache_tag(self, N_STEPS, precision_tag, r0_tag) to return a unique string including parameters for caching.
-- Add <reason>reasoning chain</reason> comments explaining the physical and inspirational reasoning for each part of the metric.
-- Add a <summary>concise description of the theory, including the key metric formula</summary> as a comment at the top of the class.
-- Add category = 'unified' as a class variable, since this is a unified field theory attempt.
-- Use ASCII characters only (e.g., mu, nu instead of Greek letters) to avoid syntax issues.
+- Be a valid sympy expression using symbols like R (Ricci scalar), and parameters like alpha, beta.
+- Aim for unification: include terms that could mimic EM without explicit charge, e.g. higher-order curvature, torsion-inspired terms.
+- Add <reason>reasoning chain</reason> explaining the physical and inspirational reasoning.
+- Add a <summary>concise description of the theory, including the key Lagrangian formula</summary>.
+- Optionally specify include_charge=True if explicit EM field is needed.
+
+Output format:
+<summary>description</summary>
+<reason>reasoning</reason>
+<lagrangian>L expression string</lagrangian>
+<include_charge>True or False</include_charge>
 
 For Einstein!
-
-Output ONLY the Python code for the class, no explanations or extra text.
 """
     return prompt
 # <reason>chain: Build prompt function; updated with Einstein deathbed notes inspiration to guide API towards asymmetric/torsion/log terms for better unification candidates.</reason>
@@ -503,12 +477,11 @@ def call_api(provider: str, prompt: str) -> str:
 
 def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list[tuple[GravitationalTheory, str, str]]:
     """
-    Calls the selected API to generate new theory classes based on history.
-    Executes the returned code to define the classes dynamically.
+    Calls the selected API to generate new theory Lagrangians, derives metrics, generates class code, and defines classes dynamically.
     Returns list of (model instance, summary, content)
     
     RL Interpretation:
-    - Action: Generate new theory code via API (LLM policy)
+    - Action: Generate new Lagrangian via API (LLM policy)
     - Can incorporate human-submitted theories via --manual-theories-file for hybrid RL
     """
     prompt = build_prompt(history, initial_prompt)
@@ -525,7 +498,7 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
         try:
             content = call_api(args.api_provider, prompt)
             if args.verbose:
-                print(f"\nGenerated theory code:\n{content}\n")
+                print(f"\nGenerated response:\n{content}\n")
             if not content.strip():
                 if args.verbose:
                     print("Debug: Empty content received.")
@@ -540,160 +513,88 @@ def generate_new_theories(history: list[dict], initial_prompt: str = "") -> list
             continue
         # <reason>chain: API call and handling; updated temperature cap to 1.5 for better generation on retries.</reason>
 
-        # Parse content to extract code from markdown if present
-        match = re.search(r'```python\s*(.*?)```', content, re.DOTALL)
-        if match:
-            content = match.group(1).strip()
-        # <reason>chain: Extract code; no change.</reason>
-
-        # Remove any import statements
-        content = re.sub(r'^(from|import)\s+.*$', '', content, flags=re.MULTILINE).strip()
-        # <reason>chain: Remove imports; no change.</reason>
-
-        if args.verbose:
-            print(f"\nCleaned theory code:\n{content}\n")
-        # <reason>chain: Print cleaned; no change.</reason>
-
-        # Extract summary
+        # Parse the response
         summary_match = re.search(r'<summary>(.*?)</summary>', content, re.DOTALL)
+        reason_match = re.search(r'<reason>(.*?)</reason>', content, re.DOTALL)
+        lagrangian_match = re.search(r'<lagrangian>(.*?)</lagrangian>', content, re.DOTALL)
+        charge_match = re.search(r'<include_charge>(.*?)</include_charge>', content, re.DOTALL)
+        
         summary = summary_match.group(1).strip() if summary_match else "No summary provided"
-        # <reason>chain: Extract summary; no change.</reason>
-
-        # Extract <reason> chains for history (optional, but added for better iteration)
-        reason_matches = re.findall(r'<reason>(.*?)</reason>', content, re.DOTALL)
-        reasons = ' '.join(reason_matches) if reason_matches else ""
-        summary += f" Reasons: {reasons}" if reasons else ""
-        # <reason>Added regex to extract <reason> chains and append to summary for improved history feedback in prompts.</reason>
-
-        # Save the full generated code, prompt, and response
+        reason = reason_match.group(1).strip() if reason_match else "No reasoning provided"
+        lagrangian = lagrangian_match.group(1).strip() if lagrangian_match else None
+        include_charge_str = charge_match.group(1).strip() if charge_match else "False"
+        include_charge = include_charge_str.lower() == 'true'
+        
+        if not lagrangian:
+            print("No valid Lagrangian found in response.")
+            temperature = min(temperature + 0.2, 1.5)
+            time.sleep(2 ** attempt)
+            continue
+        
+        # Save the full generated response
         gen_timestamp = time.strftime("%Y%m%d_%H%M%S")
         os.makedirs("generated_codes", exist_ok=True)
-        with open(f"generated_codes/{gen_timestamp}_generated.py", "w") as f:
+        with open(f"generated_codes/{gen_timestamp}_response.txt", "w") as f:
             f.write(content)
         with open(f"generated_codes/{gen_timestamp}_prompt.txt", "w") as f:
             f.write(prompt)
-        with open(f"generated_codes/{gen_timestamp}_response.txt", "w") as f:
-            f.write(content)
-        # <reason>chain: Save generated files; no change.</reason>
-
-        # Get existing theories before exec
-        existing_classes = {
-            cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
-        }
-        # <reason>chain: Existing classes; no change.</reason>
-
-        # Execute the code to define new classes
+        
+        # Derive metric from Lagrangian
+        try:
+            L_expr = sp.sympify(lagrangian)
+            g_dict, r_num, a_vals, b_vals = derive_metric_from_action(L_expr, include_charge=include_charge)
+        except Exception as e:
+            print(f"Error deriving metric: {e}")
+            temperature = min(temperature + 0.2, 1.5)
+            time.sleep(2 ** attempt)
+            continue
+        
+        # Generate class code using interpolated values
+        safe_name = ''.join([c if c.isalnum() else '_' for c in summary[:50]])
+        class_name = f"DerivedTheory_{gen_timestamp}_{safe_name}"
+        code = f"""
+class {class_name}(GravitationalTheory):
+    def __init__(self):
+        super().__init__("{summary}")
+        import numpy as np
+        self.r_num = np.array({r_num.tolist()})
+        self.a_vals = np.array({a_vals.tolist()})
+        self.b_vals = np.array({b_vals.tolist()})
+    
+    def get_metric(self, r: Tensor, M_param: Tensor, C_param: float, G_param: float) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        import numpy as np
+        r_np = r.cpu().numpy()
+        g_tt_np = -np.interp(r_np, self.r_num, self.a_vals)
+        g_rr_np = np.interp(r_np, self.r_num, self.b_vals)
+        g_tt = torch.from_numpy(g_tt_np).to(r.device, r.dtype)
+        g_rr = torch.from_numpy(g_rr_np).to(r.device, r.dtype)
+        return g_tt, g_rr, r**2, torch.zeros_like(r)
+"""
+        
+        # Save generated class code
+        with open(f"generated_codes/{gen_timestamp}_generated.py", "w") as f:
+            f.write(code)
+        
+        # Execute the code
         exec_attempts = 0
         max_exec_attempts = 5
         while exec_attempts < max_exec_attempts:
             try:
-                exec(content, globals())
-                break  # Success
+                exec(code, globals())
+                break
             except Exception as e:
                 exec_attempts += 1
-                error_msg = f"Error executing generated code: {str(e)}"
-                print(error_msg)
-                # Append error feedback to prompt for retry
-                feedback_prompt = prompt + f"\nPrevious generation failed with error: {error_msg}. Please correct and provide a complete, valid Python class."
-                temperature = min(temperature + 0.2, 1.5)
-                time.sleep(2 ** exec_attempts)
-                # Regenerate
-                try:
-                    content = call_api(args.api_provider, feedback_prompt)
-                    print(f"\nRegenerated theory code (attempt {exec_attempts}):\n{content}\n")
-                    # <reason>chain: Regenerated code; no change.</reason>
-                    # Parse content to extract code from markdown if present
-                    match = re.search(r'```python\s*(.*?)```', content, re.DOTALL)
-                    if match:
-                        content = match.group(1).strip()
-                    # <reason>chain: Extract code; no change.</reason>
-
-                    # Remove any import statements
-                    content = re.sub(r'^(from|import)\s+.*$', '', content, flags=re.MULTILINE).strip()
-                    # <reason>chain: Remove imports; no change.</reason>
-
-                    if args.verbose:
-                        print(f"\nCleaned theory code:\n{content}\n")
-                    # <reason>chain: Print cleaned; no change.</reason>
-
-                    # Extract summary
-                    summary_match = re.search(r'<summary>(.*?)</summary>', content, re.DOTALL)
-                    summary = summary_match.group(1).strip() if summary_match else "No summary provided"
-                    # <reason>chain: Extract summary; no change.</reason>
-
-                    # Extract <reason> chains for history (optional, but added for better iteration)
-                    reason_matches = re.findall(r'<reason>(.*?)</reason>', content, re.DOTALL)
-                    reasons = ' '.join(reason_matches) if reason_matches else ""
-                    summary += f" Reasons: {reasons}" if reasons else ""
-                    # <reason>Added regex to extract <reason> chains and append to summary for improved history feedback in prompts.</reason>
-
-                    # Save the full generated code, prompt, and response
-                    gen_timestamp = time.strftime("%Y%m%d_%H%M%S")
-                    os.makedirs("generated_codes", exist_ok=True)
-                    with open(f"generated_codes/{gen_timestamp}_generated.py", "w") as f:
-                        f.write(content)
-                    with open(f"generated_codes/{gen_timestamp}_prompt.txt", "w") as f:
-                        f.write(prompt)
-                    with open(f"generated_codes/{gen_timestamp}_response.txt", "w") as f:
-                        f.write(content)
-                    # <reason>chain: Save generated files; no change.</reason>
-                except Exception as regen_e:
-                    print(f"Debug: Regeneration failed: {regen_e}")
-                    continue
-        if exec_attempts >= max_exec_attempts:
-            print("Max exec attempts reached. Skipping this generation.")
-            temperature = min(temperature + 0.2, 1.5)
-            time.sleep(2 ** attempt)
-            continue
-        # <reason>chain: Exec code; no change.</reason>
-
-        # Find newly defined classes
-        all_classes = {
-            cls for name, cls in globals().items() if inspect.isclass(cls) and issubclass(cls, GravitationalTheory) and cls != GravitationalTheory
-        }
-        new_classes = all_classes - existing_classes
-        # <reason>chain: New classes; no change.</reason>
-
-        if not new_classes:
-            print("No new theories generated from API response.")
-            temperature = min(temperature + 0.2, 1.5)
-            time.sleep(2 ** attempt)
-            continue
-        # <reason>chain: Check new; no change.</reason>
-
-        valid_models = []
-        for cls in new_classes:
-            category = getattr(cls, "category", "generated")
-            try:
-                test_model = cls()
-                test_r = torch.tensor(10.0, device=device, dtype=DTYPE)
-                gtt, grr, gpp, gtp = test_model.get_metric(test_r, M, c, G)
-                if not all(torch.isfinite(t).all() for t in (gtt, grr, gpp, gtp)):
-                    raise ValueError("Non-finite metric values")
-                valid_models.append((test_model, summary, content, category, prompt))
-            except Exception as e:
-                print(f"Invalid theory {cls.__name__}: {e}")
+                print(f"Error executing generated code: {e}")
                 continue
-        # <reason>chain: Validate models; no change.</reason>
-
-        if valid_models:
-            return valid_models
-        else:
-            print("No valid models after validation.")
-            temperature = min(temperature + 0.2, 1.5)
-            time.sleep(2 ** attempt)
-    # <reason>chain: Retry loop; updated temp cap.</reason>
-
-    # If all retries fail, generate a fallback theory
-    print("All API retries failed. Holding with exponential backoff. Halting if persistent.")
-    for hold_attempt in range(8):
-        wait_time = 2 ** (hold_attempt + 2)  # Start at 4s, then 8s, 16s, ...
-        print(f"Holding for {wait_time} seconds (attempt {hold_attempt+1}/8)...")
-        time.sleep(wait_time)
-        # Optionally, could try to re-call the API here, but per instruction, just hold.
-    print("Persistent API failure. Halting program.")
-    raise RuntimeError("All API retries failed and no fallback theory is allowed. Halting.")
-# <reason>chain: Generate new theories; updated with temp cap increase and <reason> extraction for better API iteration.</reason>
+        if exec_attempts >= max_exec_attempts:
+            print("Max exec attempts reached. Skipping.")
+            continue
+        
+        cls = globals()[class_name]
+        model = cls()
+        return [(model, summary, code)]
+    
+    raise RuntimeError("Failed to generate valid theory after max retries")
 
 # ---------------------------------------------------------------------------
 # 3.  GEODESIC INTEGRATOR (RK‑4)
@@ -1355,7 +1256,10 @@ def evaluate_theory(model: GravitationalTheory, category: str, r0: Tensor, GR_hi
     else:
         # Fallback to trying to create default models if no baseline trajectories provided
         try:
-            from predefined_theories import Schwarzschild, ReissnerNordstrom
+            import sys
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'theories', 'defaults', 'baselines'))
+            from schwarzschild import Schwarzschild
+            from reissner_nordstrom import ReissnerNordstrom
             GR_model = Schwarzschild()
             RN_model = ReissnerNordstrom(Q=Q_PARAM)
             models.extend([('GR', GR_model, 'k--'), ('R-N', RN_model, 'b:')])
@@ -2002,6 +1906,14 @@ def main() -> None:
             def convert_ndarrays(obj):
                 if isinstance(obj, np.ndarray):
                     return obj.tolist()
+                elif torch.is_tensor(obj):
+                    return obj.cpu().numpy().tolist()
+                elif isinstance(obj, (np.bool_, np.bool8)):
+                    return bool(obj)
+                elif isinstance(obj, np.integer):
+                    return int(obj)
+                elif isinstance(obj, np.floating):
+                    return float(obj)
                 elif isinstance(obj, dict):
                     return {k: convert_ndarrays(v) for k, v in obj.items()}
                 elif isinstance(obj, list):
@@ -2159,6 +2071,141 @@ def load_baseline_theories_from_dirs(theory_dirs):
                         print(f"Warning: Failed to load baseline theory from {filepath}: {e}")
     
     return baseline_theories
+
+def derivative_order(expr, fields):
+    max_order = 0
+    for field in fields:
+        order = 0
+        current = expr
+        while True:
+            current = current.diff(field)
+            if current == 0:
+                break
+            order += 1
+        max_order = max(max_order, order)
+    return max_order
+
+def compute_ricci_scalar(A, B, r, theta):
+    # Pure SymPy implementation of Ricci scalar for diagonal metric
+    coords = sp.symbols('t r theta phi')
+    g = sp.diag(-A, B, r**2, r**2 * sp.sin(theta)**2)
+    g_inv = g.inv()
+    
+    # Christoffel symbols
+    Gamma = [[[0 for _ in range(4)] for _ in range(4)] for _ in range(4)]
+    for mu in range(4):
+        for alpha in range(4):
+            for beta in range(4):
+                Gamma[mu][alpha][beta] = sp.Rational(1,2) * sum(g_inv[mu,nu] * (
+                    sp.diff(g[nu,beta], coords[alpha]) +
+                    sp.diff(g[nu,alpha], coords[beta]) -
+                    sp.diff(g[alpha,beta], coords[nu])
+                ) for nu in range(4))
+    
+    # Ricci tensor
+    R = [[0 for _ in range(4)] for _ in range(4)]
+    for mu in range(4):
+        for nu in range(4):
+            R[mu][nu] = sum(
+                sp.diff(Gamma[rho][mu][nu], coords[rho]) -
+                sp.diff(Gamma[rho][mu][rho], coords[nu]) +
+                Gamma[rho][mu][nu] * Gamma[sigma][rho][sigma] -
+                Gamma[rho][mu][sigma] * Gamma[sigma][nu][rho]
+                for rho in range(4) for sigma in range(4)
+            )
+    
+    # Ricci scalar
+    Ricci = sum(g_inv[mu,nu] * R[mu][nu] for mu in range(4) for nu in range(4))
+    return sp.simplify(Ricci)
+
+def derive_metric_from_action(L_expr, rs=2, include_charge=False, rq=1):
+    r, theta = sp.symbols('r theta', positive=True, real=True)
+    A = sp.Function('A')(r)
+    B = sp.Function('B')(r)
+    A_p = sp.diff(A, r)
+    B_p = sp.diff(B, r)
+
+    # try getting Ricci scalar using einsteinpy, avoiding sympy struggles
+    R = compute_ricci_scalar(A, B, r, theta)
+
+    L = L_expr.subs({'R': R})
+    fields = [A, B]
+    if include_charge:
+        Phi = sp.Function('Phi')(r)
+        F2 = -2 * Phi.diff(r)**2 / (A * B)  # F_tr F^tr term
+        L += sp.Rational(-1, 4) * F2
+        fields.append(Phi)
+    L_eff = r**2 * sp.sqrt(A * B) * L
+    order = derivative_order(L_eff, fields)
+    if order > 2:
+        print("Warning: Higher-derivative pathology (order:", order, ")")
+    def el_equation(L, field):
+        p1 = sp.diff(L, field)
+        p2 = sp.diff(L, field.diff(r))
+        p3 = sp.diff(L, field.diff(r, 2))
+        el = p1 - sp.diff(p2, r) + sp.diff(sp.diff(p3, r), r)
+        return sp.simplify(el.expand())
+    eqs = [el_equation(L_eff, field) for field in fields]
+    a_pp = sp.solve(eqs[0], A.diff(r, 2))
+    b_pp = sp.solve(eqs[1], B.diff(r, 2))
+    if not a_pp or not b_pp:
+        raise ValueError("Failed to solve for second derivatives")
+    a_pp = a_pp[0]
+    b_pp = b_pp[0]
+    if include_charge:
+        phi_p = sp.solve(eqs[2], Phi.diff(r))
+        if not phi_p:
+            raise ValueError("Failed to solve for Phi'")
+        phi_p = phi_p[0]
+    def ode_system(r_val, y):
+        subs_dict = {r: r_val, A: y[0], A_p: y[1], B: y[2], B_p: y[3]}
+        if include_charge:
+            subs_dict[Phi] = y[4]
+            subs_dict[Phi.diff(r)] = y[5]
+            return [y[1], float(a_pp.subs(subs_dict)), y[3], float(b_pp.subs(subs_dict)), y[5], float(phi_p.subs(subs_dict))]
+        return [y[1], float(a_pp.subs(subs_dict)), y[3], float(b_pp.subs(subs_dict))]
+    r_min = 3 * rs
+    r_max = 100 * rs
+    a_inf = 1 - rs / r_max
+    ap_inf = rs / r_max**2
+    b_inf = 1 / a_inf
+    bp_inf = -ap_inf / a_inf**2
+    def bc(ya, yb):
+        if include_charge:
+            return [yb[0] - a_inf, yb[1] - ap_inf, yb[2] - b_inf, yb[3] - bp_inf, yb[5]]  # Phi'(r_max) = 0
+        return [yb[0] - a_inf, yb[1] - ap_inf, yb[2] - b_inf, yb[3] - bp_inf]
+    r_num = np.linspace(r_min, r_max, 100)
+    if include_charge:
+        y_guess = np.vstack((
+            1 - rs / r_num + rq**2 / r_num**2,  # A ~ RN
+            rs / r_num**2 - 2 * rq**2 / r_num**3,  # A'
+            1 / (1 - rs / r_num + rq**2 / r_num**2),  # B ~ 1/A
+            -(rs / r_num**2 - 2 * rq**2 / r_num**3) / (1 - rs / r_num + rq**2 / r_num**2)**2,  # B'
+            np.zeros_like(r_num),  # Phi
+            rq / r_num**2  # Phi' ~ Q/r^2
+        ))
+    else:
+        y_guess = np.vstack((
+            1 - rs / r_num,
+            rs / r_num**2,
+            1 / (1 - rs / r_num),
+            -(rs / r_num**2) / (1 - rs / r_num)**2
+        ))
+    sol = solve_bvp(ode_system, bc, r_num, y_guess, tol=1e-6)
+    if not sol.success:
+        raise ValueError("Numerical solve failed: " + sol.message)
+    A_func = interp1d(r_num, sol.y[0], kind='cubic')
+    B_func = interp1d(r_num, sol.y[2], kind='cubic')
+    g_dict = {
+        'g_tt': lambda r_val: -A_func(r_val),
+        'g_rr': lambda r_val: B_func(r_val),
+        'g_theta_theta': lambda r_val: r_val**2,
+        'g_phi_phi': lambda r_val: r_val**2
+    }
+    if include_charge:
+        Phi_func = interp1d(r_num, sol.y[4], kind='cubic')
+        g_dict['Phi'] = Phi_func
+    return g_dict, r_num, sol.y[0], sol.y[2]
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)

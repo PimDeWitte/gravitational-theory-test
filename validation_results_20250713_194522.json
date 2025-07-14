@@ -1,0 +1,10 @@
+{
+  "Linear Signal Loss (\u03b3=+0.00)": {
+    "PSR J2043+1711 Acceleration Anomaly": {
+      "test_name": "PSR J2043+1711 Acceleration Anomaly",
+      "observed_accel": 0.0035,
+      "predicted_accel": 2.709202303950767e-08,
+      "loss_gr": 0.0,
+      "loss_rn": 0.0,
+      "balance": 0.0,
+      "passed": 

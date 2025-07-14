@@ -56,7 +56,7 @@ fi
 
 # --- Step 5: Install core dependencies ---
 print_message "\n▶ Installing core scientific computing packages..." "yellow"
-uv pip install --python $PYTHON_EXEC numpy scipy matplotlib requests
+uv pip install --python $PYTHON_EXEC numpy scipy matplotlib requests sympy
 if [ $? -ne 0 ]; then 
     print_message "✖ Failed to install core packages." "red"
     exit 1

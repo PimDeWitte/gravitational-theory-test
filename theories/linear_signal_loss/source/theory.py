@@ -20,6 +20,20 @@ class LinearSignalLoss(GravitationalTheory):
         rs = 2 * G_param * M_param / C_param**2
         # Ensure gamma is on same device as r
         gamma = torch.tensor(self.gamma, device=r.device, dtype=r.dtype)
-        degradation = gamma * (rs / r)
-        m = (1 - degradation) * (1 - rs / (r + 1e-10))
-        return -m, 1 / (m + 1e-10), r**2, torch.zeros_like(r) 
+        
+        # <reason>Fix metric to match feedback math: m = (1 - γ rs/r)(1 - rs/r) = 1 - (1+γ)rs/r + γ(rs/r)^2</reason>
+        # This expansion naturally produces RN-like behavior at γ=0.75
+        rs_over_r = rs / r
+        m = (1 - gamma * rs_over_r) * (1 - rs_over_r)
+        
+        # Equivalent to: m = 1 - (1 + gamma) * rs_over_r + gamma * rs_over_r**2
+        # At γ=0.75, this mimics RN's quadratic term for unification
+        
+        # Add small epsilon only for numerical stability in denominators
+        epsilon = 1e-10
+        g_tt = -m
+        g_rr = 1 / (m + epsilon)
+        g_pp = r**2
+        g_tp = torch.zeros_like(r)
+        
+        return g_tt, g_rr, g_pp, g_tp 

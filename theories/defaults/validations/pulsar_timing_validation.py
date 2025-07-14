@@ -123,7 +123,10 @@ class PulsarTimingValidation(ObservationalValidation):
         hist = hist.to(self.device)
         
         # New: Run GR baseline for comparison
-        from predefined_theories import Schwarzschild
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'baselines'))
+        from schwarzschild import Schwarzschild
         gr_theory = Schwarzschild()
         gr_y0_full = self.get_initial_conditions(gr_theory, r0, M_total)
         gr_y0_state = gr_y0_full[[0, 1, 2, 4]]

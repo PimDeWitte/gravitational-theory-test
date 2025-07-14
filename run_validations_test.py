@@ -6,9 +6,11 @@ Use this instead of full validations when debugging.
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'theories', 'defaults', 'baselines'))
 
 from run_validations import run_all_validations
-from predefined_theories import Schwarzschild, ReissnerNordstrom
+from schwarzschild import Schwarzschild
+from reissner_nordstrom import ReissnerNordstrom
 import torch
 
 # Quick test with reduced steps

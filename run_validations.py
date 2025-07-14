@@ -71,6 +71,16 @@ def run_all_validations(theories: List, device=None, dtype=None, verbose=False, 
             if validator_dir not in sys.path:
                 sys.path.insert(0, validator_dir)
             
+            # Imports first for scope - must happen before we reference them
+            import torch
+            import numpy as np
+            import base_theory
+            import geodesic_integrator
+            # Import baselines from proper location
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'theories', 'defaults', 'baselines'))
+            from schwarzschild import Schwarzschild
+            from reissner_nordstrom import ReissnerNordstrom
+            
             # Load the module
             spec = importlib.util.spec_from_file_location(module_name, filepath)
             module = importlib.util.module_from_spec(spec)
@@ -79,8 +89,14 @@ def run_all_validations(theories: List, device=None, dtype=None, verbose=False, 
             module.__dict__['torch'] = torch
             module.__dict__['np'] = np
             module.__dict__['numpy'] = np
+            module.__dict__['GravitationalTheory'] = base_theory.GravitationalTheory
+            module.__dict__['GeodesicIntegrator'] = geodesic_integrator.GeodesicIntegrator
+            module.__dict__['Schwarzschild'] = Schwarzschild
+            module.__dict__['ReissnerNordstrom'] = ReissnerNordstrom
+            
             # Ensure matplotlib is available
             try:
+                import matplotlib
                 import matplotlib.pyplot as plt
                 module.__dict__['plt'] = plt
                 module.__dict__['matplotlib'] = matplotlib
@@ -137,7 +153,8 @@ def load_theories_from_dir(theory_dir: str, include_baselines: bool = False) -> 
     if os.path.exists(source_dir):
         theory_files = [f for f in os.listdir(source_dir) if f.endswith('.py') and not f.startswith('__')]
         if not theory_files:
-            print(f'  No theory files found in source directory')
+            print(f'Warning: No theory files in {source_dir}—skipping. Check if baselines (e.g., Schwarzschild) need manual addition.')
+            # Optional: Add fallback to load defaults if critical
         for filename in theory_files:
             filepath = os.path.join(source_dir, filename)
             print(f'  Checking file: {filename}')
