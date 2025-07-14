@@ -97,7 +97,7 @@ A unified theory should perform well against BOTH baselines without explicitly i
 ## 📁 Project Structure
 
 ```
-gravity_compression/
+gravitational-theory-test/
 ├── setup_gpu.sh                    # Environment setup script
 ├── run_validation_tests.sh         # Quick validation runner
 ├── final_linear_validation_loss.sh # Linear signal loss experiment
@@ -117,6 +117,8 @@ so the total number of theory instances tested can exceed 100+ when all sweeps a
 ## 🔬 Key Discoveries
 
 ### 1. The Linear Signal Loss Finding
+
+Wrote a bit about my inspiration for the project, and building "the ultimate test for gravitational theories" here: https://www.pimdewitte.com/gravitational-theory-test/papers/003/003_not_reviewed.html
 
 The most striking discovery: when we degrade the gravitational signal linearly (like lossy compression), there's a "sweet spot" at γ=0.75 where the theory has equal loss to both pure gravity AND electromagnetism:
 
