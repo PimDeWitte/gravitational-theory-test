@@ -292,6 +292,14 @@ python theories/your_theory/validations/shapiro_delay.py
 python theories/your_theory/validations/gravitational_waves.py
 ```
 
+The repository ships with a tiny example pulsar timing file at
+`data/pulsar/PSR_J2043+1711_TOAs.csv`. The pulsar anomaly validation will load
+this sample data automatically. For full accuracy you should download the
+official **nanograv_15yr_narrowband_v1.0** release from [NANOGrav](https://data.nanograv.org/)
+and place `PSR_J2043+1711_TOAs.csv` (or the accompanying zip/tar archive) in the
+repository root. The validator will automatically extract and use it when
+present.
+
 ## Prediction and Validation Process
 
 Our framework transforms theoretical ideas into testable predictions through a systematic process:

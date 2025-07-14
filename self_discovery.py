@@ -1908,7 +1908,7 @@ def main() -> None:
                     return obj.tolist()
                 elif torch.is_tensor(obj):
                     return obj.cpu().numpy().tolist()
-                elif isinstance(obj, (np.bool_, np.bool8)):
+                elif isinstance(obj, (np.bool_, bool)):
                     return bool(obj)
                 elif isinstance(obj, np.integer):
                     return int(obj)
