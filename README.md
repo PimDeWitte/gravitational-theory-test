@@ -1,4 +1,4 @@
-This project tests gravitational theories by
+## 🚀 Testing Gravitational Theories: Towards Automated Physics Research
 1. Treating gravitational theories as "decoders" that reconstruct reality from compressed information
 2. Measuring how well each theory reproduces real physics (their "decoding loss")
 3. Using orbital mechanics as the test - because orbits are extremely sensitive to spacetime geometry
@@ -8,7 +8,7 @@ Think of it like testing video codecs - a good codec reproduces the original per
 ![image](https://github.com/user-attachments/assets/d04e47de-1d93-4a42-9080-f7c5430f704b)
 
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.8+ 
