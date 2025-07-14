@@ -16,8 +16,8 @@ Think of it like testing video codecs - a good codec reproduces the original per
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/pimdewitte/gravity-compression.git
-cd gravity-compression
+git clone https://github.com/pimdewitte/gravitational-theory-test.git
+cd gravitational-theory-test
 
 # Run the setup script (creates Python virtual environment)
 ./setup_gpu.sh
