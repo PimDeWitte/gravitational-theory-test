@@ -8,6 +8,7 @@ from geodesic_integrator import GeodesicIntegrator
 import os
 import json
 import pandas as pd  # For loading NANOGrav CSV
+import zipfile
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'baselines'))
 from schwarzschild import Schwarzschild
@@ -18,14 +19,28 @@ class PulsarAnomalyValidation(ObservationalValidation):
     
     def __init__(self, device=None, dtype=None):
         super().__init__(device, dtype)
-        # Dataset path relative to repository root. A small sample CSV is
-        # included under ``data/pulsar`` so validations can run in testing
-        # environments without requiring the full NANOGrav release.
-        self.data_path = os.path.join(
-            os.path.dirname(__file__),
-            '..', '..', '..', 'data', 'pulsar', 'PSR_J2043+1711_TOAs.csv'
-        )
-        # <reason>Fallback for dev: If data missing, synth TOAs with anomaly (e.g., accel deviation) to test unification—Einstein's asymmetry could cause such noise as geometric 'wobble' in residuals.</reason>
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+
+        # Prefer the official 15yr dataset if present (either extracted or zipped)
+        full_csv = os.path.join(repo_root, "nanograv_15yr_narrowband_v1.0", "PSR_J2043+1711_TOAs.csv")
+        full_zip = os.path.join(repo_root, "nanograv_15yr_narrowband_v1.0.zip")
+
+        if os.path.exists(full_csv):
+            self.data_path = full_csv
+        elif os.path.exists(full_zip) and zipfile.is_zipfile(full_zip):
+            with zipfile.ZipFile(full_zip) as zf:
+                for name in zf.namelist():
+                    if name.endswith("PSR_J2043+1711_TOAs.csv"):
+                        extract_dir = os.path.join(repo_root, "data", "pulsar")
+                        os.makedirs(extract_dir, exist_ok=True)
+                        zf.extract(name, path=extract_dir)
+                        self.data_path = os.path.join(extract_dir, os.path.basename(name))
+                        break
+                else:
+                    self.data_path = os.path.join(repo_root, "data", "pulsar", "PSR_J2043+1711_TOAs.csv")
+        else:
+            self.data_path = os.path.join(repo_root, "data", "pulsar", "PSR_J2043+1711_TOAs.csv")
+
         self.use_synthetic = not os.path.exists(self.data_path)
         if self.use_synthetic:
             print('Warning: Real data not found—using synthetic TOAs for testing. Download NANOGrav data for real validation.')

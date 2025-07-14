@@ -20,10 +20,30 @@ from schwarzschild import Schwarzschild
 from reissner_nordstrom import ReissnerNordstrom
 
 # Import other validators from same directory
-from .mercury_perihelion_validation import MercuryPerihelionValidation
-from .pulsar_anomaly_validation import PulsarAnomalyValidation
-from .pulsar_timing_validation import PulsarTimingValidation
-from .cassini_ppn_validation import CassiniValidation
+# Support execution both as part of a package and as a loose module
+try:
+    from .mercury_perihelion_validation import MercuryPerihelionValidation
+    from .pulsar_anomaly_validation import PulsarAnomalyValidation
+    from .pulsar_timing_validation import PulsarTimingValidation
+    from .cassini_ppn_validation import CassiniValidation
+except ImportError:  # pragma: no cover - fallback for direct execution
+    from mercury_perihelion_validation import MercuryPerihelionValidation
+    from pulsar_anomaly_validation import PulsarAnomalyValidation
+    from pulsar_timing_validation import PulsarTimingValidation
+    from cassini_ppn_validation import CassiniValidation
+
+
+def _json_safe(obj):
+    """Helper to serialize numpy types to JSON."""
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.integer, int)):
+        return int(obj)
+    if isinstance(obj, (np.floating, float)):
+        return float(obj)
+    if isinstance(obj, (np.bool_, bool)):
+        return bool(obj)
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
 class UnificationSymmetryValidation(ObservationalValidation):
@@ -163,7 +183,7 @@ class UnificationSymmetryValidation(ObservationalValidation):
         
         json_path = os.path.join(results_dir, f'unification_γ{self.target_gamma}_{timestamp}.json')
         with open(json_path, 'w') as f:
-            json.dump(summary, f, indent=2)
+            json.dump(summary, f, indent=2, default=_json_safe)
             
         if verbose:
             print(f"      Results saved to {json_path}")
