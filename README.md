@@ -5,6 +5,9 @@ This project tests gravitational theories by
 
 Think of it like testing video codecs - a good codec reproduces the original perfectly, while a bad one introduces artifacts. Here, General Relativity is our "lossless codec" baseline.
 
+![image](https://github.com/user-attachments/assets/d04e47de-1d93-4a42-9080-f7c5430f704b)
+
+
 ## 🚀 Quick Start
 
 ### Prerequisites
