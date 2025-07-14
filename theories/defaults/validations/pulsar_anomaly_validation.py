@@ -18,7 +18,13 @@ class PulsarAnomalyValidation(ObservationalValidation):
     
     def __init__(self, device=None, dtype=None):
         super().__init__(device, dtype)
-        self.data_path = 'path/to/nanograv_15yr_data/PSR_J2043+1711_TOAs.csv'  # Update with actual path
+        # Dataset path relative to repository root. A small sample CSV is
+        # included under ``data/pulsar`` so validations can run in testing
+        # environments without requiring the full NANOGrav release.
+        self.data_path = os.path.join(
+            os.path.dirname(__file__),
+            '..', '..', '..', 'data', 'pulsar', 'PSR_J2043+1711_TOAs.csv'
+        )
         # <reason>Fallback for dev: If data missing, synth TOAs with anomaly (e.g., accel deviation) to test unification—Einstein's asymmetry could cause such noise as geometric 'wobble' in residuals.</reason>
         self.use_synthetic = not os.path.exists(self.data_path)
         if self.use_synthetic:

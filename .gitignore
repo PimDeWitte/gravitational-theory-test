@@ -68,12 +68,15 @@ tb_logs/
 
 # Data files
 data/
+!data/
+!data/pulsar/
 datasets/
 *.csv
 .json
 *.h5
 *.hdf5
 *.mat
+!data/pulsar/PSR_J2043+1711_TOAs.csv
 
 # Temporary files
 tmp/
