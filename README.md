@@ -114,28 +114,7 @@ unification-engine/
 **Note**: Many theories include parameter sweeps. For example, `LinearSignalLoss` tests 5 different γ values, 
 so the total number of theory instances tested can exceed 100+ when all sweeps are included.
 
-## 🔬 Key Discoveries
-
-### 1. The Linear Signal Loss Finding
-
-Wrote a bit about my inspiration for the project, and building "the ultimate test for gravitational theories" here: https://www.pimdewitte.com/unification-engine/papers/003/003_not_reviewed.html
-
-The most striking discovery: when we degrade the gravitational signal linearly (like lossy compression), there's a "sweet spot" at γ=0.75 where the theory has equal loss to both pure gravity AND electromagnetism:
-
-```
-γ = 0.00 (Pure GR)          γ = 0.75 (Sweet Spot)         γ = 1.00 (Maximum degradation)
-      │                              │                               │
-      ▼                              ▼                               ▼
-Loss vs GR:  0.000              Loss vs GR:  0.153              Loss vs GR:  0.133
-Loss vs RN:  0.269              Loss vs RN:  0.161              Loss vs RN:  0.133
-                                     │
-                              UNIFIED REGIME
-                         (Equal distance to both!)
-```
-
-This suggests that controlled information loss might be key to unification.
-
-### 2. AI-Assisted Theory Discovery
+### AI-Assisted Theory Discovery
 
 The framework includes an AI loop that:
 - Learns from previous results
@@ -222,15 +201,7 @@ python self_discovery.py --self-discover --initial-prompt "explore torsion-based
 # Run specific experiment
 python self_discovery.py --final --manual-theories-file linear_signal_loss.py
 ```
-## 📄 Citation
 
-```bibtex
-@article{dewitte2025compression,
-  title={The Compression Hypothesis: Gravity as Information Compression},
-  author={de Witte, Pim},
-  year={2025}
-}
-```
 
 ## 🚧 Future Work
 
@@ -239,3 +210,23 @@ python self_discovery.py --final --manual-theories-file linear_signal_loss.py
 - Add quantum noise and measure stability
 
 ---
+
+
+### Inspiration for the project
+
+Wrote a bit about my inspiration for the project - which was to apply learning techniques in world modeling to pyhsics, and building "the ultimate test for gravitational theories" here: https://www.pimdewitte.com/unification-engine/papers/003/003_not_reviewed.html
+
+The most striking discovery: when we degrade the gravitational signal linearly (like lossy compression), there's a "sweet spot" at γ=0.75 where the theory has equal loss to both pure gravity AND electromagnetism:
+
+```
+γ = 0.00 (Pure GR)          γ = 0.75 (Sweet Spot)         γ = 1.00 (Maximum degradation)
+      │                              │                               │
+      ▼                              ▼                               ▼
+Loss vs GR:  0.000              Loss vs GR:  0.153              Loss vs GR:  0.133
+Loss vs RN:  0.269              Loss vs RN:  0.161              Loss vs RN:  0.133
+                                     │
+                              UNIFIED REGIME
+                         (Equal distance to both!)
+```
+
+This suggests that controlled information loss might be key to unification.
