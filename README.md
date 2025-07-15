@@ -229,4 +229,4 @@ Loss vs RN:  0.269              Loss vs RN:  0.161              Loss vs RN:  0.1
                          (Equal distance to both!)
 ```
 
-This suggests that controlled information loss might be key to unification.
+tbd what means... feel free to help find out ;)
