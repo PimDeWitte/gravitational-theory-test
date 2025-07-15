@@ -65,18 +65,6 @@ python self_discovery.py --test --manual-theories-file my_theories.py
 
 ## 🏗️ How It Works
 
-### The Core Concept
-
-```
-High-Dimensional          GRAVITY              Low-Dimensional
-Quantum State      ═══════════════════▶      Classical Spacetime
-(Hidden reality)         (Decoder)            (What we observe)
-      │                                              │
-      │              Theory = g_μν                   │
-      └──────────── Decoding Loss ──────────────────┘
-                 "How well does it work?"
-```
-
 ### The Pipeline
 
 1. **Define a Theory**: Each theory specifies how spacetime curves (the metric tensor)
@@ -215,6 +203,17 @@ python self_discovery.py --final --manual-theories-file linear_signal_loss.py
 ### Inspiration for the project
 
 Wrote a bit about my inspiration for the project - which was to apply learning techniques in world modeling to pyhsics, and building "the ultimate test for gravitational theories" here: https://www.pimdewitte.com/unification-engine/papers/003/003_not_reviewed.html
+
+
+```
+High-Dimensional          GRAVITY              Low-Dimensional
+Quantum State      ═══════════════════▶      Classical Spacetime
+(Hidden reality)         (Decoder)            (What we observe)
+      │                                              │
+      │              Theory = g_μν                   │
+      └──────────── Decoding Loss ──────────────────┘
+                 "How well does it work?"
+```
 
 The most striking discovery: when we degrade the gravitational signal linearly (like lossy compression), there's a "sweet spot" at γ=0.75 where the theory has equal loss to both pure gravity AND electromagnetism:
 
